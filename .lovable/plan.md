@@ -1,566 +1,485 @@
-# VyaparSetu — Technical Architecture & Design Blueprint (v1.0)
+# VyaparSetu — Implementation Roadmap (v1.0)
 
-Stack: **TanStack Start v1 (React 19) + Vite 7 + Tailwind v4 + shadcn/ui + Lovable Cloud (Supabase)**. No code — planning only.
+27 dependency-ordered milestones. Each is scoped to a single Lovable build prompt. Stack assumed from Prompts 1–2 (TanStack Start + Lovable Cloud + Tailwind v4 + shadcn/ui).
+
+**Legend per milestone:** Obj · Feat · New Comp · Reuse · DB · Cloud · API · State · Validation · Test · Accept · Deps · Risks · Deliverables.
 
 ---
 
-## PART A — SYSTEM ARCHITECTURE
+## M1 — Project Setup
+- **Objective:** Bootstrap a clean, typed, lint-clean TanStack Start app with routing + query wired.
+- **Features:** Router shell, root layout, providers, error/404 boundaries, base head metadata, favicon, health check.
+- **New Components:** `AppShell`, `Header` (marketing), `Footer`, `NotFound`, `RootError`, `Logo`.
+- **Reuse:** shadcn ui primitives.
+- **DB Changes:** none.
+- **Cloud (Supabase):** none yet.
+- **API:** `/api/public/health.ts` route.
+- **State:** `QueryClient` in router context, `defaultPreloadStaleTime: 0`.
+- **Validation:** Zod installed, base `lib/validators.ts` scaffold.
+- **Testing:** Type-check passes, dev server boots, `/` renders, `/does-not-exist` shows 404, `/api/public/health` → 200.
+- **Acceptance:** No placeholder blank page; brand name/title in head; router preloads on intent.
+- **Dependencies:** none.
+- **Risks:** Bad router setup blocks everything.
+- **Deliverables:** Working skeleton repo.
 
-### 1. Folder Structure
+## M2 — Design System
+- **Objective:** Ship tokens, typography, and core primitives per Prompt 2 §C.
+- **Features:** Color tokens (oklch), fonts loaded via `<link>` in `__root.tsx`, dark mode, spacing, radii, gradients, shadows, motion utilities.
+- **New Components:** `Button` variants, `Card`, `Badge`, `Alert`, `Dialog`, `Sheet`, `Drawer`, `Input`, `Select`, `Textarea`, `Checkbox`, `RadioGroup`, `Switch`, `Tabs`, `Tooltip`, `Toast (sonner)`, `Skeleton`, `EmptyState`, `PageHeader`, `StatusPill`, `KpiCard`, `DataTable`, `Stepper`.
+- **Reuse:** shadcn where available.
+- **DB:** none.
+- **Cloud:** none.
+- **API:** none.
+- **State:** ThemeProvider (light/dark/system).
+- **Validation:** WCAG AA contrast check on token pairs.
+- **Testing:** Storybook-style demo route `/legal/design-preview` (dev-only) shows all primitives; motion respects reduced-motion.
+- **Acceptance:** No hardcoded colors in components; all tokens in `styles.css`.
+- **Dependencies:** M1.
+- **Risks:** Token drift later if not enforced.
+- **Deliverables:** Reusable UI kit.
 
-```text
-src/
-├─ routes/                        # File-based routing (TanStack)
-│  ├─ __root.tsx                  # Root shell, providers, head, auth listener
-│  ├─ index.tsx                   # Landing
-│  ├─ marketplace.tsx             # Marketplace layout (<Outlet/>)
-│  ├─ marketplace.index.tsx       # Catalog grid
-│  ├─ marketplace.category.$slug.tsx
-│  ├─ marketplace.search.tsx
-│  ├─ product.$id.tsx
-│  ├─ supplier.$id.tsx
-│  ├─ auth.tsx                    # Login / OTP / signup (public)
-│  ├─ reset-password.tsx
-│  ├─ onboarding.tsx              # Business registration wizard (public but session-required)
-│  ├─ legal.terms.tsx / legal.privacy.tsx
-│  ├─ _authenticated/
-│  │  ├─ route.tsx                # Integration-managed auth gate (ssr:false)
-│  │  ├─ dashboard.tsx            # Role-aware dashboard router
-│  │  ├─ cart.tsx
-│  │  ├─ checkout.tsx
-│  │  ├─ orders.index.tsx
-│  │  ├─ orders.$id.tsx           # Order detail + tracking
-│  │  ├─ notifications.tsx
-│  │  ├─ finance.index.tsx        # Ledger, credit, payouts
-│  │  ├─ profile.tsx
-│  │  ├─ settings.tsx
-│  │  ├─ seller/                  # Manufacturer / Distributor
-│  │  │  ├─ products.index.tsx
-│  │  │  ├─ products.new.tsx
-│  │  │  ├─ products.$id.edit.tsx
-│  │  │  ├─ orders.index.tsx
-│  │  │  ├─ analytics.tsx
-│  │  │  └─ promotions.tsx
-│  │  └─ admin/                   # RBAC-gated inside beforeLoad
-│  │     ├─ index.tsx
-│  │     ├─ kyc.tsx
-│  │     ├─ users.tsx
-│  │     ├─ catalog-moderation.tsx
-│  │     ├─ disputes.tsx
-│  │     ├─ payouts.tsx
-│  │     └─ cms.tsx
-│  └─ api/public/
-│     ├─ webhooks.payment.ts
-│     ├─ webhooks.logistics.ts
-│     └─ health.ts
-├─ components/
-│  ├─ ui/                         # shadcn primitives
-│  ├─ layout/                     # AppShell, Header, Footer, Sidebar, MobileNav
-│  ├─ marketplace/                # ProductCard, TierPriceTable, MoqBadge, Filters
-│  ├─ orders/                     # OrderTimeline, StatusPill, InvoiceViewer
-│  ├─ cart/                       # CartLine, SellerGroup, Summary
-│  ├─ seller/                     # CatalogTable, BulkUploader, PricingMatrix
-│  ├─ admin/                      # KycReviewer, DisputeCard, PayoutRun
-│  ├─ finance/                    # LedgerTable, CreditMeter, RepaymentSchedule
-│  ├─ common/                     # EmptyState, ErrorState, DataTable, PageHeader
-│  └─ brand/                      # Logo, VerifiedBadge, TrustBadges
-├─ features/                      # Feature-scoped hooks, queries, schemas
-│  ├─ auth/  catalog/  cart/  orders/  payments/  credit/
-│  ├─ kyc/  notifications/  admin/  analytics/  logistics/
-├─ lib/
-│  ├─ *.functions.ts              # createServerFn modules (client-safe)
-│  ├─ *.server.ts                 # server-only helpers (never imported by components)
-│  ├─ query-keys.ts               # Central query key factory
-│  ├─ query-options.ts            # queryOptions() factories
-│  ├─ formatters.ts               # ₹, GST, dates, phone
-│  ├─ validators.ts               # Zod schemas (GSTIN, PAN, IFSC, HSN)
-│  ├─ rbac.ts                     # Role/permission helpers
-│  ├─ error-page.ts / error-capture.ts / lovable-error-reporting.ts
-│  └─ utils.ts
-├─ hooks/                         # Cross-feature reusable hooks
-├─ integrations/supabase/         # Managed client, auth-middleware, types
-├─ styles.css                     # Tailwind v4 + tokens
-├─ router.tsx  server.ts  start.ts
+## M3 — Authentication
+- **Objective:** Sign up / sign in / sign out / reset via Lovable Cloud + Google OAuth.
+- **Features:** Email+password, Google (Lovable broker), forgot & reset password page, session listener, sign-in affordance in header.
+- **New Components:** `AuthPage`, `SignInForm`, `SignUpForm`, `ForgotPasswordForm`, `ResetPasswordPage`, `AccountMenu`.
+- **Reuse:** M2 primitives.
+- **DB:** `profiles` table + trigger auto-create on signup.
+- **Cloud:** Enable Lovable Cloud; enable Email + Google; HIBP on; configure social auth for Google.
+- **API:** `getMyProfile` server fn (`requireSupabaseAuth`).
+- **State:** Root `onAuthStateChange` filtered; sign-out hygiene sequence.
+- **Validation:** Email format, password ≥8, HIBP.
+- **Testing:** Signup → email flow, login, wrong password error, reset link works, Google OAuth, sign-out clears cache & redirects.
+- **Acceptance:** Header reflects session; managed `_authenticated/route.tsx` present.
+- **Dependencies:** M2.
+- **Risks:** OAuth redirect misconfig; forgetting `/reset-password`.
+- **Deliverables:** Working auth surface.
+
+## M4 — Business Registration & KYC intake
+- **Objective:** Multi-step onboarding to create a business + upload KYC docs.
+- **Features:** Role select, business form (GSTIN/PAN/address), KYC uploads, bank details, submit for review.
+- **New Components:** `OnboardingWizard`, `RoleSelector`, `BusinessForm`, `KycUploader`, `BankForm`, `ReviewSubmitStep`, `KycStatusBanner`.
+- **Reuse:** Stepper, Form primitives, DocumentUploader.
+- **DB:** `businesses`, `business_members`, `user_roles` (+enum `app_role`), `kyc_documents`, `bank_accounts`, `has_role()` fn.
+- **Cloud:** `kyc-docs` (private) + `bank-proofs` bucket; RLS + GRANTs; trigger to insert default `retailer` role on membership.
+- **API:** `upsertBusinessDraft`, `uploadKycDoc`, `submitForReview`, `getMyBusinesses`.
+- **State:** `useCurrentBusiness` context.
+- **Validation:** GSTIN checksum, PAN Luhn, IFSC, pincode.
+- **Testing:** Draft save/resume, file size/type limits, submit toggles status to `pending`.
+- **Acceptance:** New user reaches dashboard with "KYC pending" banner; docs land in private bucket.
+- **Dependencies:** M3.
+- **Risks:** Storage RLS misconfig exposing PII.
+- **Deliverables:** Verified-business intake pipeline.
+
+## M5 — User Profile
+- **Objective:** Manage personal profile, business switching, members.
+- **Features:** Edit profile, avatar upload, business switcher, invite members with role.
+- **New Components:** `ProfilePage`, `AvatarUploader`, `BusinessSwitcher`, `MembersTable`, `InviteMemberDialog`.
+- **Reuse:** M2 forms, dialogs.
+- **DB:** `business_invitations`, RLS for `business_members`.
+- **Cloud:** `avatars` public bucket.
+- **API:** `updateProfile`, `switchBusiness`, `inviteMember`, `respondInvitation`, `listMembers`.
+- **State:** Active business persisted in profile + query cache.
+- **Validation:** Email invites, role enum.
+- **Testing:** Switch business updates all queries; invite email sent; invitee joins.
+- **Acceptance:** Global business context drives downstream queries.
+- **Dependencies:** M4.
+- **Risks:** Cross-tenant leakage on switch (cache clear required).
+- **Deliverables:** Multi-tenant identity UX.
+
+## M6 — Marketplace Shell
+- **Objective:** Public marketplace layout with grid & sort (no filters yet).
+- **Features:** `/marketplace`, product grid, sort, pagination, promoted rail.
+- **New Components:** `MarketplaceLayout`, `ProductCard`, `SortBar`, `Pagination`, `PromotedRail`.
+- **Reuse:** Card, Badge, Skeleton.
+- **DB:** none new (uses catalog from M8 once seeded; use seed fixtures now).
+- **Cloud:** `product-images` public bucket.
+- **API:** `listProducts({sort,page})` public via server publishable client.
+- **State:** URL search params for sort/page.
+- **Validation:** Query param schemas.
+- **Testing:** SSR renders grid, preload on intent works, pagination updates URL.
+- **Acceptance:** Public route indexable; meta tags set.
+- **Dependencies:** M2 (M8 provides real data; seed acceptable interim).
+- **Risks:** Rendering without live catalog — use fixtures & swap.
+- **Deliverables:** Public catalog skeleton.
+
+## M7 — Categories
+- **Objective:** Category tree + landing pages.
+- **Features:** `/marketplace/category/$slug`, breadcrumbs, sub-chips.
+- **New Components:** `CategoryHero`, `SubcategoryChips`, `Breadcrumbs`, `CategoryNav`.
+- **Reuse:** ProductCard, ProductGrid.
+- **DB:** `categories` (parent_id, slug, level) with seed.
+- **Cloud:** public SELECT RLS on categories.
+- **API:** `getCategory(slug)`, `getCategoryTree`.
+- **State:** URL-driven category filter.
+- **Validation:** Slug regex.
+- **Testing:** Deep link works; unknown slug → 404 route.
+- **Acceptance:** Each category has unique head() metadata.
+- **Dependencies:** M6.
+- **Risks:** N+1 on tree fetch — cache.
+- **Deliverables:** Category browsing.
+
+## M8 — Product Catalog (Seller CRUD)
+- **Objective:** Sellers list/create/edit products with variants + tier pricing.
+- **Features:** `/seller/products`, new/edit forms, image upload, tier pricing matrix, MOQ, HSN, GST%, publish flow.
+- **New Components:** `CatalogTable`, `ProductForm`, `VariantEditor`, `PricingMatrix`, `MoqInput`, `BulkImageUploader`, `PublishToggle`.
+- **Reuse:** DataTable, Forms.
+- **DB:** `products`, `product_variants`, `price_tiers`, `brands`, `inventory`, `warehouses`; enums; RLS: seller CRUD, public read `status='live'`.
+- **Cloud:** GRANTs; triggers to auto-audit product changes.
+- **API:** `createProduct`, `updateProduct`, `publishProduct`, `listMyProducts`, `uploadProductImage`.
+- **State:** Query cache keyed by seller + status.
+- **Validation:** HSN, GST %, MOQ ≥1, unique SKU per seller, tier prices monotonically decreasing.
+- **Testing:** Draft → publish gates on KYC-approved; RLS blocks other sellers.
+- **Acceptance:** Public marketplace now shows real live products.
+- **Dependencies:** M5, M7.
+- **Risks:** Complex pricing UX; validate tier ordering.
+- **Deliverables:** End-to-end seller catalog.
+
+## M9 — Product Details Page
+- **Objective:** Rich PDP with tier pricing, MOQ, variants, reviews.
+- **Features:** `/product/$id`, gallery, variant selector, qty stepper with live tier price, pincode ETA, tabs, related products, sticky mobile CTA.
+- **New Components:** `ImageGallery`, `TierPriceTable`, `VariantSelector`, `QtyStepper`, `PincodeCheck`, `PdpTabs`, `RelatedRail`, `StickyBuyBar`.
+- **Reuse:** Card, Badge, VerifiedBadge.
+- **DB:** `reviews` table (Phase 1 read-only display).
+- **Cloud:** none.
+- **API:** `getProduct(id)`, `getRelated(id)`, `checkPincode`.
+- **State:** Local selection state; server-fetched product.
+- **Validation:** Qty ≥ MOQ, variant required.
+- **Testing:** Tier price recalculates; SSR meta with product title/og image.
+- **Acceptance:** Add-to-cart CTA present but gated to auth (M13).
+- **Dependencies:** M8.
+- **Risks:** Image LCP performance.
+- **Deliverables:** Conversion-ready PDP.
+
+## M10 — Search
+- **Objective:** Fast typo-tolerant text search.
+- **Features:** `/marketplace/search`, autocomplete, results, zero-state, recent searches.
+- **New Components:** `SearchInput`, `SuggestionsList`, `ZeroResults`, `RecentSearchesChip`.
+- **Reuse:** ProductGrid.
+- **DB:** `product_search_tsv` column + GIN index + trigram; `recent_searches` (per user, optional).
+- **Cloud:** RLS unchanged.
+- **API:** `autocomplete(q)`, `searchProducts({q,...})`.
+- **State:** Debounced input; URL `q` param.
+- **Validation:** Query length ≥1, sanitize.
+- **Testing:** Typos matched; ranking sane; SSR indexable.
+- **Acceptance:** P95 <400ms on seeded data.
+- **Dependencies:** M8.
+- **Risks:** Vernacular tokens; roadmap Meilisearch later.
+- **Deliverables:** First-class search.
+
+## M11 — Filters
+- **Objective:** Faceted filters on marketplace/category/search.
+- **Features:** Category, price, MOQ, brand, location, verified-only, rating; active chips; sheet on mobile.
+- **New Components:** `FiltersSidebar`, `FilterSheet`, `RangeSlider`, `FacetGroup`, `ActiveFilterChips`.
+- **Reuse:** Checkbox, Slider.
+- **DB:** materialized facet counts view (optional).
+- **Cloud:** none.
+- **API:** `searchProducts` extended with filter args + facets.
+- **State:** URL-driven; typed via TanStack search validators.
+- **Validation:** Numeric ranges, whitelist enums.
+- **Testing:** Combining filters produces correct results; clear-all works; deep-linkable.
+- **Acceptance:** Zero jitter on filter change; SSR respects filters.
+- **Dependencies:** M6, M10.
+- **Risks:** Facet count perf on large catalogs.
+- **Deliverables:** Production-grade discovery.
+
+## M12 — Wishlist / Saved Lists
+- **Objective:** Buyers save products/suppliers for later.
+- **Features:** Save from card & PDP; `/wishlist`; list management.
+- **New Components:** `SaveButton`, `WishlistPage`, `SavedListCard`.
+- **Reuse:** ProductCard, EmptyState.
+- **DB:** `saved_lists`, `saved_list_items`; RLS owner-only.
+- **Cloud:** GRANTs.
+- **API:** `toggleSaved`, `listSaved`, `createList`.
+- **State:** Optimistic toggle in query cache.
+- **Validation:** Product exists.
+- **Testing:** Toggle persists; unauth prompt to login.
+- **Acceptance:** Save works from any surface.
+- **Dependencies:** M9.
+- **Risks:** Minor.
+- **Deliverables:** Wishlist feature.
+
+## M13 — Cart
+- **Objective:** Multi-seller cart with tier pricing snapshot.
+- **Features:** `/cart`, seller groups, qty change, remove, coupon, summary.
+- **New Components:** `CartPage`, `SellerGroupCard`, `CartLine`, `CartSummary`, `CouponInput`, `MoqWarning`.
+- **Reuse:** QtyStepper.
+- **DB:** `carts`, `cart_items`; RLS owner.
+- **Cloud:** GRANTs; SECURITY DEFINER `add_to_cart` fn respecting MOQ and price snapshot.
+- **API:** `getCart`, `addToCart`, `updateCartItem`, `removeCartItem`, `applyCoupon`.
+- **State:** Zustand slice for mini-cart badge; server truth via query.
+- **Validation:** Qty ≥ MOQ per seller, stock availability.
+- **Testing:** Below-MOQ blocks checkout; price updates live; coupon applied server-side.
+- **Acceptance:** Cart survives sessions; per-seller subtotals correct.
+- **Dependencies:** M9.
+- **Risks:** Price drift vs snapshot; recompute at checkout.
+- **Deliverables:** Robust cart.
+
+## M14 — Checkout
+- **Objective:** Convert cart to draft orders per seller.
+- **Features:** Address, shipping options, payment method selection, review, place order (Prepaid + credit-days for MVP).
+- **New Components:** `CheckoutStepper`, `AddressPicker`, `AddressForm`, `ShippingOptions`, `PaymentMethodSelector`, `OrderReview`, `TrustFootnote`.
+- **Reuse:** Stepper, Forms, CartSummary.
+- **DB:** `addresses`, draft `orders`, `order_items`, `order_events`; SECURITY DEFINER `place_order`.
+- **Cloud:** RLS: buyer + seller members; GRANTs.
+- **API:** `listAddresses`, `saveAddress`, `getShippingOptions`, `createOrderIntent`.
+- **State:** Checkout wizard state (Zustand or route search).
+- **Validation:** Address complete, KYC approved (retailer), MOQ, stock.
+- **Testing:** Multi-seller cart → multiple orders; KYC-pending blocks with clear CTA.
+- **Acceptance:** Order rows created atomically; audit event logged.
+- **Dependencies:** M13.
+- **Risks:** Race with stock; use row locks in SQL fn.
+- **Deliverables:** Checkout MVP.
+
+## M15 — Payments
+- **Objective:** Prepaid payment via gateway with webhook reconciliation.
+- **Features:** UPI/Card/NetBanking, escrow hold flag, retry, refund initiation stub.
+- **New Components:** `PaymentModal`, `PaymentStatus`, `RetryPaymentBanner`.
+- **Reuse:** Alerts, Dialogs.
+- **DB:** `payments`, `webhook_failures` (DLQ), idempotency table.
+- **Cloud:** Secrets `PAYMENT_KEY_ID`, `PAYMENT_KEY_SECRET`, `WEBHOOK_SECRET`; server route `/api/public/webhooks/payment.ts` with HMAC verify.
+- **API:** `createPaymentIntent`, `confirmPayment`, `initiateRefund`; webhook route.
+- **State:** Query invalidation on payment.status change.
+- **Validation:** HMAC signature, amount match, order ownership.
+- **Testing:** Success flow, failure retry, duplicate webhook idempotent, signature failure rejected.
+- **Acceptance:** Order transitions `PLACED → PAID` only via verified webhook.
+- **Dependencies:** M14.
+- **Risks:** Webhook reliability; require idempotency keys.
+- **Deliverables:** End-to-end prepaid payments.
+
+## M16 — Orders
+- **Objective:** Buyer + seller order lists and state transitions.
+- **Features:** `/orders`, `/seller/orders`, seller accept/reject, dispatch entry, cancellation.
+- **New Components:** `OrdersTable`, `OrderCard`, `AcceptRejectDialog`, `DispatchDialog`, `CancelOrderDialog`.
+- **Reuse:** DataTable, StatusPill, Filters.
+- **DB:** Order state machine fn `advance_order_status(order_id, to_status, reason)`; RLS; triggers append to `order_events`.
+- **Cloud:** Notifications hook on transitions (M19).
+- **API:** `listOrders(scope)`, `acceptOrder`, `rejectOrder`, `markDispatched`, `cancelOrder`.
+- **State:** Server truth; optimistic status pill.
+- **Validation:** Only allowed transitions; role check per action.
+- **Testing:** State-machine matrix; RLS negatives.
+- **Acceptance:** Both roles operate orders end-to-end.
+- **Dependencies:** M15.
+- **Risks:** Invalid transitions; central fn enforces.
+- **Deliverables:** Order operations.
+
+## M17 — Order Tracking & Invoice
+- **Objective:** Detail page with timeline, shipment, invoice PDF.
+- **Features:** `/orders/$id`, timeline, shipment tracker (manual carrier + AWB in Phase 1), invoice download, chat placeholder.
+- **New Components:** `OrderTimeline`, `ShipmentTracker`, `InvoiceViewer`, `PodPreview`.
+- **Reuse:** Card, Tabs, StatusPill.
+- **DB:** `shipments`, `invoices`; storage buckets `invoices` (private), `pod` (private).
+- **Cloud:** Server fn to generate invoice PDF (server-safe lib) & sign URL.
+- **API:** `getOrder(id)`, `updateShipment`, `generateInvoice`.
+- **State:** Realtime channel on `orders` for status.
+- **Validation:** AWB format optional; GST breakup correctness.
+- **Testing:** Invoice PDF opens with signed URL; timeline reflects events.
+- **Acceptance:** Buyer + seller can trace full lifecycle.
+- **Dependencies:** M16.
+- **Risks:** PDF generation in Worker runtime — use pure JS lib.
+- **Deliverables:** Tracking + invoicing.
+
+## M18 — Dashboard
+- **Objective:** Role-aware home for signed-in users.
+- **Features:** Retailer widgets (reorder, active orders, credit meter placeholder, notifications preview); Seller widgets (GMV, funnel, low stock, top SKUs, payouts).
+- **New Components:** `DashboardShell` (sidebar+topbar), `WidgetGrid`, `KpiCard`, `GmvChart`, `OrdersFunnelChart`, `LowStockList`, `TopSkusList`, `ReorderRail`.
+- **Reuse:** Sidebar (shadcn), Cards.
+- **DB:** aggregate SQL views (`v_seller_gmv_daily`, `v_low_stock`).
+- **Cloud:** none new.
+- **API:** `getDashboard({range})` role-aware.
+- **State:** Range toggle in URL.
+- **Validation:** Range enum.
+- **Testing:** Numbers match SQL views; empty states.
+- **Acceptance:** Sidebar navigation, collapsible, active route highlighted.
+- **Dependencies:** M16 (+M5 for role).
+- **Risks:** Chart perf on large ranges.
+- **Deliverables:** Post-login home.
+
+## M19 — Notifications
+- **Objective:** In-app + email notifications with preferences.
+- **Features:** Bell w/ realtime unread count, `/notifications`, preferences, email templates for KYC, order events, payment status.
+- **New Components:** `NotificationBell`, `NotificationList`, `NotificationItem`, `PreferencesForm`.
+- **Reuse:** EmptyState.
+- **DB:** `notifications`, `notification_preferences`; triggers to insert on order/payment/kyc events.
+- **Cloud:** Email transport via provider (Lovable AI Gateway not applicable; use Resend/Postmark secret) — background server fn dispatch.
+- **API:** `listNotifications`, `markRead`, `markAllRead`, `updatePreferences`.
+- **State:** Zustand for unread badge; realtime channel.
+- **Validation:** Preference matrix per event/channel.
+- **Testing:** Realtime new item bumps badge; email delivered in dev sandbox.
+- **Acceptance:** DND & preferences respected.
+- **Dependencies:** M16.
+- **Risks:** Email deliverability; use verified sender.
+- **Deliverables:** Notification system.
+
+## M20 — Finance
+- **Objective:** Ledger + credit + payouts UI (payouts manual admin trigger in Phase 1).
+- **Features:** Tabs (Ledger, Credit, Payouts, GST reports export).
+- **New Components:** `LedgerTable`, `CreditMeter`, `RepaymentSchedule`, `PayoutsTable`, `ReportGenerator`.
+- **Reuse:** DataTable.
+- **DB:** `credit_accounts`, `credit_transactions`, `payouts`, `ledger_entries` + triggers writing ledger from orders/payments.
+- **Cloud:** RLS restrict to business members; admin write via server fn.
+- **API:** `getLedger`, `getCredit`, `getPayouts`, `generateGstReport`.
+- **State:** Server queries; download blob.
+- **Validation:** Range, format.
+- **Testing:** Ledger balances tie out to orders+payments.
+- **Acceptance:** GSTR-1-style CSV downloadable.
+- **Dependencies:** M15.
+- **Risks:** Financial correctness — add reconciliation checks.
+- **Deliverables:** Money surface.
+
+## M21 — Admin Dashboard
+- **Objective:** Ops control plane.
+- **Features:** KYC queue, users/businesses, catalog moderation, disputes (basic), payouts run, CMS banners/coupons, audit log viewer.
+- **New Components:** `AdminShell`, `KycQueue`, `KycReviewDrawer`, `UsersTable`, `ModerationTable`, `DisputesTable`, `PayoutsRunDialog`, `CmsEditor`, `AuditLogViewer`.
+- **Reuse:** DataTable, Dialog.
+- **DB:** `audit_logs` (append-only trigger), `cms_banners`, `coupons`, `disputes`, `blacklist`.
+- **Cloud:** `requireRole('admin')` composed middleware; re-auth for high-risk (payout).
+- **API:** `adminListKyc`, `adminDecideKyc`, `adminModerateProduct`, `adminSuspendUser`, `adminRunPayouts`, `adminResolveDispute`, `adminUpsertBanner`, `adminUpsertCoupon`.
+- **State:** Admin route context; nested `beforeLoad` gate.
+- **Validation:** Reason codes required for negative actions.
+- **Testing:** Non-admins get 403; audit rows written for every action.
+- **Acceptance:** All admin operations flow through server fns, not client Supabase.
+- **Dependencies:** M4, M16.
+- **Risks:** Privilege escalation — enforce via `has_role()`.
+- **Deliverables:** Admin console.
+
+## M22 — Analytics
+- **Objective:** Deep analytics beyond dashboard widgets.
+- **Features:** Seller analytics page (funnels, cohorts, category heatmap), admin platform analytics (GMV, take-rate, KYC TAT), event tracking baseline.
+- **New Components:** `AnalyticsPage`, `FunnelChart`, `CohortHeatmap`, `MetricCard`.
+- **Reuse:** KpiCard, charts.
+- **DB:** materialized views for cohorts, funnels; `events` table for client analytics.
+- **Cloud:** Nightly refresh via pg_cron (Phase 2).
+- **API:** `getSellerAnalytics`, `getPlatformAnalytics`, `trackEvent`.
+- **State:** URL-driven filters.
+- **Validation:** Range/segment enums.
+- **Testing:** Numbers reconcile with source tables; MV refresh idempotent.
+- **Acceptance:** No PII in analytics tables.
+- **Dependencies:** M18.
+- **Risks:** MV bloat — schedule + concurrency safe.
+- **Deliverables:** Analytics module.
+
+## M23 — Performance Optimization
+- **Objective:** Meet NFR targets (P95 <2s page, <400ms search).
+- **Features:** Image CDN pipeline, srcset, LQIP, route code-splitting audit, DB index review, edge cache tags for catalog, Lighthouse budget in CI.
+- **New Components:** `ImgProxy` helper, `LazyChart` wrapper.
+- **Reuse:** existing.
+- **DB:** add indexes on FKs, `(status, category_id)`, GIN tsvector; VACUUM/ANALYZE.
+- **Cloud:** Cache-tag purge on product publish.
+- **API:** `revalidateCache(tag)` server fn.
+- **State:** none.
+- **Validation:** Lighthouse thresholds.
+- **Testing:** LH scores ≥90 perf on landing/PDP; k6 script for search endpoint.
+- **Acceptance:** Preview passes budgets.
+- **Dependencies:** M22.
+- **Risks:** Cache staleness — bind purge to publish.
+- **Deliverables:** Perf-tuned build.
+
+## M24 — Security Hardening
+- **Objective:** Close OWASP L2 gaps; audit RLS + secrets.
+- **Features:** CSP headers, HSTS, rate limits, MFA enforcement for admin/seller, HIBP, PII encryption (PAN, bank acct via pgsodium), signed URLs everywhere for private buckets, audit log completeness, DPDP data export/delete server fns, security memory updated.
+- **New Components:** `MfaEnrollDialog`, `DataExportPage`, `DeleteAccountDialog`.
+- **Reuse:** Alerts, Dialogs.
+- **DB:** pgsodium columns; audit triggers for sensitive tables; view masking for admin UIs.
+- **Cloud:** WAF/edge rate limits; secrets rotation policy documented.
+- **API:** `requestDataExport`, `deleteMyAccount`, `enrollMfa`, `disableMfa`.
+- **State:** Session re-auth flow for high-risk actions.
+- **Validation:** Webhook HMAC, idempotency keys, input schemas full coverage.
+- **Testing:** VAPT checklist run; RLS negative tests per table; secret scan clean.
+- **Acceptance:** Security scan (Lovable) all high/critical closed or documented in security-memory.
+- **Dependencies:** M15, M21.
+- **Risks:** Encryption changes require data migration.
+- **Deliverables:** Production-grade security posture.
+
+## M25 — Testing
+- **Objective:** Automated + manual test harness.
+- **Features:** Vitest unit tests for validators/utilities, integration tests for server fns (with test DB), Playwright E2E for critical journeys (signup→KYC→publish; browse→cart→pay→track), Lighthouse CI, load test scripts.
+- **New Components:** test fixtures, seed scripts.
+- **Reuse:** none.
+- **DB:** seed & teardown scripts for a test schema.
+- **Cloud:** separate test project.
+- **API:** none.
+- **State:** none.
+- **Validation:** coverage ≥70% on lib/ and server fns.
+- **Testing:** CI runs all suites on PR.
+- **Acceptance:** Green pipeline; documented flake budget.
+- **Dependencies:** M23, M24.
+- **Risks:** Flaky E2E — retry + trace on failure.
+- **Deliverables:** Full test suite.
+
+## M26 — Deployment
+- **Objective:** Production launch on Lovable (Cloudflare edge).
+- **Features:** Custom domain, environment matrix (preview/prod), secrets, DNS, sitemap.xml, robots.txt, monitoring/alerts, on-call runbook.
+- **New Components:** `sitemap.xml` route, `robots.txt` route, status page link.
+- **Reuse:** none.
+- **DB:** enable PITR; nightly logical backup.
+- **Cloud:** Publish; verify webhook URLs; social OG image serve-time check.
+- **API:** cron jobs (stat refresh, aging updates) via pg_cron.
+- **State:** none.
+- **Validation:** DNS SPF/DKIM/DMARC; SSL A+.
+- **Testing:** Smoke suite on prod; rollback drill.
+- **Acceptance:** SLOs dashboards live.
+- **Dependencies:** M25.
+- **Risks:** Env drift preview→prod.
+- **Deliverables:** Live product.
+
+## M27 — Future AI Features
+- **Objective:** Layer AI value on top of stable platform.
+- **Features:** AI product-description generator (seller), vernacular semantic search, buyer recommendations, demand forecasting for sellers, dispute-triage assistant, anomaly detection on payments/fraud.
+- **New Components:** `AiDescribeButton`, `RecommendedForYou`, `ForecastCard`, `TriageSuggestions`.
+- **Reuse:** Cards, Rails.
+- **DB:** `product_embeddings` (pgvector), `recommendations`, `forecasts`.
+- **Cloud:** Lovable AI Gateway (chat + embeddings); nightly embedding jobs.
+- **API:** `aiDescribeProduct`, `semanticSearch(q)`, `getRecommendations`, `getForecast`, `triageDispute`.
+- **State:** Streamed responses via server routes where needed.
+- **Validation:** Prompt-injection guards; PII scrub before model calls.
+- **Testing:** Golden-set eval for search relevance; guardrail tests.
+- **Acceptance:** All AI outputs marked as AI-generated in UI.
+- **Dependencies:** M26.
+- **Risks:** Hallucinations, cost — cache aggressively; rate-limit per user.
+- **Deliverables:** AI feature layer.
+
+---
+
+## Dependency Graph
+
+```mermaid
+graph TD
+  M1[M1 Project Setup] --> M2[M2 Design System]
+  M2 --> M3[M3 Authentication]
+  M3 --> M4[M4 Business Registration]
+  M4 --> M5[M5 User Profile]
+  M2 --> M6[M6 Marketplace]
+  M6 --> M7[M7 Categories]
+  M5 --> M8[M8 Product Catalog]
+  M7 --> M8
+  M8 --> M9[M9 Product Details]
+  M8 --> M10[M10 Search]
+  M10 --> M11[M11 Filters]
+  M6 --> M11
+  M9 --> M12[M12 Wishlist]
+  M9 --> M13[M13 Cart]
+  M13 --> M14[M14 Checkout]
+  M14 --> M15[M15 Payments]
+  M15 --> M16[M16 Orders]
+  M16 --> M17[M17 Order Tracking]
+  M16 --> M18[M18 Dashboard]
+  M5 --> M18
+  M16 --> M19[M19 Notifications]
+  M15 --> M20[M20 Finance]
+  M4 --> M21[M21 Admin Dashboard]
+  M16 --> M21
+  M18 --> M22[M22 Analytics]
+  M22 --> M23[M23 Performance Optimization]
+  M21 --> M24[M24 Security Hardening]
+  M15 --> M24
+  M23 --> M25[M25 Testing]
+  M24 --> M25
+  M25 --> M26[M26 Deployment]
+  M26 --> M27[M27 Future AI Features]
 ```
 
-### 2. Component Architecture
-Four layers:
-1. **Primitives** (`components/ui/*`) — shadcn atoms.
-2. **Composites** (`components/<domain>/*`) — domain-aware, stateless where possible.
-3. **Feature blocks** — orchestrate queries + composites (e.g., `<ProductDetail/>`, `<KycReviewPanel/>`).
-4. **Route components** — thin; compose feature blocks; own `head()` + loaders.
+**Critical path:** M1 → M2 → M3 → M4 → M5 → M8 → M9 → M13 → M14 → M15 → M16 → M18/M19/M20/M21 → M22 → M23/M24 → M25 → M26 → M27.
 
-Rules: no direct Supabase calls in components; data via `useSuspenseQuery(queryOptions)`; mutations via `useMutation` calling server fns.
+After approval, I'll also save this diagram as a standalone `.mmd` artifact under `/mnt/documents/` for easier viewing.
 
-### 3. Feature Modules
-`auth`, `business`, `kyc`, `catalog`, `search`, `pricing`, `cart`, `checkout`, `orders`, `payments`, `credit`, `logistics`, `invoicing`, `notifications`, `chat`, `reviews`, `analytics`, `admin`, `cms`, `promotions`.
-
-Each module owns: Zod schemas, query-options, server functions, mutations, components, and its slice of query-keys.
-
-### 4. Route Structure (public vs protected)
-
-| Public (SSR on) | Protected (`_authenticated`) |
-|---|---|
-| `/`, `/marketplace`, `/marketplace/category/$slug`, `/marketplace/search`, `/product/$id`, `/supplier/$id`, `/auth`, `/reset-password`, `/onboarding`, `/legal/*` | `/dashboard`, `/cart`, `/checkout`, `/orders`, `/orders/$id`, `/notifications`, `/finance`, `/profile`, `/settings`, `/seller/*`, `/admin/*` |
-
-Admin gated by nested `beforeLoad` calling `hasRole('admin')`. Seller gated by `hasAnyRole(['manufacturer','distributor'])`.
-
-### 5. Authentication Architecture
-- Email/password + Google OAuth (Lovable broker) + phone OTP (Phase 2).
-- Managed `_authenticated/route.tsx` (`ssr:false`) checks `supabase.auth.getUser()`.
-- Root route registers a single `onAuthStateChange` filtered to SIGNED_IN / SIGNED_OUT / USER_UPDATED → `router.invalidate()` + selective `queryClient.invalidateQueries()`.
-- RBAC via `user_roles` table + `has_role()` security-definer function; roles: `retailer | manufacturer | distributor | admin | ops | finance`.
-- Sign-out hygiene: cancelQueries → clear → signOut → `navigate('/auth', replace:true)`.
-- MFA (TOTP) required for admin, seller, and any user with active BNPL.
-- Password HIBP check enabled.
-
-### 6. Supabase (Lovable Cloud) Architecture
-- **Browser client** for auth flows only.
-- **`requireSupabaseAuth`** server-fn middleware for all user-scoped reads/writes.
-- **Server publishable client** for public catalog reads (narrow anon SELECT policies).
-- **`supabaseAdmin`** only inside `.server.ts` / verified webhooks (payments, logistics).
-- Webhooks under `/api/public/webhooks/*` with HMAC verification.
-- No Supabase Edge Functions for app-internal logic — use `createServerFn`.
-
-### 7. Database Tables (logical)
-
-Identity & Business
-- `profiles` (id ⇄ auth.users, full_name, phone, avatar_url, locale, default_business_id)
-- `businesses` (id, legal_name, display_name, type[retailer|manufacturer|distributor], gstin, pan, cin, address, city, state, pincode, status[pending|approved|rejected|suspended], created_by)
-- `business_members` (business_id, user_id, role_in_business, status)
-- `user_roles` (id, user_id, role: app_role enum)
-- `kyc_documents` (id, business_id, doc_type, file_path, status, reviewer_id, reason)
-- `bank_accounts` (id, business_id, holder, account_number_enc, ifsc, verified_at)
-
-Catalog
-- `categories` (id, parent_id, slug, name, image, level, sort)
-- `brands` (id, business_id, name, logo)
-- `products` (id, seller_business_id, brand_id, category_id, title, description, hsn, gst_rate, moq, lead_time_days, status[draft|pending|live|blocked], images[])
-- `product_variants` (id, product_id, sku, attributes jsonb, weight, dimensions, stock)
-- `price_tiers` (id, variant_id, min_qty, unit_price, currency)
-- `inventory` (variant_id, warehouse_id, on_hand, reserved)
-- `warehouses` (id, business_id, address, pincode)
-
-Discovery
-- `search_index` (mat view) / `product_search_tsv`
-- `saved_lists`, `saved_list_items`
-- `rfqs`, `rfq_responses` (Phase 2)
-
-Commerce
-- `carts` (id, buyer_business_id, user_id)
-- `cart_items` (cart_id, variant_id, qty, unit_price_snapshot)
-- `orders` (id, order_no, buyer_business_id, seller_business_id, status enum, subtotal, tax, shipping, total, payment_mode, credit_days, placed_at)
-- `order_items` (order_id, variant_id, qty, unit_price, gst_amount, hsn)
-- `order_events` (order_id, from_status, to_status, actor_id, reason, meta, created_at)
-- `invoices` (id, order_id, invoice_no, pdf_path, gst_breakup jsonb)
-- `shipments` (id, order_id, carrier, awb, status, eta, pod_path)
-- `returns` (id, order_id, reason, status, refund_amount)
-- `disputes` (id, order_id, opened_by, status, resolution)
-
-Payments & Credit
-- `payments` (id, order_id, gateway, gateway_ref, method, amount, status, captured_at)
-- `payouts` (id, seller_business_id, cycle, amount, status, utr)
-- `credit_accounts` (business_id, limit, exposure, dpd, status, nbfc_ref)
-- `credit_transactions` (id, credit_account_id, order_id, type[debit|repay|fee], amount, due_at)
-- `ledger_entries` (id, business_id, ref_type, ref_id, dr, cr, balance, at)
-
-Engagement
-- `notifications` (id, user_id, channel, template, payload jsonb, status, sent_at)
-- `notification_preferences` (user_id, channel, event, enabled)
-- `reviews` (id, order_id, buyer_business_id, seller_business_id, rating, text)
-- `messages` (thread_id, sender_id, body, attachments)
-- `threads` (id, buyer_business_id, seller_business_id, order_id?)
-
-Ops & Trust
-- `audit_logs` (id, actor_id, action, entity, entity_id, meta, at)
-- `feature_flags`, `cms_banners`, `coupons`, `coupon_redemptions`
-- `blacklist` (kind, value, reason)
-
-Enums: `app_role`, `business_type`, `order_status`, `payment_method`, `payment_status`, `kyc_status`, `doc_type`.
-
-### 8. Relationships (key)
-```text
-auth.users 1─1 profiles
-profiles *─* businesses  (via business_members)
-businesses 1─* products 1─* product_variants 1─* price_tiers
-businesses 1─* warehouses 1─* inventory *─1 product_variants
-buyer businesses 1─* orders *─1 seller businesses
-orders 1─* order_items *─1 product_variants
-orders 1─* order_events / 1─1 invoice / 1─* shipments / 1─* payments
-businesses 1─1 credit_account 1─* credit_transactions
-```
-
-### 9. Storage Buckets
-| Bucket | Visibility | Purpose |
-|---|---|---|
-| `product-images` | public read | Catalog images, thumbnails |
-| `brand-assets` | public read | Logos, banners |
-| `kyc-docs` | private | GST/PAN/bank proofs (signed URLs, admin-only) |
-| `invoices` | private | GST invoice PDFs (owner + counterparty signed URL) |
-| `pod` | private | Proof-of-delivery photos |
-| `dispute-evidence` | private | Chat attachments, images |
-| `cms` | public read | Banners, promo art |
-
-### 10. RLS Plan (per table, principle-level)
-- `profiles`: owner select/update.
-- `businesses`: members select; creator update; admin all.
-- `business_members`: business admins manage; users see own memberships.
-- `user_roles`: user reads own; only `service_role` / admin fn inserts. Never modifiable from client.
-- `products`, `variants`, `price_tiers`, `brands`, `categories`: **public SELECT** limited to `status='live'` (anon + authenticated); owner (seller) full CRUD via `has_business_role()`; admin all.
-- `carts`, `cart_items`: owner user only.
-- `orders`, `order_items`, `order_events`, `invoices`, `shipments`, `returns`: buyer members OR seller members OR admin. Writes gated by state machine via SECURITY DEFINER functions (`place_order`, `advance_order_status`).
-- `payments`, `payouts`, `credit_*`, `ledger_entries`: owner business members read; writes only via server functions using service role.
-- `notifications`: user_id = auth.uid().
-- `reviews`: buyer of order can insert once post-delivery; public SELECT.
-- `messages/threads`: participants only.
-- `audit_logs`: admin read only; append-only via triggers.
-- `kyc_documents`: uploader + admin; storage bucket policy mirrors.
-
-Every `public.<table>` migration includes explicit `GRANT`s to `authenticated` (+ `anon` only where public SELECT policy exists) and `service_role`.
-
-### 11. API Layer
-- Primary: **TanStack server functions** (`createServerFn`) in `src/lib/*.functions.ts`.
-- Middleware: `requireSupabaseAuth` on all user-scoped fns; `requireRole('admin')` composed for admin fns.
-- Public reads via server publishable client (catalog, category tree, supplier public profile).
-- Server routes (`/api/public/*`) for: payment gateway webhook, logistics webhook, health check, sitemap.xml.
-- All inputs validated with Zod (`.inputValidator`).
-- All mutations return typed result; errors thrown as typed `AppError` with code + user-safe message.
-
-### 12. State Management
-- **Server state**: TanStack Query (loader `ensureQueryData` + `useSuspenseQuery`), `defaultPreloadStaleTime: 0`.
-- **URL state**: TanStack Router search params for filters, pagination, tabs.
-- **Ephemeral UI**: local `useState`.
-- **Cross-cutting client state**: Zustand slices for cart drawer, notification bell, command palette.
-- No Redux. No Context for server data.
-
-### 13. Context Providers (in `__root.tsx` order)
-1. `QueryClientProvider`
-2. `ThemeProvider` (light/dark/system)
-3. `LocaleProvider` (en/hi + regional)
-4. `AuthContext` (session snapshot for root routes; auth truth still Supabase)
-5. `ToastProvider` (sonner)
-6. `TooltipProvider`
-7. `SidebarProvider` (inside authenticated shell only)
-8. `CommandPaletteProvider`
-
-### 14. Custom Hooks (representative)
-`useSession`, `useCurrentBusiness`, `useRole`, `useHasPermission`, `useCart`, `useCartMutations`, `usePriceForQty`, `useProductSearch`, `useCategoryTree`, `useOrder`, `useOrderTimeline`, `useCheckout`, `usePaymentIntent`, `useCreditAccount`, `useNotifications`, `useRealtimeChannel`, `useDebouncedValue`, `useMediaQuery`, `useIsMobile`, `useCommandPalette`, `useCsvUpload`, `usePagination`, `useTableState`.
-
-### 15. Utility Functions
-Formatters (INR, qty, GST, phone, GSTIN mask), validators (GSTIN checksum, PAN, IFSC, HSN, pincode), invoice number generator, order-no generator, price calculator (tier + GST + shipping), stock reservation helpers, slugify, tsvector helpers, retry/backoff, HMAC verify, safe-URL redirect guard, date helpers (IST), CSV parser, image optimizer proxy URL builder.
-
-### 16. Error Handling Strategy
-- Route-level `errorComponent` + `notFoundComponent` on every route with a loader.
-- Root `defaultErrorComponent` + reporting via `lovable-error-reporting`.
-- Server fns throw `AppError { code, message, httpStatus }`; mutations surface via toast + inline field errors.
-- Payment/webhook errors: idempotent handlers keyed by gateway_ref; DLQ table `webhook_failures`.
-- Sentry-equivalent capture wired to `error-capture.ts`.
-- User-facing copy is plain-language; technical details logged only.
-
-### 17. Loading Strategy
-- SSR + streaming for public routes (landing, catalog, PDP, supplier).
-- Loader `ensureQueryData` warms cache → `useSuspenseQuery` renders instantly on nav.
-- Route-level `pendingComponent` shows skeletons ≥200ms.
-- Skeletons per component family: card grid, table row, detail hero, list, chart.
-- `defaultPreload: 'intent'` on all Links; images lazy-loaded with LQIP.
-- Mutations use optimistic updates for cart, wishlist, notifications-read.
-
-### 18. Empty States
-Standard `<EmptyState/>` with: illustration, headline, 1-line explainer, primary CTA, optional secondary link. Variants: empty cart, no orders, no products yet, KYC pending, search no-results (with suggestions), no notifications, no disputes.
-
-### 19. Responsive Strategy
-- Mobile-first; breakpoints `sm 640 / md 768 / lg 1024 / xl 1280 / 2xl 1536`.
-- Mobile nav: bottom tab bar (Home, Search, Cart, Orders, Menu). Desktop: top nav + collapsible sidebar for authenticated shells.
-- Tables → cards on `<md`. Filters → bottom sheet on mobile, sidebar on ≥lg.
-- Checkout: single column mobile, two column (form + summary) ≥lg.
-- Touch targets ≥44px; safe-area padding for iOS.
-
-### 20. Performance Strategy
-- Edge SSR (Cloudflare Worker) with cache-tag invalidation for catalog.
-- Query cache + Router preloading (intent, 50ms).
-- Image CDN (WebP/AVIF, responsive srcset, LQIP).
-- Search via Postgres FTS + trigram; upgrade path to Meilisearch.
-- Code-split by route (automatic); dynamic import for heavy admin charts and CSV parser.
-- DB: indexes on FKs, `(status, category_id)`, `(seller_business_id, status)`, GIN on tsvector and jsonb.
-- Rate limits via edge middleware on write endpoints.
-
-### 21. Security Strategy
-- OWASP ASVS L2 baseline.
-- RBAC + RLS everywhere; roles only in `user_roles`.
-- All secrets via Lovable Cloud secrets manager; never in client.
-- HMAC-verified webhooks; idempotency keys on payments.
-- CSP, HSTS, X-Content-Type-Options, Referrer-Policy set at edge.
-- PII encryption at rest (PAN, Aadhaar last-4, bank acc via pgsodium).
-- Audit logs append-only via triggers; admin actions require re-auth for high-risk (payout run, role grant).
-- HIBP password check, MFA for admin/seller/BNPL.
-- DPDP: consent capture, data export & deletion server fns.
-
----
-
-## PART B — SCREEN SPECIFICATIONS
-
-Every screen follows this schema: **Purpose · Components · Layout · Interactions · Navigation · Data · API · Responsive**.
-
-### B1. Landing (`/`)
-- **Purpose:** Convert visitors into signups; communicate trust and value for retailers + sellers.
-- **Components:** Hero (headline, dual CTA Buy/Sell), TrustBar (GSTIN, secure payments, verified badges), CategoryGrid (top 12), FeaturedSuppliers, HowItWorks (3-step per persona), TestimonialCarousel, StatsStrip (GMV, sellers, cities), CTA Banner, Footer.
-- **Layout:** Full-bleed hero, alternating sections, magazine-style.
-- **Interactions:** Role toggle (Buy/Sell) swaps CTA and copy; category card → `/marketplace/category/$slug`.
-- **Navigation:** Header (Marketplace, Sell on VS, About, Sign in), Footer.
-- **Data:** Featured categories, featured suppliers, aggregate stats.
-- **API:** `getLandingData` (public server fn, cached 5m).
-- **Responsive:** Hero stacks; category grid 2→3→4→6 cols.
-
-### B2. Marketplace (`/marketplace`)
-- **Purpose:** Browse full catalog with filters.
-- **Components:** FiltersSidebar (category, price, MOQ, location, brand, rating, verified-only), SortBar, ProductGrid (`ProductCard`), Pagination, ActiveFilterChips, PromotedRail.
-- **Layout:** Sidebar (280px) + grid; sticky sort bar.
-- **Interactions:** Filter chips reflect URL; infinite scroll or paged; hover on card shows tier snippet.
-- **Navigation:** Card → `/product/$id`; supplier name → `/supplier/$id`.
-- **Data:** Paginated products with facet counts.
-- **API:** `searchProducts({filters, sort, page})` public.
-- **Responsive:** Filters → bottom-sheet on mobile; grid 2→3→4 cols.
-
-### B3. Categories (`/marketplace/category/$slug`)
-- **Purpose:** Category landing with sub-tree + curated content.
-- **Components:** Breadcrumbs, SubcategoryChips, HeroBanner, TopBrands, ProductGrid, RelatedCategories.
-- **Layout:** Same as Marketplace with category header block.
-- **Interactions:** Sub-chip refines; brand pill filters.
-- **Navigation:** Deep-linked filters preserved in URL.
-- **Data:** Category tree slice + filtered products.
-- **API:** `getCategory(slug)`, `searchProducts({category_id})`.
-- **Responsive:** Hero collapses; chips horizontally scrollable on mobile.
-
-### B4. Search (`/marketplace/search`)
-- **Purpose:** Typo-tolerant search with suggestions.
-- **Components:** SearchInput (autocomplete), SuggestionsList (recent, popular, categories), Results grid, ZeroResults with alternatives.
-- **Layout:** Full-width search hero → results grid.
-- **Interactions:** Debounced typing, keyboard nav in suggestions, "Did you mean".
-- **Navigation:** Result → PDP.
-- **Data:** `q`, filters via URL; autocomplete stream.
-- **API:** `autocomplete(q)`, `searchProducts({q})`.
-- **Responsive:** Suggestions become full-screen sheet on mobile.
-
-### B5. Product Details (`/product/$id`)
-- **Purpose:** Convert to add-to-cart / RFQ.
-- **Components:** ImageGallery, TitleBlock, VerifiedSupplierChip, TierPriceTable, MoqNotice, VariantSelector, QtyStepper, Add-to-Cart / RFQ buttons, LeadTime, ShippingCalc (pincode), HSN/GST info, DescriptionTabs (Details, Specs, Returns), ReviewsSection, SimilarProducts, RecentlyViewed.
-- **Layout:** Two-column desktop (gallery / info); tabs below.
-- **Interactions:** Qty updates unit price via tier; pincode check triggers ETA & COD availability; add-to-cart shows toast + mini-cart.
-- **Navigation:** Supplier chip → `/supplier/$id`.
-- **Data:** Product + variants + tiers + reviews + related.
-- **API:** `getProduct(id)`, `checkPincode(id,pincode)`, `getRelated(id)`.
-- **Responsive:** Gallery on top; sticky bottom "Add to Cart" bar on mobile.
-
-### B6. Supplier Profile (`/supplier/$id`)
-- **Purpose:** Trust-building and full catalog per seller.
-- **Components:** Cover + Logo, VerifiedBadge + KYC tier, About, Metrics (years, orders fulfilled, on-time %), Category chips, Catalog grid (paginated), Ratings, ContactSellerButton, ReportButton.
-- **Layout:** Profile header + tabs (Catalog, About, Reviews, Policies).
-- **Interactions:** Contact opens chat drawer (auth required → CTA if not).
-- **Navigation:** Products → PDP.
-- **Data:** Public supplier profile + paginated products + reviews.
-- **API:** `getSupplier(id)`, `searchProducts({seller_id})`.
-- **Responsive:** Metrics wrap to 2×2 on mobile; tabs scroll horizontally.
-
-### B7. Cart (`/cart`)
-- **Purpose:** Review items grouped per seller before checkout.
-- **Components:** SellerGroupCard (items list with qty steppers, remove, MOQ warning), CouponInput, SummaryPanel (subtotal, GST breakup, shipping estimate, total), CheckoutButton, SaveForLater, RecommendedRail.
-- **Layout:** Two columns (items / sticky summary) desktop; stacked mobile with sticky footer summary.
-- **Interactions:** Qty change updates price live; below-MOQ blocks checkout with inline message; coupon validates async.
-- **Navigation:** Continue → `/checkout`.
-- **Data:** Cart with priced snapshots.
-- **API:** `getCart`, `updateCartItem`, `removeCartItem`, `applyCoupon`.
-- **Responsive:** Summary collapses to expandable bottom sheet.
-
-### B8. Checkout (`/checkout`)
-- **Purpose:** Complete purchase safely.
-- **Components:** Stepper (Address → Payment → Review), AddressPicker (saved + new), ShippingOptions (per seller), PaymentMethodSelector (UPI, Card, NetBanking, BNPL, Credit-line, COD), GSTBreakup, PlaceOrderButton, TrustFootnote.
-- **Layout:** Two columns (steps / sticky OrderSummary).
-- **Interactions:** Address validation; BNPL shows credit meter; place order triggers gateway modal; blocks if KYC pending.
-- **Navigation:** Success → `/orders/$id?new=1`; failure → retry inline.
-- **Data:** Cart, addresses, credit account, payment methods.
-- **API:** `createOrderIntent`, `confirmPayment`, `placeOrder`, webhook reconciles.
-- **Responsive:** Stepper becomes vertical accordion on mobile.
-
-### B9. Orders (`/orders`)
-- **Purpose:** List and filter past/active orders.
-- **Components:** FiltersBar (status, date range, seller/buyer, amount), OrdersTable (order#, seller, items, total, status pill, actions), Pagination, ExportCsv.
-- **Layout:** Full-width table; mobile → OrderCard list.
-- **Interactions:** Row → detail; quick actions (Reorder, Invoice, Track).
-- **Navigation:** Row → `/orders/$id`.
-- **Data:** Orders for current business (buyer or seller view based on role).
-- **API:** `listOrders(filters)`.
-- **Responsive:** Table → cards; filters → sheet.
-
-### B10. Order Tracking (`/orders/$id`)
-- **Purpose:** Show full lifecycle, invoice, shipment.
-- **Components:** OrderHeader (status pill, order#, dates), Timeline (`order_events`), ItemsList, InvoiceDownload, ShipmentTracker (AWB, carrier, map/steps, POD), PaymentSummary, ActionsMenu (Cancel, Return, Raise Dispute, Chat Seller), DisputePanel (if any).
-- **Layout:** Two columns (timeline+items / side card with totals & actions).
-- **Interactions:** Cancel/return open confirm dialog; chat opens drawer.
-- **Navigation:** Back to `/orders`; seller → `/supplier/$id`.
-- **Data:** Order + events + shipments + invoice + payment.
-- **API:** `getOrder(id)`, realtime channel for status.
-- **Responsive:** Actions dock to sticky bottom bar on mobile.
-
-### B11. Dashboard (`/dashboard`)
-Role-aware.
-- **Retailer:** ReorderRail, ActiveOrdersWidget, CreditMeter, RecommendedSuppliers, NotificationsPreview.
-- **Seller:** GMV chart, OrdersFunnel, LowStockAlerts, TopSKUs, PayoutStatus, ReviewsSnapshot.
-- **Layout:** Bento grid of widgets.
-- **Interactions:** Widget → deep-link route.
-- **Navigation:** Sidebar to sub-modules.
-- **Data:** Aggregated KPIs (last 30/90/365 days toggle).
-- **API:** `getDashboard(role, range)`.
-- **Responsive:** Widgets stack single column on mobile.
-
-### B12. Business Registration (`/onboarding`)
-- **Purpose:** Convert signup into verified business.
-- **Components:** Stepper (Role → Business → KYC docs → Bank → Review), forms per step, DocumentUploader, StatusBanner.
-- **Layout:** Centered card, max 720px, progress at top.
-- **Interactions:** Autofill from GSTIN (Phase 2); save-and-resume.
-- **Navigation:** Submit → dashboard with "KYC pending" banner.
-- **Data:** Draft business + documents.
-- **API:** `upsertBusinessDraft`, `uploadKycDoc`, `submitForReview`.
-- **Responsive:** Full-screen wizard on mobile.
-
-### B13. Profile (`/profile`)
-- **Purpose:** Manage personal + business identity.
-- **Components:** AvatarUploader, PersonalForm, BusinessesList (switcher), MembersManager (invite by email, assign role), AddressesManager.
-- **Layout:** Left nav sections + right pane.
-- **Interactions:** Business switcher updates active context globally.
-- **Navigation:** From avatar menu.
-- **Data:** Profile + memberships.
-- **API:** `updateProfile`, `inviteMember`, `switchBusiness`.
-- **Responsive:** Left nav → top tabs on mobile.
-
-### B14. Notifications (`/notifications`)
-- **Purpose:** Central inbox across channels.
-- **Components:** Filters (All/Orders/Payments/System), NotificationList, PreferencesLink, MarkAllRead.
-- **Layout:** List with grouped-by-day headers.
-- **Interactions:** Click marks read + deep-links; swipe to dismiss on mobile.
-- **Navigation:** Item → related order/dispute.
-- **Data:** User notifications paginated; realtime channel for new.
-- **API:** `listNotifications`, `markRead`, `updatePreferences`.
-- **Responsive:** Single column list.
-
-### B15. Finance (`/finance`)
-- **Purpose:** Ledger, credit, payouts, GST reports.
-- **Components:** Tabs (Ledger, Credit, Payouts, GST Reports), LedgerTable, CreditMeter + RepaymentSchedule, PayoutsTable, ReportGenerator (date range → PDF/CSV).
-- **Layout:** Tabs + filter bar + data area.
-- **Interactions:** Repay Now (UPI intent), download invoice/report.
-- **Navigation:** Row → order detail.
-- **Data:** Ledger entries, credit account, payouts, invoices.
-- **API:** `getLedger`, `getCredit`, `initiateRepayment`, `getPayouts`, `generateReport`.
-- **Responsive:** Table → card list.
-
-### B16. Settings (`/settings`)
-- **Purpose:** Preferences, security, integrations.
-- **Components:** Sections (Account, Security [password/MFA/sessions], Notifications, Language, Business [tax defaults, invoice prefix], Integrations [Tally webhook, API keys], DangerZone [export data, delete]).
-- **Layout:** Left nav + right forms.
-- **Interactions:** MFA setup dialog; session revoke; export triggers async job.
-- **Navigation:** From avatar menu.
-- **Data:** User + business settings.
-- **API:** `updateSettings`, `enrollMfa`, `revokeSession`, `requestDataExport`.
-- **Responsive:** Accordion sections on mobile.
-
-### B17. Admin Dashboard (`/admin`)
-- **Purpose:** Ops control plane.
-- **Sub-screens:** Overview (KPIs, alerts), KYC Queue, Users & Businesses, Catalog Moderation, Disputes, Payouts, CMS (banners/coupons/flags), Audit Log.
-- **Components:** DataTables with server pagination, ReviewDrawer (docs preview, decision + reason codes), BulkActions, ChartCards, FiltersBar.
-- **Layout:** Persistent sidebar (Admin nav) + top bar with global search.
-- **Interactions:** Approve/Reject KYC with mandatory reason; suspend user; block product; run payout batch (requires re-auth).
-- **Navigation:** Sidebar sections; row → detail drawer.
-- **Data:** Cross-tenant with admin RLS bypass via secure server fns.
-- **API:** `adminListKyc`, `adminDecideKyc`, `adminModerateProduct`, `adminRunPayouts`, `adminResolveDispute`, all `requireRole('admin')`.
-- **Responsive:** Admin is desktop-first; mobile shows read-only summaries.
-
----
-
-## PART C — DESIGN SYSTEM
-
-**Brand direction:** Confident, trustworthy, distinctly Indian-modern — not another purple-gradient SaaS. Editorial layouts, generous negative space, warm neutrals, one bold accent inspired by saffron/indigo trade cloth. Avoid Inter/Poppins.
-
-### C1. Typography
-- **Display:** *Fraunces* (serif, expressive) — hero, section headers, marketing.
-- **UI/Body:** *General Sans* (geometric humanist sans) — app chrome, body.
-- **Numeric/Mono:** *JetBrains Mono* — invoice numbers, order IDs, tabular figures.
-- Fonts loaded via `<link>` in `__root.tsx` (never CSS `@import`).
-- Scale (rem): 0.75, 0.875, 1, 1.125, 1.25, 1.5, 1.875, 2.25, 3, 3.75, 4.5.
-- Line heights: 1.2 display, 1.5 body, 1.4 UI.
-- Weights: 400/500/600 sans; 400/600 serif.
-
-### C2. Color Palette (semantic oklch tokens in `styles.css`)
-- **Background:** warm ivory `oklch(0.985 0.008 90)` / dark `oklch(0.16 0.02 260)`.
-- **Foreground:** ink `oklch(0.20 0.03 260)` / off-white `oklch(0.97 0.01 90)`.
-- **Primary (Indigo Trade):** `oklch(0.42 0.15 265)` + glow `oklch(0.55 0.18 265)`.
-- **Accent (Saffron):** `oklch(0.78 0.16 65)` — CTAs, highlights.
-- **Success:** `oklch(0.68 0.15 150)`. **Warning:** `oklch(0.80 0.15 85)`. **Destructive:** `oklch(0.58 0.22 27)`. **Info:** `oklch(0.65 0.12 235)`.
-- **Muted:** neutral warm greys 4-step ramp.
-- **Verified badge:** teal `oklch(0.68 0.10 190)`.
-- Gradients: `--gradient-primary`, `--gradient-hero`, `--gradient-trust`. Shadows: `--shadow-elegant`, `--shadow-card`, `--shadow-overlay` (color-mix with primary at low alpha).
-- All tokens defined once in `@theme inline`; no hardcoded colors in components.
-
-### C3. Spacing
-4-px base. Scale: 0, 1, 2, 3, 4, 6, 8, 12, 16, 20, 24, 32, 40, 56, 72, 96. Section vertical rhythm: 96 desktop / 56 mobile. Card padding: 24 desktop / 16 mobile.
-
-### C4. Grid
-- Container max 1280 (2xl 1440 for admin).
-- 12-col desktop, 8-col tablet, 4-col mobile.
-- Gutter: 24 desktop, 16 mobile.
-- Product grid: `minmax(220px, 1fr)` auto-fill.
-
-### C5. Buttons (variants)
-`primary` (saffron on ink), `secondary` (indigo outline), `ghost`, `link`, `destructive`, `success`, `premium` (gradient + shadow-elegant). Sizes: `sm 32`, `md 40`, `lg 48`, `xl 56`. Icon buttons square. Loading spinner replaces label. Focus ring: 2px accent with 2px offset.
-
-### C6. Cards
-- `elevated` (shadow-card, radius-xl), `outline` (border, radius-lg), `flat`, `interactive` (hover lift + border tint).
-- ProductCard: image 4:3, title 2-line clamp, tier hint, MOQ badge, verified chip, price range.
-- KpiCard: label, value (mono), delta chip, sparkline.
-
-### C7. Tables
-- Sticky header, zebra optional, hover row highlight, column sort arrows, row selection, bulk action bar.
-- Density: comfortable / compact toggle for admin.
-- Empty, loading (skeleton rows), and error states built in.
-- Mobile transformation → cards.
-
-### C8. Forms
-- Field: label (500, 14), input, helper, error (destructive).
-- Inputs 40-tall, radius-md, subtle inner shadow on focus.
-- Grouped fieldsets with divider.
-- Async validators show inline spinner (GSTIN check, coupon).
-- File uploader: drag-drop zone, preview thumbs, progress, remove.
-- Multi-step wizard with progress and save state.
-
-### C9. Badges
-Status pills mapping to order lifecycle colors: Placed (info), Accepted (indigo), Dispatched (accent), Delivered (success), Cancelled (muted), Disputed (destructive), Pending KYC (warning), Verified (teal). Sizes sm/md. Icon-optional.
-
-### C10. Alerts
-Variants: info, success, warning, destructive. Composition: icon + title + body + optional actions. Banner variant for page-top (KYC pending, credit due). Inline variant for forms.
-
-### C11. Dialogs
-- Modal (centered, max 560), Sheet (right on desktop, bottom on mobile), Drawer (side), AlertDialog (destructive confirmations require typed confirmation for payouts).
-- Focus trap, ESC close, backdrop blur, motion: 200ms ease-out.
-
-### C12. Icons
-- **Lucide** primary set for UI.
-- Custom brand icon set (24×24, 1.75 stroke) for: verified, MOQ, tier-price, ledger, escrow, e-way, credit, rupee.
-- Sizes 16/20/24; align to text baseline.
-
-### C13. Animations (framer-motion + tw-animate-css)
-- Page transitions: 200ms fade + 8px translateY.
-- Hero: staged reveal (headline → sub → CTA) 400ms cascade.
-- Card hover: lift 2px + shadow soften.
-- Toast: slide-in-right 180ms.
-- Skeleton shimmer 1.2s linear infinite.
-- Order timeline: sequential dot fill.
-- Respect `prefers-reduced-motion`.
-
-### C14. Accessibility & Localization
-- WCAG 2.1 AA contrast on all tokens (verify light + dark).
-- Focus visible everywhere; skip-to-content link.
-- All interactive icons have `aria-label`.
-- i18n keys namespaced per feature; number/date/currency via `Intl` with `en-IN` / `hi-IN`.
-- RTL-ready utilities kept in Tailwind logical props.
-
----
-
-**End of Architecture Blueprint v1.0** — ready for hand-off to build phase (Phase 1 MVP scaffolding).
+**End of Roadmap v1.0.**
