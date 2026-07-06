@@ -171,6 +171,7 @@ function RootComponent() {
         <SiteLayout>
           <Outlet />
         </SiteLayout>
+        <OfflineIndicator />
         <Toaster richColors position="top-right" />
       </AuthProvider>
     </QueryClientProvider>
