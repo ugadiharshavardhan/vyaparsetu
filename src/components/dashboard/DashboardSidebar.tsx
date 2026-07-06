@@ -80,7 +80,7 @@ export function DashboardSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border">
         <Link to="/dashboard" className="flex h-12 items-center gap-2 px-2">
-          <Logo showWordmark={!collapsed} />
+          <Logo compact={collapsed} />
         </Link>
       </SidebarHeader>
       <SidebarContent>

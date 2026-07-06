@@ -77,7 +77,7 @@ export function useUpdateProfile() {
       if (!user?.id) throw new Error("Not signed in");
       const { data, error } = await supabase
         .from("profiles")
-        .update(patch)
+        .update(patch as never)
         .eq("id", user.id)
         .select()
         .maybeSingle();
