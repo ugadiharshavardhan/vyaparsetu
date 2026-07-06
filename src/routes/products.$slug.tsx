@@ -158,7 +158,7 @@ function ProductPage() {
                 <Sparkles className="h-4 w-4 text-brand" /> Product highlights
               </h3>
               <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-                {product.highlights.map((h, i) => (
+                {product.highlights.map((h: string, i: number) => (
                   <li key={i} className="flex gap-2">
                     <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-brand" />
                     <span>{h}</span>
