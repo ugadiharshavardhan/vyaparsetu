@@ -106,6 +106,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         name: "twitter:description",
         content: "Verified suppliers. Bulk pricing. GST invoices. Built for Indian retailers.",
       },
+      { name: "description", content: "Source verified wholesale products at factory prices. Connect directly with manufacturers, distributors and suppliers across India." },
+      { property: "og:description", content: "Source verified wholesale products at factory prices. Connect directly with manufacturers, distributors and suppliers across India." },
+      { name: "twitter:description", content: "Source verified wholesale products at factory prices. Connect directly with manufacturers, distributors and suppliers across India." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/855186bf-8b02-45cf-8cb6-05fff2250c63/id-preview-6fdf67bd--5aecf599-0088-4fc8-83fc-b2a3eef2de9c.lovable.app-1783368386386.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/855186bf-8b02-45cf-8cb6-05fff2250c63/id-preview-6fdf67bd--5aecf599-0088-4fc8-83fc-b2a3eef2de9c.lovable.app-1783368386386.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
