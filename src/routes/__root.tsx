@@ -15,6 +15,7 @@ import { SiteLayout } from "@/components/layout/SiteLayout";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { OfflineIndicator } from "@/components/common/OfflineIndicator";
 
 function NotFoundComponent() {
   return (
