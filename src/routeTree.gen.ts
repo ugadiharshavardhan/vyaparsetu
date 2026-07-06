@@ -19,6 +19,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SuppliersIdRouteImport } from './routes/suppliers.$id'
 import { Route as ProductsSlugRouteImport } from './routes/products.$slug'
 import { Route as AuthenticatedWishlistRouteImport } from './routes/_authenticated/wishlist'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
@@ -79,6 +80,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const SuppliersIdRoute = SuppliersIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => SuppliersRoute,
 } as any)
 const ProductsSlugRoute = ProductsSlugRouteImport.update({
   id: '/products/$slug',
@@ -146,7 +152,7 @@ export interface FileRoutesByFullPath {
   '/forgot-password': typeof ForgotPasswordRoute
   '/marketplace': typeof MarketplaceRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/suppliers': typeof SuppliersRoute
+  '/suppliers': typeof SuppliersRouteWithChildren
   '/admin': typeof AuthenticatedAdminRoute
   '/cart': typeof AuthenticatedCartRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -158,6 +164,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AuthenticatedSettingsRoute
   '/wishlist': typeof AuthenticatedWishlistRoute
   '/products/$slug': typeof ProductsSlugRoute
+  '/suppliers/$id': typeof SuppliersIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -168,7 +175,7 @@ export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
   '/marketplace': typeof MarketplaceRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/suppliers': typeof SuppliersRoute
+  '/suppliers': typeof SuppliersRouteWithChildren
   '/admin': typeof AuthenticatedAdminRoute
   '/cart': typeof AuthenticatedCartRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -180,6 +187,7 @@ export interface FileRoutesByTo {
   '/settings': typeof AuthenticatedSettingsRoute
   '/wishlist': typeof AuthenticatedWishlistRoute
   '/products/$slug': typeof ProductsSlugRoute
+  '/suppliers/$id': typeof SuppliersIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -192,7 +200,7 @@ export interface FileRoutesById {
   '/forgot-password': typeof ForgotPasswordRoute
   '/marketplace': typeof MarketplaceRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/suppliers': typeof SuppliersRoute
+  '/suppliers': typeof SuppliersRouteWithChildren
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/cart': typeof AuthenticatedCartRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
@@ -204,6 +212,7 @@ export interface FileRoutesById {
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/wishlist': typeof AuthenticatedWishlistRoute
   '/products/$slug': typeof ProductsSlugRoute
+  '/suppliers/$id': typeof SuppliersIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -228,6 +237,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/wishlist'
     | '/products/$slug'
+    | '/suppliers/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -250,6 +260,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/wishlist'
     | '/products/$slug'
+    | '/suppliers/$id'
   id:
     | '__root__'
     | '/'
@@ -273,6 +284,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings'
     | '/_authenticated/wishlist'
     | '/products/$slug'
+    | '/suppliers/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -285,7 +297,7 @@ export interface RootRouteChildren {
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   MarketplaceRoute: typeof MarketplaceRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
-  SuppliersRoute: typeof SuppliersRoute
+  SuppliersRoute: typeof SuppliersRouteWithChildren
   ProductsSlugRoute: typeof ProductsSlugRoute
 }
 
@@ -360,6 +372,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/suppliers/$id': {
+      id: '/suppliers/$id'
+      path: '/$id'
+      fullPath: '/suppliers/$id'
+      preLoaderRoute: typeof SuppliersIdRouteImport
+      parentRoute: typeof SuppliersRoute
     }
     '/products/$slug': {
       id: '/products/$slug'
@@ -470,6 +489,18 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
+interface SuppliersRouteChildren {
+  SuppliersIdRoute: typeof SuppliersIdRoute
+}
+
+const SuppliersRouteChildren: SuppliersRouteChildren = {
+  SuppliersIdRoute: SuppliersIdRoute,
+}
+
+const SuppliersRouteWithChildren = SuppliersRoute._addFileChildren(
+  SuppliersRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
@@ -480,9 +511,19 @@ const rootRouteChildren: RootRouteChildren = {
   ForgotPasswordRoute: ForgotPasswordRoute,
   MarketplaceRoute: MarketplaceRoute,
   ResetPasswordRoute: ResetPasswordRoute,
-  SuppliersRoute: SuppliersRoute,
+  SuppliersRoute: SuppliersRouteWithChildren,
   ProductsSlugRoute: ProductsSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

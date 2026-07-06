@@ -22,7 +22,7 @@ const suppliers = {
 const img = (q: string) =>
   `https://images.unsplash.com/${q}?auto=format&fit=crop&w=800&q=70`;
 
-export const PRODUCTS: Product[] = [
+const RAW_PRODUCTS: Product[] = [
   {
     id: "p1",
     slug: "aashirvaad-atta-10kg",
@@ -377,6 +377,54 @@ export const PRODUCTS: Product[] = [
   },
 ];
 
+const SUB_BY_ID: Record<string, string> = {
+  p1: "Atta & Flours", p2: "Cooking Oils", p3: "Biscuits & Cookies", p4: "Biscuits & Cookies",
+  p5: "Salt & Sugar", p6: "Detergents", p7: "Dishwash",
+  p8: "Notebooks", p9: "Writing Instruments", p10: "Packing Tapes",
+  p11: "Locks & Hardware", p12: "Tea & Coffee", p13: "Oral Care",
+  p14: "Antiseptics", p15: "Audio Accessories", p16: "Dairy & Butter",
+};
+
+const PACKAGING_BY_ID: Record<string, string> = {
+  p1: "Woven PP bag with inner PE liner. Master carton: 2 bags. Total weight ~20.5 kg.",
+  p2: "Food-grade PET jar, tamper-evident cap. Shipper carton: 4 jars.",
+  p3: "Corrugated 5-ply outer carton, 60 individual packs per carton.",
+  p4: "Corrugated 5-ply carton, 48 individual packs per carton.",
+  p5: "Master carton: 24 x 1kg pouches, shrink-wrapped for transit.",
+  p6: "Multi-layer pouch inside 5-ply corrugated carton, moisture protected.",
+  p7: "HDPE can with induction seal, shipped in shrink-wrapped tray of 6.",
+  p8: "Shrink-wrapped bundle of 12 notebooks, master carton of 4 bundles.",
+  p9: "Display box of 50 pens, master carton of 20 boxes.",
+  p10: "Roll count 6 per pack, master carton of 6 packs.",
+  p11: "Individual carton per lock, master shipper of 6 units.",
+  p12: "Carton of 12 x 1kg foil pouches, GST invoice included.",
+  p13: "Carton of 24 x 200g tubes, individually cartoned inside master.",
+  p14: "5L HDPE can with tamper cap. Ships in shrink-wrap of 2.",
+  p15: "Retail box, master carton of 10 units with anti-static liner.",
+  p16: "Cold-chain carton with thermal liner. 20 x 500g sealed packs.",
+};
+
+const skuFor = (p: Product) => `VS-${p.id.toUpperCase()}-${p.brand.replace(/\s+/g, "").slice(0, 4).toUpperCase()}`;
+
+function defaultHighlights(p: Product): string[] {
+  return [
+    `100% authentic ${p.brand} SKU — direct from ${p.supplier.businessType?.toLowerCase() ?? "supplier"}`,
+    `Ships pan-India in 2–3 business days`,
+    p.gstIncluded ? `GST ${p.gstRate}% invoice included` : `${p.gstRate}% GST charged separately`,
+    `Bulk pricing unlocks at ${p.moq * 3}+ ${p.unit}`,
+    `Replacement guarantee on damaged units`,
+  ];
+}
+
+export const PRODUCTS: Product[] = RAW_PRODUCTS.map((p) => ({
+  ...p,
+  sku: p.sku ?? skuFor(p),
+  subCategory: p.subCategory ?? SUB_BY_ID[p.id] ?? "General",
+  packagingDetails: p.packagingDetails ?? PACKAGING_BY_ID[p.id] ?? `Original ${p.brand} packaging inside a 5-ply master carton.`,
+  highlights: p.highlights ?? defaultHighlights(p),
+  images: p.images ?? [p.image, p.image, p.image, p.image],
+}));
+
 export const FEATURED_PRODUCTS = PRODUCTS.filter((p) => p.featured);
 
 export function getProductBySlug(slug: string) {
@@ -389,3 +437,12 @@ export function getRelatedProducts(product: Product, limit = 4) {
     limit,
   );
 }
+
+export function getProductsBySupplier(supplierId: string) {
+  return PRODUCTS.filter((p) => p.supplier.id === supplierId);
+}
+
+export function getProductsByCategory(slug: string) {
+  return PRODUCTS.filter((p) => p.category === slug);
+}
+

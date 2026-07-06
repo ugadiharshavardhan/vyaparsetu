@@ -5,32 +5,27 @@ import { z } from "zod";
 import type { Product } from "@/types";
 import { PRODUCTS } from "@/data/products";
 import { ProductGrid } from "@/components/product/ProductGrid";
+import { ProductList } from "@/components/product/ProductListItem";
 import { ProductGridSkeleton } from "@/components/product/ProductCardSkeleton";
 import { QuickViewDialog } from "@/components/product/QuickViewDialog";
-import {
-  DEFAULT_FILTERS,
-  FilterSidebar,
-  type Filters,
-} from "@/components/marketplace/FilterSidebar";
+import { DEFAULT_FILTERS, FilterSidebar, type Filters } from "@/components/marketplace/FilterSidebar";
 import { SortDropdown, type SortKey } from "@/components/marketplace/SortDropdown";
 import { CategoryChips } from "@/components/marketplace/CategoryChips";
 import { EmptyState } from "@/components/marketplace/EmptyState";
+import { ViewToggle, type ViewMode } from "@/components/marketplace/ViewToggle";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
+  Pagination, PaginationContent, PaginationItem,
+  PaginationLink, PaginationNext, PaginationPrevious,
 } from "@/components/ui/pagination";
 import { useDebounce } from "@/hooks/useDebounce";
 
 const searchSchema = z.object({
   q: z.string().optional(),
   category: z.string().optional(),
+  supplier: z.string().optional(),
 });
 
 export const Route = createFileRoute("/marketplace")({
@@ -38,11 +33,7 @@ export const Route = createFileRoute("/marketplace")({
   head: () => ({
     meta: [
       { title: "Marketplace — VyaparSetu" },
-      {
-        name: "description",
-        content:
-          "Browse 2.5L+ wholesale SKUs from verified Indian suppliers. Filter by category, brand, price and MOQ.",
-      },
+      { name: "description", content: "Browse 2.5L+ wholesale SKUs from verified Indian suppliers. Filter by category, brand, price and MOQ." },
     ],
   }),
   component: MarketplacePage,
@@ -57,8 +48,10 @@ function MarketplacePage() {
   const [filters, setFilters] = useState<Filters>({
     ...DEFAULT_FILTERS,
     category: search.category ?? null,
+    suppliers: search.supplier ? [search.supplier] : [],
   });
   const [sort, setSort] = useState<SortKey>("featured");
+  const [view, setView] = useState<ViewMode>("grid");
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [quick, setQuick] = useState<Product | null>(null);
@@ -68,37 +61,38 @@ function MarketplacePage() {
     return () => clearTimeout(t);
   }, []);
 
-  useEffect(() => {
-    setPage(1);
-  }, [debouncedQuery, filters, sort]);
+  useEffect(() => { setPage(1); }, [debouncedQuery, filters, sort]);
 
   const filtered = useMemo(() => {
     const q = debouncedQuery.trim().toLowerCase();
+    const loc = filters.location.trim().toLowerCase();
     let list = PRODUCTS.filter((p) => {
       if (filters.category && p.category !== filters.category) return false;
+      if (filters.subCategory && p.subCategory !== filters.subCategory) return false;
       if (p.wholesalePrice > filters.priceMax) return false;
+      if (p.moq > filters.moqMax) return false;
+      if (p.rating < filters.minRating) return false;
       if (filters.brands.length && !filters.brands.includes(p.brand)) return false;
+      if (filters.suppliers.length && !filters.suppliers.includes(p.supplier.id)) return false;
+      if (filters.gstRates.length && !filters.gstRates.includes(p.gstRate)) return false;
       if (filters.verifiedOnly && !p.supplier.verified) return false;
       if (filters.gstOnly && !p.gstIncluded) return false;
       if (filters.inStockOnly && !p.inStock) return false;
-      if (q && !(p.name.toLowerCase().includes(q) || p.brand.toLowerCase().includes(q))) return false;
+      if (loc && !p.supplier.location.toLowerCase().includes(loc)) return false;
+      if (q && !(
+        p.name.toLowerCase().includes(q) ||
+        p.brand.toLowerCase().includes(q) ||
+        p.subCategory?.toLowerCase().includes(q) ||
+        p.supplier.name.toLowerCase().includes(q)
+      )) return false;
       return true;
     });
     switch (sort) {
-      case "price-asc":
-        list = [...list].sort((a, b) => a.wholesalePrice - b.wholesalePrice);
-        break;
-      case "price-desc":
-        list = [...list].sort((a, b) => b.wholesalePrice - a.wholesalePrice);
-        break;
-      case "rating":
-        list = [...list].sort((a, b) => b.rating - a.rating);
-        break;
-      case "newest":
-        list = [...list].reverse();
-        break;
-      default:
-        list = [...list].sort((a, b) => Number(!!b.featured) - Number(!!a.featured));
+      case "price-asc": list = [...list].sort((a, b) => a.wholesalePrice - b.wholesalePrice); break;
+      case "price-desc": list = [...list].sort((a, b) => b.wholesalePrice - a.wholesalePrice); break;
+      case "rating": list = [...list].sort((a, b) => b.rating - a.rating); break;
+      case "newest": list = [...list].reverse(); break;
+      default: list = [...list].sort((a, b) => Number(!!b.featured) - Number(!!a.featured));
     }
     return list;
   }, [debouncedQuery, filters, sort]);
@@ -121,11 +115,12 @@ function MarketplacePage() {
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search products, brands, categories…"
+            placeholder="Search products, brands, suppliers…"
             className="h-11 rounded-full border-border bg-card pl-10 shadow-soft"
           />
         </div>
         <div className="flex items-center gap-2">
+          <ViewToggle value={view} onChange={setView} />
           <SortDropdown value={sort} onChange={setSort} />
           <Sheet>
             <SheetTrigger asChild>
@@ -143,7 +138,7 @@ function MarketplacePage() {
       <div className="mt-4">
         <CategoryChips
           value={filters.category}
-          onChange={(v) => setFilters({ ...filters, category: v })}
+          onChange={(v) => setFilters({ ...filters, category: v, subCategory: null })}
         />
       </div>
 
@@ -151,24 +146,25 @@ function MarketplacePage() {
         <div className="hidden lg:block">
           <FilterSidebar filters={filters} onChange={setFilters} />
         </div>
-        <div>
+        <div className="min-w-0">
           {loading ? (
             <ProductGridSkeleton />
           ) : paginated.length === 0 ? (
             <EmptyState onReset={() => setFilters(DEFAULT_FILTERS)} />
           ) : (
             <>
-              <ProductGrid products={paginated} onQuickView={setQuick} />
+              {view === "grid" ? (
+                <ProductGrid products={paginated} onQuickView={setQuick} />
+              ) : (
+                <ProductList products={paginated} onQuickView={setQuick} />
+              )}
               {totalPages > 1 && (
                 <Pagination className="mt-10">
                   <PaginationContent>
                     <PaginationItem>
                       <PaginationPrevious
                         href="#"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          setPage((p) => Math.max(1, p - 1));
-                        }}
+                        onClick={(e) => { e.preventDefault(); setPage((p) => Math.max(1, p - 1)); }}
                       />
                     </PaginationItem>
                     {Array.from({ length: totalPages }).map((_, i) => (
@@ -176,10 +172,7 @@ function MarketplacePage() {
                         <PaginationLink
                           href="#"
                           isActive={page === i + 1}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setPage(i + 1);
-                          }}
+                          onClick={(e) => { e.preventDefault(); setPage(i + 1); }}
                         >
                           {i + 1}
                         </PaginationLink>
@@ -188,10 +181,7 @@ function MarketplacePage() {
                     <PaginationItem>
                       <PaginationNext
                         href="#"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          setPage((p) => Math.min(totalPages, p + 1));
-                        }}
+                        onClick={(e) => { e.preventDefault(); setPage((p) => Math.min(totalPages, p + 1)); }}
                       />
                     </PaginationItem>
                   </PaginationContent>
