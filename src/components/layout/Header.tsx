@@ -1,11 +1,13 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Menu, Search, ShoppingBag, X } from "lucide-react";
+import { Menu, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Logo } from "@/components/common/Logo";
 import { NAV_LINKS } from "@/constants/site";
 import { SearchDialog } from "@/components/search/SearchDialog";
+import { UserMenu } from "@/components/layout/UserMenu";
+import { useAuth } from "@/hooks/useAuth";
 
 export function Header() {
   const [scrolled, setScrolled] = useState(false);
@@ -60,14 +62,10 @@ export function Header() {
             <Search className="h-4 w-4" />
           </button>
 
-          <Button variant="ghost" className="hidden md:inline-flex" asChild>
-            <Link to="/marketplace">Sign in</Link>
-          </Button>
-          <Button className="hidden shadow-brand md:inline-flex" asChild>
-            <Link to="/marketplace">
-              <ShoppingBag className="mr-1.5 h-4 w-4" /> Get Started
-            </Link>
-          </Button>
+          <div className="hidden md:block">
+            <UserMenu />
+          </div>
+
 
           <Sheet>
             <SheetTrigger asChild>
