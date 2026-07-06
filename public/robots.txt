@@ -1,0 +1,19 @@
+# VyaparSetu — robots
+User-agent: *
+Allow: /
+Disallow: /auth
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /dashboard
+Disallow: /cart
+Disallow: /checkout
+Disallow: /orders
+Disallow: /wishlist
+Disallow: /profile
+Disallow: /settings
+Disallow: /notifications
+Disallow: /addresses
+Disallow: /admin
+Disallow: /supplier
+Disallow: /onboarding
+Disallow: /api/

@@ -1,0 +1,16 @@
+{
+  "name": "VyaparSetu — B2B Wholesale Marketplace",
+  "short_name": "VyaparSetu",
+  "description": "India's trusted B2B wholesale marketplace connecting retailers with verified manufacturers, distributors and suppliers.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#0F5F4A",
+  "categories": ["business", "shopping", "productivity"],
+  "lang": "en-IN",
+  "icons": [
+    { "src": "/favicon.ico", "sizes": "64x64 32x32 24x24 16x16", "type": "image/x-icon" }
+  ]
+}
