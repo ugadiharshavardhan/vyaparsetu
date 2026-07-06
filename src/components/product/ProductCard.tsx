@@ -1,12 +1,16 @@
 import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { Eye, GitCompare, Heart, MapPin, ShieldCheck } from "lucide-react";
+import { Eye, Heart, MapPin, ShieldCheck, ShoppingCart } from "lucide-react";
 import type { Product } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Rating } from "@/components/common/Rating";
 import { VerifiedBadge } from "@/components/common/VerifiedBadge";
 import { discountPct, inr } from "@/lib/format";
-import { useState } from "react";
+import { useAddToCart } from "@/hooks/useCart";
+import { useToggleWishlist, useWishlist } from "@/hooks/useWishlist";
+import { toSnapshot } from "@/lib/commerce";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "@tanstack/react-router";
 
 type Props = {
   product: Product;
@@ -14,8 +18,22 @@ type Props = {
 };
 
 export function ProductCard({ product, onQuickView }: Props) {
-  const [fav, setFav] = useState(false);
   const off = discountPct(product.mrp, product.wholesalePrice);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { data: wishlist } = useWishlist();
+  const isFav = !!wishlist?.find((w) => w.product_id === product.id);
+  const toggle = useToggleWishlist();
+  const add = useAddToCart();
+  const snapshot = toSnapshot(product);
+
+  const requireAuth = (fn: () => void) => {
+    if (!user) {
+      navigate({ to: "/auth", search: { mode: "signin" } });
+      return;
+    }
+    fn();
+  };
 
   return (
     <motion.article
@@ -46,14 +64,14 @@ export function ProductCard({ product, onQuickView }: Props) {
           <button
             onClick={(e) => {
               e.preventDefault();
-              setFav((f) => !f);
+              requireAuth(() => toggle.mutate({ snapshot }));
             }}
             className={`grid h-8 w-8 place-items-center rounded-full bg-white/95 shadow-soft backdrop-blur transition-colors ${
-              fav ? "text-destructive" : "text-muted-foreground hover:text-destructive"
+              isFav ? "text-destructive" : "text-muted-foreground hover:text-destructive"
             }`}
             aria-label="Favorite"
           >
-            <Heart className={`h-4 w-4 ${fav ? "fill-current" : ""}`} />
+            <Heart className={`h-4 w-4 ${isFav ? "fill-current" : ""}`} />
           </button>
           <button
             onClick={(e) => {
@@ -107,16 +125,16 @@ export function ProductCard({ product, onQuickView }: Props) {
         </div>
 
         <div className="mt-3 flex items-center gap-2">
-          <Button asChild size="sm" className="flex-1 shadow-brand">
-            <Link to="/products/$slug" params={{ slug: product.slug }}>View Details</Link>
+          <Button asChild size="sm" variant="outline" className="flex-1">
+            <Link to="/products/$slug" params={{ slug: product.slug }}>View</Link>
           </Button>
           <Button
-            variant="outline"
-            size="icon"
-            aria-label="Compare"
-            className="shrink-0"
+            size="sm"
+            className="flex-1 shadow-brand"
+            disabled={!product.inStock || add.isPending}
+            onClick={() => requireAuth(() => add.mutate({ snapshot }))}
           >
-            <GitCompare className="h-4 w-4" />
+            <ShoppingCart className="mr-1.5 h-3.5 w-3.5" /> Add
           </Button>
         </div>
       </div>

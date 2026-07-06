@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  BarChart3, Boxes, FileText, HelpCircle, Heart, LayoutDashboard, LogOut,
+  BarChart3, Boxes, FileText, HelpCircle, Heart, LayoutDashboard, LogOut, MapPin,
   Package, Settings, ShieldCheck, ShoppingBag, ShoppingCart, Store, Tag, User, Users,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -14,6 +14,8 @@ import {
 import { Logo } from "@/components/common/Logo";
 import { useRoles } from "@/hooks/useProfile";
 import { supabase } from "@/integrations/supabase/client";
+import { useCart } from "@/hooks/useCart";
+import { useWishlist } from "@/hooks/useWishlist";
 
 const MAIN = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
@@ -21,6 +23,7 @@ const MAIN = [
   { title: "Orders", url: "/orders", icon: Package },
   { title: "Wishlist", url: "/wishlist", icon: Heart },
   { title: "Cart", url: "/cart", icon: ShoppingCart },
+  { title: "Addresses", url: "/addresses", icon: MapPin },
   { title: "Suppliers", url: "/suppliers", icon: ShoppingBag },
 ] as const;
 
@@ -46,6 +49,16 @@ export function DashboardSidebar() {
   const isAdmin = roles?.includes("admin");
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const { data: cart } = useCart();
+  const { data: wishlist } = useWishlist();
+  const cartCount = cart?.filter((c) => !c.saved_for_later).length ?? 0;
+  const wishCount = wishlist?.length ?? 0;
+
+  const badgeFor = (url: string): number => {
+    if (url === "/cart") return cartCount;
+    if (url === "/wishlist") return wishCount;
+    return 0;
+  };
 
   const isActive = (url: string) => pathname === url || (url !== "/dashboard" && pathname.startsWith(url));
 
@@ -63,16 +76,24 @@ export function DashboardSidebar() {
 
   const renderItems = (items: readonly { title: string; url: string; icon: typeof Store }[]) => (
     <SidebarMenu>
-      {items.map((item) => (
-        <SidebarMenuItem key={item.title}>
-          <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={collapsed ? item.title : undefined}>
-            <Link to={item.url} className="flex items-center gap-2">
-              <item.icon className="h-4 w-4 shrink-0" />
-              {!collapsed && <span>{item.title}</span>}
-            </Link>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-      ))}
+      {items.map((item) => {
+        const count = badgeFor(item.url);
+        return (
+          <SidebarMenuItem key={item.title}>
+            <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={collapsed ? item.title : undefined}>
+              <Link to={item.url} className="flex items-center gap-2">
+                <item.icon className="h-4 w-4 shrink-0" />
+                {!collapsed && <span className="flex-1">{item.title}</span>}
+                {!collapsed && count > 0 && (
+                  <span className="ml-auto inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand px-1.5 text-[10px] font-bold text-white">
+                    {count}
+                  </span>
+                )}
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        );
+      })}
     </SidebarMenu>
   );
 
