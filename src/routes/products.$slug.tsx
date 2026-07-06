@@ -1,24 +1,27 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useState } from "react";
-import { motion } from "framer-motion";
+import { useEffect } from "react";
 import {
-  ChevronRight,
-  Heart,
-  MapPin,
-  MessageCircle,
-  ShieldCheck,
-  ShoppingCart,
-  Truck,
-  Zap,
+  Boxes, ChevronRight, Heart, MapPin, MessageCircle, PackageCheck,
+  ShieldCheck, ShoppingCart, Sparkles, Truck, Zap,
 } from "lucide-react";
-import { getProductBySlug, getRelatedProducts } from "@/data/products";
+import { getProductBySlug, getRelatedProducts, PRODUCTS } from "@/data/products";
 import { Button } from "@/components/ui/button";
-import { Rating } from "@/components/common/Rating";
 import { VerifiedBadge } from "@/components/common/VerifiedBadge";
-import { discountPct, inr } from "@/lib/format";
+import { PriceDisplay } from "@/components/common/PriceDisplay";
+import { StockBadge } from "@/components/common/StockBadge";
+import { RatingBadge } from "@/components/common/RatingBadge";
 import { ProductGrid } from "@/components/product/ProductGrid";
+import { ProductGallery } from "@/components/product/ProductGallery";
+import { SpecificationTable } from "@/components/product/SpecificationTable";
+import { ReviewCard, type ReviewData } from "@/components/product/ReviewCard";
 import { SectionHeading } from "@/components/common/SectionHeading";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Tabs, TabsContent, TabsList, TabsTrigger,
+} from "@/components/ui/tabs";
+import {
+  Accordion, AccordionContent, AccordionItem, AccordionTrigger,
+} from "@/components/ui/accordion";
+import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
 
 export const Route = createFileRoute("/products/$slug")({
   loader: ({ params }) => {
@@ -29,10 +32,7 @@ export const Route = createFileRoute("/products/$slug")({
   head: ({ loaderData }) => ({
     meta: [
       { title: loaderData ? `${loaderData.product.name} — VyaparSetu` : "Product — VyaparSetu" },
-      {
-        name: "description",
-        content: loaderData?.product.description ?? "Wholesale product on VyaparSetu",
-      },
+      { name: "description", content: loaderData?.product.description ?? "Wholesale product on VyaparSetu" },
       ...(loaderData
         ? [
             { property: "og:title", content: loaderData.product.name },
@@ -52,85 +52,74 @@ export const Route = createFileRoute("/products/$slug")({
   component: ProductPage,
 });
 
-const REVIEWS = [
-  { name: "Mehul S.", rating: 5, text: "Consistent quality across 6 orders. Delivery is always on time." },
-  { name: "Kavya R.", rating: 4, text: "Great pricing at MOQ. Would love bigger slab discounts above 100 units." },
-  { name: "Anwar P.", rating: 5, text: "GST invoice was clean and matched my books perfectly." },
+const REVIEWS: ReviewData[] = [
+  { id: "r1", name: "Mehul Shah", rating: 5, text: "Consistent quality across 6 orders. Delivery is always on time and packaging is bulk-transit ready.", date: "2 weeks ago", helpful: 12, verified: true },
+  { id: "r2", name: "Kavya R.", rating: 4, text: "Great pricing at MOQ. Would love bigger slab discounts above 100 units.", date: "1 month ago", helpful: 4, verified: true },
+  { id: "r3", name: "Anwar P.", rating: 5, text: "GST invoice was clean and matched my books perfectly. Solid supplier.", date: "2 months ago", helpful: 8, verified: true },
+];
+
+const PRODUCT_FAQS = [
+  { q: "Is the GST invoice included in the price?", a: "Yes. Every order generates a GST-compliant invoice with HSN, taxable value and tax breakdown." },
+  { q: "What is the average delivery time?", a: "2–3 business days for metro cities, 4–5 days for tier 2/3. Ships from the supplier's nearest warehouse." },
+  { q: "Can I return damaged units?", a: "Yes. Report damage within 48 hours with photos and we replace or refund damaged units." },
+  { q: "Are bulk-slab discounts available?", a: "Yes. Volume pricing unlocks automatically at 3x MOQ and above. Contact the supplier for larger orders." },
 ];
 
 function ProductPage() {
   const { product } = Route.useLoaderData();
-  const [activeImg, setActiveImg] = useState(0);
-  const gallery: string[] = product.images ?? [product.image, product.image, product.image];
+  const gallery = product.images ?? [product.image];
   const related = getRelatedProducts(product);
-  const off = discountPct(product.mrp, product.wholesalePrice);
+  const { ids, push } = useRecentlyViewed();
+  const recentlyViewed = PRODUCTS.filter((p) => ids.includes(p.id) && p.id !== product.id).slice(0, 4);
+
+  useEffect(() => { push(product.id); }, [product.id, push]);
 
   return (
     <div className="container-page py-8 md:py-12">
-      <nav className="flex items-center gap-1 text-xs text-muted-foreground">
+      <nav className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
         <Link to="/" className="hover:text-brand">Home</Link>
         <ChevronRight className="h-3 w-3" />
         <Link to="/marketplace" className="hover:text-brand">Marketplace</Link>
         <ChevronRight className="h-3 w-3" />
-        <span className="capitalize">{product.category}</span>
+        <Link to="/marketplace" search={{ category: product.category } as never} className="capitalize hover:text-brand">
+          {product.category}
+        </Link>
+        {product.subCategory && (
+          <>
+            <ChevronRight className="h-3 w-3" />
+            <span>{product.subCategory}</span>
+          </>
+        )}
         <ChevronRight className="h-3 w-3" />
         <span className="line-clamp-1 text-foreground">{product.name}</span>
       </nav>
 
       <div className="mt-6 grid gap-10 lg:grid-cols-[1.2fr_1fr]">
-        <div>
-          <motion.div
-            key={activeImg}
-            initial={{ opacity: 0.4 }}
-            animate={{ opacity: 1 }}
-            className="relative aspect-square overflow-hidden rounded-3xl border border-border bg-card shadow-soft"
-          >
-            <img src={gallery[activeImg]} alt={product.name} className="h-full w-full object-cover" />
-            {off > 0 && (
-              <span className="absolute left-5 top-5 rounded-full bg-brand px-3 py-1 text-xs font-semibold text-white shadow-brand">
-                {off}% OFF
-              </span>
-            )}
-          </motion.div>
-          <div className="mt-4 flex gap-3">
-            {gallery.map((g, i) => (
-              <button
-                key={i}
-                onClick={() => setActiveImg(i)}
-                className={`relative h-20 w-20 overflow-hidden rounded-xl border transition-all ${
-                  activeImg === i ? "border-brand ring-2 ring-brand/30" : "border-border"
-                }`}
-              >
-                <img src={g} alt="" className="h-full w-full object-cover" />
-              </button>
-            ))}
-          </div>
-        </div>
+        <ProductGallery images={gallery} alt={product.name} />
 
-        <div className="flex flex-col">
-          <p className="text-xs uppercase tracking-wider text-muted-foreground">{product.brand}</p>
+        <div className="flex min-w-0 flex-col">
+          <p className="text-xs uppercase tracking-wider text-muted-foreground">
+            {product.brand} · SKU {product.sku}
+          </p>
           <h1 className="mt-2 font-display text-3xl font-bold tracking-tight text-foreground">
             {product.name}
           </h1>
-          <div className="mt-3 flex items-center gap-3">
-            <Rating value={product.rating} count={product.reviewCount} />
-            <span className="text-xs text-muted-foreground">·</span>
-            <span className="text-xs font-semibold text-brand">
-              {product.inStock ? `In stock (${product.stockCount})` : "Out of stock"}
-            </span>
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <RatingBadge value={product.rating} count={product.reviewCount} />
+            <StockBadge inStock={product.inStock} stock={product.stockCount} />
           </div>
 
           <div className="mt-6 rounded-2xl border border-border bg-card p-5 shadow-soft">
-            <div className="flex items-baseline gap-3">
-              <span className="text-3xl font-bold text-foreground">{inr(product.wholesalePrice)}</span>
-              {product.mrp > product.wholesalePrice && (
-                <span className="text-sm text-muted-foreground line-through">{inr(product.mrp)}</span>
-              )}
-              <span className="rounded-full bg-brand-soft px-2 py-0.5 text-xs font-semibold text-brand">
-                {product.gstIncluded ? `GST ${product.gstRate}% incl.` : `+ ${product.gstRate}% GST`}
-              </span>
-            </div>
-            <p className="mt-2 text-xs text-muted-foreground">Wholesale price per {product.unit}. Bulk pricing unlocks at 50+ units.</p>
+            <PriceDisplay
+              price={product.wholesalePrice}
+              mrp={product.mrp}
+              gstIncluded={product.gstIncluded}
+              gstRate={product.gstRate}
+              size="lg"
+            />
+            <p className="mt-2 text-xs text-muted-foreground">
+              Wholesale price per {product.unit}. Volume pricing unlocks at {product.moq * 3}+ units.
+            </p>
 
             <div className="mt-5 grid grid-cols-3 gap-3 text-center text-xs">
               <div className="rounded-xl bg-secondary p-3">
@@ -138,7 +127,7 @@ function ProductPage() {
                 <div className="text-muted-foreground">MOQ ({product.unit})</div>
               </div>
               <div className="rounded-xl bg-secondary p-3">
-                <div className="font-semibold text-foreground">2-3 days</div>
+                <div className="font-semibold text-foreground">2–3 days</div>
                 <div className="text-muted-foreground">Delivery</div>
               </div>
               <div className="rounded-xl bg-secondary p-3">
@@ -148,10 +137,10 @@ function ProductPage() {
             </div>
 
             <div className="mt-5 flex flex-wrap gap-2">
-              <Button size="lg" disabled className="flex-1 shadow-brand" title="Available after sign in">
+              <Button size="lg" disabled className="flex-1 shadow-brand" title="Cart ships in next phase">
                 <ShoppingCart className="mr-1.5 h-4 w-4" /> Add to Cart
               </Button>
-              <Button size="lg" variant="outline" disabled className="flex-1" title="Available after sign in">
+              <Button size="lg" variant="outline" disabled className="flex-1" title="Checkout ships in next phase">
                 <Zap className="mr-1.5 h-4 w-4" /> Buy Now
               </Button>
               <Button size="lg" variant="outline" aria-label="Save">
@@ -163,25 +152,43 @@ function ProductPage() {
             </Button>
           </div>
 
+          {product.highlights && product.highlights.length > 0 && (
+            <div className="mt-5 rounded-2xl border border-border bg-card p-5 shadow-soft">
+              <h3 className="flex items-center gap-2 font-display text-sm font-semibold">
+                <Sparkles className="h-4 w-4 text-brand" /> Product highlights
+              </h3>
+              <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+                {product.highlights.map((h, i) => (
+                  <li key={i} className="flex gap-2">
+                    <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-brand" />
+                    <span>{h}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <div className="mt-5 rounded-2xl border border-border bg-card p-5 shadow-soft">
-            <div className="flex items-center gap-3">
-              <div className="grid h-12 w-12 place-items-center rounded-xl gradient-brand text-white font-semibold">
+            <div className="flex items-start gap-3">
+              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl gradient-brand font-semibold text-white">
                 {product.supplier.name[0]}
               </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <div className="font-semibold text-foreground">{product.supplier.name}</div>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="truncate font-semibold text-foreground">{product.supplier.name}</div>
                   {product.supplier.verified && <VerifiedBadge />}
                 </div>
-                <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+                <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                   <MapPin className="h-3 w-3" /> {product.supplier.location}
                   <span>·</span>
-                  <Rating value={product.supplier.rating} />
+                  <span>★ {product.supplier.rating.toFixed(1)}</span>
                   <span>·</span>
-                  {product.supplier.yearsActive}+ yrs on VyaparSetu
+                  <span>{product.supplier.yearsActive}+ yrs on VyaparSetu</span>
                 </div>
               </div>
-              <Button variant="outline" size="sm">View Store</Button>
+              <Button asChild variant="outline" size="sm">
+                <Link to="/suppliers/$id" params={{ id: product.supplier.id }}>View store</Link>
+              </Button>
             </div>
             <div className="mt-4 grid grid-cols-3 gap-3 border-t border-border pt-4 text-xs text-muted-foreground">
               <div className="flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5 text-brand" /> Verified</div>
@@ -197,29 +204,49 @@ function ProductPage() {
           <TabsList>
             <TabsTrigger value="desc">Description</TabsTrigger>
             <TabsTrigger value="spec">Specifications</TabsTrigger>
+            <TabsTrigger value="pack">Packaging</TabsTrigger>
             <TabsTrigger value="reviews">Reviews ({REVIEWS.length})</TabsTrigger>
+            <TabsTrigger value="faq">FAQs</TabsTrigger>
           </TabsList>
+
           <TabsContent value="desc" className="mt-6 max-w-3xl text-sm leading-relaxed text-muted-foreground">
             {product.description}
           </TabsContent>
-          <TabsContent value="spec" className="mt-6">
-            <dl className="grid max-w-2xl grid-cols-1 divide-y divide-border rounded-2xl border border-border bg-card sm:grid-cols-2 sm:divide-x sm:divide-y-0">
-              {Object.entries(product.specifications).map(([k, v]) => (
-                <div key={k} className="flex items-center justify-between p-4 text-sm">
-                  <dt className="text-muted-foreground">{k}</dt>
-                  <dd className="font-medium text-foreground">{String(v)}</dd>
-                </div>
-              ))}
-            </dl>
+
+          <TabsContent value="spec" className="mt-6 max-w-3xl">
+            <SpecificationTable specs={product.specifications} />
           </TabsContent>
-          <TabsContent value="reviews" className="mt-6 grid gap-4 sm:grid-cols-3">
-            {REVIEWS.map((r) => (
-              <div key={r.name} className="rounded-2xl border border-border bg-card p-5 shadow-soft">
-                <Rating value={r.rating} />
-                <p className="mt-3 text-sm text-foreground">"{r.text}"</p>
-                <p className="mt-3 text-xs font-semibold text-muted-foreground">— {r.name}</p>
+
+          <TabsContent value="pack" className="mt-6 max-w-3xl">
+            <div className="rounded-2xl border border-border bg-card p-6 shadow-soft">
+              <h3 className="flex items-center gap-2 font-display text-base font-semibold">
+                <PackageCheck className="h-4 w-4 text-brand" /> Packaging details
+              </h3>
+              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                {product.packagingDetails}
+              </p>
+              <div className="mt-4 grid grid-cols-2 gap-3 border-t border-border pt-4 text-xs sm:grid-cols-4">
+                <Meta label="Unit" value={product.unit} />
+                <Meta label="MOQ" value={`${product.moq} ${product.unit}`} />
+                <Meta label="Stock" value={product.stockCount.toLocaleString("en-IN")} />
+                <Meta label="HSN" value={product.specifications.HSN ?? "—"} />
               </div>
-            ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="reviews" className="mt-6 grid gap-4 sm:grid-cols-3">
+            {REVIEWS.map((r) => <ReviewCard key={r.id} review={r} />)}
+          </TabsContent>
+
+          <TabsContent value="faq" className="mt-6 max-w-3xl">
+            <Accordion type="single" collapsible className="rounded-2xl border border-border bg-card px-5 shadow-soft">
+              {PRODUCT_FAQS.map((f) => (
+                <AccordionItem key={f.q} value={f.q}>
+                  <AccordionTrigger>{f.q}</AccordionTrigger>
+                  <AccordionContent>{f.a}</AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
           </TabsContent>
         </Tabs>
       </div>
@@ -227,11 +254,28 @@ function ProductPage() {
       {related.length > 0 && (
         <div className="mt-16">
           <SectionHeading align="left" eyebrow="Related" title="You might also like" />
-          <div className="mt-8">
-            <ProductGrid products={related} />
-          </div>
+          <div className="mt-8"><ProductGrid products={related} /></div>
+        </div>
+      )}
+
+      {recentlyViewed.length > 0 && (
+        <div className="mt-16">
+          <SectionHeading align="left" eyebrow="Just browsed" title="Recently viewed" />
+          <div className="mt-8"><ProductGrid products={recentlyViewed} /></div>
         </div>
       )}
     </div>
   );
 }
+
+function Meta({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg bg-secondary p-3">
+      <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className="mt-0.5 text-sm font-semibold text-foreground">{value}</div>
+    </div>
+  );
+}
+
+// Silence unused import for Boxes (kept for future use)
+void Boxes;
