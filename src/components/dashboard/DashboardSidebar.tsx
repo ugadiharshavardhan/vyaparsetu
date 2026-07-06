@@ -1,7 +1,8 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  BarChart3, Boxes, FileText, HelpCircle, Heart, LayoutDashboard, LogOut, MapPin,
-  Package, Settings, ShieldCheck, ShoppingBag, ShoppingCart, Store, Tag, User, Users,
+  BarChart3, Bell, Boxes, Building2, FileText, HelpCircle, Heart, LayoutDashboard, LifeBuoy,
+  LineChart, LogOut, MapPin, Megaphone, Package, PackageOpen, ReceiptText,
+  Settings, ShieldCheck, ShoppingBag, ShoppingCart, Star, Store, Tag, User, Users, Warehouse,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
@@ -41,12 +42,31 @@ const ADMIN = [
   { title: "Reports", url: "/admin", icon: FileText },
 ] as const;
 
+const SUPPLIER = [
+  { title: "Dashboard", url: "/supplier", icon: LayoutDashboard },
+  { title: "Products", url: "/supplier/products", icon: PackageOpen },
+  { title: "Inventory", url: "/supplier/inventory", icon: Boxes },
+  { title: "Orders", url: "/supplier/orders", icon: ReceiptText },
+  { title: "Customers", url: "/supplier/customers", icon: Users },
+  { title: "Analytics", url: "/supplier/analytics", icon: LineChart },
+  { title: "Warehouse", url: "/supplier/warehouse", icon: Warehouse },
+  { title: "Pricing", url: "/supplier/pricing", icon: Tag },
+  { title: "Promotions", url: "/supplier/promotions", icon: Megaphone },
+  { title: "Reviews", url: "/supplier/reviews", icon: Star },
+  { title: "Business profile", url: "/supplier/profile", icon: Building2 },
+  { title: "Documents", url: "/supplier/documents", icon: FileText },
+  { title: "Notifications", url: "/supplier/notifications", icon: Bell },
+  { title: "Support", url: "/supplier/support", icon: LifeBuoy },
+  { title: "Settings", url: "/supplier/settings", icon: Settings },
+] as const;
+
 export function DashboardSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const { data: roles } = useRoles();
   const isAdmin = roles?.includes("admin");
+  const isSupplier = !!roles?.some((r) => r === "wholesaler" || r === "manufacturer" || r === "distributor");
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { data: cart } = useCart();
@@ -114,6 +134,14 @@ export function DashboardSidebar() {
           {!collapsed && <SidebarGroupLabel>Account</SidebarGroupLabel>}
           <SidebarGroupContent>{renderItems(ACCOUNT)}</SidebarGroupContent>
         </SidebarGroup>
+
+        {isSupplier && (
+          <SidebarGroup>
+            {!collapsed && <SidebarGroupLabel>Supplier portal</SidebarGroupLabel>}
+            <SidebarGroupContent>{renderItems(SUPPLIER)}</SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
 
         {isAdmin && (
           <SidebarGroup>
