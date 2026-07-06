@@ -49,6 +49,16 @@ export function DashboardSidebar() {
   const isAdmin = roles?.includes("admin");
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const { data: cart } = useCart();
+  const { data: wishlist } = useWishlist();
+  const cartCount = cart?.filter((c) => !c.saved_for_later).length ?? 0;
+  const wishCount = wishlist?.length ?? 0;
+
+  const badgeFor = (url: string): number => {
+    if (url === "/cart") return cartCount;
+    if (url === "/wishlist") return wishCount;
+    return 0;
+  };
 
   const isActive = (url: string) => pathname === url || (url !== "/dashboard" && pathname.startsWith(url));
 
@@ -66,16 +76,24 @@ export function DashboardSidebar() {
 
   const renderItems = (items: readonly { title: string; url: string; icon: typeof Store }[]) => (
     <SidebarMenu>
-      {items.map((item) => (
-        <SidebarMenuItem key={item.title}>
-          <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={collapsed ? item.title : undefined}>
-            <Link to={item.url} className="flex items-center gap-2">
-              <item.icon className="h-4 w-4 shrink-0" />
-              {!collapsed && <span>{item.title}</span>}
-            </Link>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-      ))}
+      {items.map((item) => {
+        const count = badgeFor(item.url);
+        return (
+          <SidebarMenuItem key={item.title}>
+            <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={collapsed ? item.title : undefined}>
+              <Link to={item.url} className="flex items-center gap-2">
+                <item.icon className="h-4 w-4 shrink-0" />
+                {!collapsed && <span className="flex-1">{item.title}</span>}
+                {!collapsed && count > 0 && (
+                  <span className="ml-auto inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand px-1.5 text-[10px] font-bold text-white">
+                    {count}
+                  </span>
+                )}
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        );
+      })}
     </SidebarMenu>
   );
 
