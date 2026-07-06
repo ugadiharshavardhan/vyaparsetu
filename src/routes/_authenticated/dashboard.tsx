@@ -13,7 +13,7 @@ import { StatusBadge } from "@/components/common/StatusBadge";
 import { useProfile, useRoles } from "@/hooks/useProfile";
 import { DEMO_ACTIVITY, DEMO_NOTIFICATIONS, DEMO_SUPPLIERS } from "@/data/dashboard";
 import { PRODUCTS } from "@/data/products";
-import { formatCurrencyINR } from "@/lib/format";
+import { inr as formatCurrencyINR } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — VyaparSetu" }] }),
@@ -152,7 +152,7 @@ function DashboardPage() {
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm font-semibold">{p.name}</div>
                     <div className="text-xs text-muted-foreground">MOQ {p.moq} {p.unit}</div>
-                    <div className="mt-1 text-sm font-bold text-brand">{formatCurrencyINR(p.pricePerUnit)}/{p.unit}</div>
+                    <div className="mt-1 text-sm font-bold text-brand">{formatCurrencyINR(p.wholesalePrice)}/{p.unit}</div>
                   </div>
                 </Link>
               ))}
