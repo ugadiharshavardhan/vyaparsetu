@@ -16,43 +16,97 @@ export type Database = {
     Tables: {
       profiles: {
         Row: {
+          address: string | null
+          alternate_phone: string | null
           avatar_url: string | null
+          business_category: string | null
+          business_email: string | null
           business_name: string | null
           business_type: Database["public"]["Enums"]["business_type"] | null
+          city: string | null
+          country: string | null
           created_at: string
           email: string | null
           full_name: string | null
+          gst_certificate_url: string | null
           gst_number: string | null
           id: string
+          logo_url: string | null
+          onboarding_completed: boolean
+          owner_name: string | null
+          pan_document_url: string | null
+          pan_number: string | null
           phone: string | null
+          pincode: string | null
+          shop_image_url: string | null
+          state: string | null
           updated_at: string
           verification_status: Database["public"]["Enums"]["verification_status"]
+          website: string | null
+          whatsapp: string | null
+          years_in_business: number | null
         }
         Insert: {
+          address?: string | null
+          alternate_phone?: string | null
           avatar_url?: string | null
+          business_category?: string | null
+          business_email?: string | null
           business_name?: string | null
           business_type?: Database["public"]["Enums"]["business_type"] | null
+          city?: string | null
+          country?: string | null
           created_at?: string
           email?: string | null
           full_name?: string | null
+          gst_certificate_url?: string | null
           gst_number?: string | null
           id: string
+          logo_url?: string | null
+          onboarding_completed?: boolean
+          owner_name?: string | null
+          pan_document_url?: string | null
+          pan_number?: string | null
           phone?: string | null
+          pincode?: string | null
+          shop_image_url?: string | null
+          state?: string | null
           updated_at?: string
           verification_status?: Database["public"]["Enums"]["verification_status"]
+          website?: string | null
+          whatsapp?: string | null
+          years_in_business?: number | null
         }
         Update: {
+          address?: string | null
+          alternate_phone?: string | null
           avatar_url?: string | null
+          business_category?: string | null
+          business_email?: string | null
           business_name?: string | null
           business_type?: Database["public"]["Enums"]["business_type"] | null
+          city?: string | null
+          country?: string | null
           created_at?: string
           email?: string | null
           full_name?: string | null
+          gst_certificate_url?: string | null
           gst_number?: string | null
           id?: string
+          logo_url?: string | null
+          onboarding_completed?: boolean
+          owner_name?: string | null
+          pan_document_url?: string | null
+          pan_number?: string | null
           phone?: string | null
+          pincode?: string | null
+          shop_image_url?: string | null
+          state?: string | null
           updated_at?: string
           verification_status?: Database["public"]["Enums"]["verification_status"]
+          website?: string | null
+          whatsapp?: string | null
+          years_in_business?: number | null
         }
         Relationships: []
       }
@@ -103,7 +157,7 @@ export type Database = {
         | "manufacturer"
         | "distributor"
         | "other"
-      verification_status: "pending" | "verified" | "rejected"
+      verification_status: "pending" | "under_review" | "verified" | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -245,7 +299,7 @@ export const Constants = {
         "distributor",
         "other",
       ],
-      verification_status: ["pending", "verified", "rejected"],
+      verification_status: ["pending", "under_review", "verified", "rejected"],
     },
   },
 } as const
