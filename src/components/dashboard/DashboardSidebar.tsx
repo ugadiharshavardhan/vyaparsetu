@@ -35,11 +35,25 @@ const ACCOUNT = [
 ] as const;
 
 const ADMIN = [
-  { title: "Users", url: "/admin", icon: Users },
-  { title: "Products", url: "/admin", icon: Boxes },
-  { title: "Categories", url: "/admin", icon: Tag },
-  { title: "Analytics", url: "/admin", icon: BarChart3 },
-  { title: "Reports", url: "/admin", icon: FileText },
+  { title: "Overview", url: "/admin", icon: LayoutDashboard },
+  { title: "Analytics", url: "/admin/analytics", icon: BarChart3 },
+  { title: "Users", url: "/admin/users", icon: Users },
+  { title: "Verifications", url: "/admin/verifications", icon: ShieldCheck },
+  { title: "Products", url: "/admin/products", icon: Boxes },
+  { title: "Categories", url: "/admin/categories", icon: Tag },
+  { title: "Orders", url: "/admin/orders", icon: Package },
+  { title: "Payments", url: "/admin/payments", icon: ReceiptText },
+  { title: "Finance", url: "/admin/finance", icon: LineChart },
+  { title: "Support", url: "/admin/support", icon: LifeBuoy },
+  { title: "Coupons", url: "/admin/coupons", icon: Tag },
+  { title: "Banners", url: "/admin/banners", icon: Megaphone },
+  { title: "CMS", url: "/admin/cms", icon: FileText },
+  { title: "Notifications", url: "/admin/notifications", icon: Bell },
+  { title: "Reports", url: "/admin/reports", icon: FileText },
+  { title: "Roles", url: "/admin/roles", icon: ShieldCheck },
+  { title: "Audit logs", url: "/admin/audit", icon: FileText },
+  { title: "Security", url: "/admin/security", icon: ShieldCheck },
+  { title: "Settings", url: "/admin/settings", icon: Settings },
 ] as const;
 
 const SUPPLIER = [
