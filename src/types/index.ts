@@ -6,6 +6,7 @@ export type Category = {
   image: string;
   productCount: number;
   description: string;
+  subCategories?: string[];
 };
 
 export type Supplier = {
@@ -15,6 +16,14 @@ export type Supplier = {
   verified: boolean;
   rating: number;
   yearsActive: number;
+  logo?: string;
+  description?: string;
+  businessType?: "Manufacturer" | "Wholesaler" | "Distributor" | "Trading Company";
+  gstVerified?: boolean;
+  responseRate?: number; // 0-100
+  totalProducts?: number;
+  categories?: string[]; // category slugs
+  established?: number;
 };
 
 export type Product = {
@@ -23,6 +32,8 @@ export type Product = {
   name: string;
   brand: string;
   category: string; // slug
+  subCategory?: string;
+  sku?: string;
   image: string;
   images?: string[];
   wholesalePrice: number;
@@ -39,6 +50,8 @@ export type Product = {
   featured?: boolean;
   description: string;
   specifications: Record<string, string>;
+  highlights?: string[];
+  packagingDetails?: string;
 };
 
 export type Testimonial = {
@@ -56,3 +69,4 @@ export type FAQ = {
   q: string;
   a: string;
 };
+
