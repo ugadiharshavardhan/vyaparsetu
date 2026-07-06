@@ -1,8 +1,5 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
-import { ShieldCheck } from "lucide-react";
+import { createFileRoute, redirect, Outlet } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
-import { PageHeader } from "@/components/common/PageHeader";
-import { ComingSoonState } from "@/components/common/ComingSoonState";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   beforeLoad: async () => {
@@ -15,18 +12,5 @@ export const Route = createFileRoute("/_authenticated/admin")({
     if (!isAdmin) throw redirect({ to: "/dashboard" });
   },
   head: () => ({ meta: [{ title: "Admin — VyaparSetu" }] }),
-  component: AdminPage,
+  component: () => <Outlet />,
 });
-
-function AdminPage() {
-  return (
-    <div className="container-page py-10">
-      <PageHeader title="Admin console" description="Platform-level controls for VyaparSetu administrators." />
-      <ComingSoonState
-        icon={ShieldCheck}
-        title="Admin tools coming soon"
-        description="User management, supplier verification queue and platform analytics ship in Milestone 21."
-      />
-    </div>
-  );
-}
