@@ -7,7 +7,7 @@ import { Logo } from "@/components/common/Logo";
 import { NAV_LINKS } from "@/constants/site";
 import { SearchDialog } from "@/components/search/SearchDialog";
 import { UserMenu } from "@/components/layout/UserMenu";
-import { useAuth } from "@/hooks/useAuth";
+
 
 export function Header() {
   const [scrolled, setScrolled] = useState(false);
@@ -94,10 +94,10 @@ export function Header() {
                 ))}
                 <div className="mt-4 flex flex-col gap-2 border-t border-border pt-4">
                   <Button variant="outline" asChild>
-                    <Link to="/marketplace">Sign in</Link>
+                    <Link to="/auth" search={{ mode: "signin" }}>Sign in</Link>
                   </Button>
                   <Button className="shadow-brand" asChild>
-                    <Link to="/marketplace">Get Started</Link>
+                    <Link to="/auth" search={{ mode: "signup" }}>Get Started</Link>
                   </Button>
                 </div>
               </div>
