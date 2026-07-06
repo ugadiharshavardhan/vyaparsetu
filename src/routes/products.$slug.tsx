@@ -61,7 +61,7 @@ const REVIEWS = [
 function ProductPage() {
   const { product } = Route.useLoaderData();
   const [activeImg, setActiveImg] = useState(0);
-  const gallery = product.images ?? [product.image, product.image, product.image];
+  const gallery: string[] = product.images ?? [product.image, product.image, product.image];
   const related = getRelatedProducts(product);
   const off = discountPct(product.mrp, product.wholesalePrice);
 
