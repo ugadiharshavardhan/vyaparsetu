@@ -33,7 +33,24 @@ import { Route as AuthenticatedCheckoutRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedCartRouteImport } from './routes/_authenticated/cart'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedAddressesRouteImport } from './routes/_authenticated/addresses'
+import { Route as AuthenticatedSupplierIndexRouteImport } from './routes/_authenticated/supplier.index'
+import { Route as AuthenticatedSupplierWarehouseRouteImport } from './routes/_authenticated/supplier.warehouse'
+import { Route as AuthenticatedSupplierSupportRouteImport } from './routes/_authenticated/supplier.support'
+import { Route as AuthenticatedSupplierSettingsRouteImport } from './routes/_authenticated/supplier.settings'
+import { Route as AuthenticatedSupplierReviewsRouteImport } from './routes/_authenticated/supplier.reviews'
+import { Route as AuthenticatedSupplierPromotionsRouteImport } from './routes/_authenticated/supplier.promotions'
+import { Route as AuthenticatedSupplierProfileRouteImport } from './routes/_authenticated/supplier.profile'
+import { Route as AuthenticatedSupplierPricingRouteImport } from './routes/_authenticated/supplier.pricing'
+import { Route as AuthenticatedSupplierOrdersRouteImport } from './routes/_authenticated/supplier.orders'
+import { Route as AuthenticatedSupplierNotificationsRouteImport } from './routes/_authenticated/supplier.notifications'
+import { Route as AuthenticatedSupplierInventoryRouteImport } from './routes/_authenticated/supplier.inventory'
+import { Route as AuthenticatedSupplierDocumentsRouteImport } from './routes/_authenticated/supplier.documents'
+import { Route as AuthenticatedSupplierCustomersRouteImport } from './routes/_authenticated/supplier.customers'
+import { Route as AuthenticatedSupplierAnalyticsRouteImport } from './routes/_authenticated/supplier.analytics'
 import { Route as AuthenticatedOrdersIdRouteImport } from './routes/_authenticated/orders.$id'
+import { Route as AuthenticatedSupplierProductsIndexRouteImport } from './routes/_authenticated/supplier.products.index'
+import { Route as AuthenticatedSupplierProductsNewRouteImport } from './routes/_authenticated/supplier.products.new'
+import { Route as AuthenticatedSupplierProductsIdRouteImport } from './routes/_authenticated/supplier.products.$id'
 
 const SuppliersRoute = SuppliersRouteImport.update({
   id: '/suppliers',
@@ -155,11 +172,113 @@ const AuthenticatedAddressesRoute = AuthenticatedAddressesRouteImport.update({
   path: '/addresses',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedSupplierIndexRoute =
+  AuthenticatedSupplierIndexRouteImport.update({
+    id: '/supplier/',
+    path: '/supplier/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedSupplierWarehouseRoute =
+  AuthenticatedSupplierWarehouseRouteImport.update({
+    id: '/supplier/warehouse',
+    path: '/supplier/warehouse',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedSupplierSupportRoute =
+  AuthenticatedSupplierSupportRouteImport.update({
+    id: '/supplier/support',
+    path: '/supplier/support',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedSupplierSettingsRoute =
+  AuthenticatedSupplierSettingsRouteImport.update({
+    id: '/supplier/settings',
+    path: '/supplier/settings',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedSupplierReviewsRoute =
+  AuthenticatedSupplierReviewsRouteImport.update({
+    id: '/supplier/reviews',
+    path: '/supplier/reviews',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedSupplierPromotionsRoute =
+  AuthenticatedSupplierPromotionsRouteImport.update({
+    id: '/supplier/promotions',
+    path: '/supplier/promotions',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedSupplierProfileRoute =
+  AuthenticatedSupplierProfileRouteImport.update({
+    id: '/supplier/profile',
+    path: '/supplier/profile',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedSupplierPricingRoute =
+  AuthenticatedSupplierPricingRouteImport.update({
+    id: '/supplier/pricing',
+    path: '/supplier/pricing',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedSupplierOrdersRoute =
+  AuthenticatedSupplierOrdersRouteImport.update({
+    id: '/supplier/orders',
+    path: '/supplier/orders',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedSupplierNotificationsRoute =
+  AuthenticatedSupplierNotificationsRouteImport.update({
+    id: '/supplier/notifications',
+    path: '/supplier/notifications',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedSupplierInventoryRoute =
+  AuthenticatedSupplierInventoryRouteImport.update({
+    id: '/supplier/inventory',
+    path: '/supplier/inventory',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedSupplierDocumentsRoute =
+  AuthenticatedSupplierDocumentsRouteImport.update({
+    id: '/supplier/documents',
+    path: '/supplier/documents',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedSupplierCustomersRoute =
+  AuthenticatedSupplierCustomersRouteImport.update({
+    id: '/supplier/customers',
+    path: '/supplier/customers',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedSupplierAnalyticsRoute =
+  AuthenticatedSupplierAnalyticsRouteImport.update({
+    id: '/supplier/analytics',
+    path: '/supplier/analytics',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedOrdersIdRoute = AuthenticatedOrdersIdRouteImport.update({
   id: '/$id',
   path: '/$id',
   getParentRoute: () => AuthenticatedOrdersRoute,
 } as any)
+const AuthenticatedSupplierProductsIndexRoute =
+  AuthenticatedSupplierProductsIndexRouteImport.update({
+    id: '/supplier/products/',
+    path: '/supplier/products/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedSupplierProductsNewRoute =
+  AuthenticatedSupplierProductsNewRouteImport.update({
+    id: '/supplier/products/new',
+    path: '/supplier/products/new',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedSupplierProductsIdRoute =
+  AuthenticatedSupplierProductsIdRouteImport.update({
+    id: '/supplier/products/$id',
+    path: '/supplier/products/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -186,6 +305,23 @@ export interface FileRoutesByFullPath {
   '/products/$slug': typeof ProductsSlugRoute
   '/suppliers/$id': typeof SuppliersIdRoute
   '/orders/$id': typeof AuthenticatedOrdersIdRoute
+  '/supplier/analytics': typeof AuthenticatedSupplierAnalyticsRoute
+  '/supplier/customers': typeof AuthenticatedSupplierCustomersRoute
+  '/supplier/documents': typeof AuthenticatedSupplierDocumentsRoute
+  '/supplier/inventory': typeof AuthenticatedSupplierInventoryRoute
+  '/supplier/notifications': typeof AuthenticatedSupplierNotificationsRoute
+  '/supplier/orders': typeof AuthenticatedSupplierOrdersRoute
+  '/supplier/pricing': typeof AuthenticatedSupplierPricingRoute
+  '/supplier/profile': typeof AuthenticatedSupplierProfileRoute
+  '/supplier/promotions': typeof AuthenticatedSupplierPromotionsRoute
+  '/supplier/reviews': typeof AuthenticatedSupplierReviewsRoute
+  '/supplier/settings': typeof AuthenticatedSupplierSettingsRoute
+  '/supplier/support': typeof AuthenticatedSupplierSupportRoute
+  '/supplier/warehouse': typeof AuthenticatedSupplierWarehouseRoute
+  '/supplier/': typeof AuthenticatedSupplierIndexRoute
+  '/supplier/products/$id': typeof AuthenticatedSupplierProductsIdRoute
+  '/supplier/products/new': typeof AuthenticatedSupplierProductsNewRoute
+  '/supplier/products/': typeof AuthenticatedSupplierProductsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -212,6 +348,23 @@ export interface FileRoutesByTo {
   '/products/$slug': typeof ProductsSlugRoute
   '/suppliers/$id': typeof SuppliersIdRoute
   '/orders/$id': typeof AuthenticatedOrdersIdRoute
+  '/supplier/analytics': typeof AuthenticatedSupplierAnalyticsRoute
+  '/supplier/customers': typeof AuthenticatedSupplierCustomersRoute
+  '/supplier/documents': typeof AuthenticatedSupplierDocumentsRoute
+  '/supplier/inventory': typeof AuthenticatedSupplierInventoryRoute
+  '/supplier/notifications': typeof AuthenticatedSupplierNotificationsRoute
+  '/supplier/orders': typeof AuthenticatedSupplierOrdersRoute
+  '/supplier/pricing': typeof AuthenticatedSupplierPricingRoute
+  '/supplier/profile': typeof AuthenticatedSupplierProfileRoute
+  '/supplier/promotions': typeof AuthenticatedSupplierPromotionsRoute
+  '/supplier/reviews': typeof AuthenticatedSupplierReviewsRoute
+  '/supplier/settings': typeof AuthenticatedSupplierSettingsRoute
+  '/supplier/support': typeof AuthenticatedSupplierSupportRoute
+  '/supplier/warehouse': typeof AuthenticatedSupplierWarehouseRoute
+  '/supplier': typeof AuthenticatedSupplierIndexRoute
+  '/supplier/products/$id': typeof AuthenticatedSupplierProductsIdRoute
+  '/supplier/products/new': typeof AuthenticatedSupplierProductsNewRoute
+  '/supplier/products': typeof AuthenticatedSupplierProductsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -240,6 +393,23 @@ export interface FileRoutesById {
   '/products/$slug': typeof ProductsSlugRoute
   '/suppliers/$id': typeof SuppliersIdRoute
   '/_authenticated/orders/$id': typeof AuthenticatedOrdersIdRoute
+  '/_authenticated/supplier/analytics': typeof AuthenticatedSupplierAnalyticsRoute
+  '/_authenticated/supplier/customers': typeof AuthenticatedSupplierCustomersRoute
+  '/_authenticated/supplier/documents': typeof AuthenticatedSupplierDocumentsRoute
+  '/_authenticated/supplier/inventory': typeof AuthenticatedSupplierInventoryRoute
+  '/_authenticated/supplier/notifications': typeof AuthenticatedSupplierNotificationsRoute
+  '/_authenticated/supplier/orders': typeof AuthenticatedSupplierOrdersRoute
+  '/_authenticated/supplier/pricing': typeof AuthenticatedSupplierPricingRoute
+  '/_authenticated/supplier/profile': typeof AuthenticatedSupplierProfileRoute
+  '/_authenticated/supplier/promotions': typeof AuthenticatedSupplierPromotionsRoute
+  '/_authenticated/supplier/reviews': typeof AuthenticatedSupplierReviewsRoute
+  '/_authenticated/supplier/settings': typeof AuthenticatedSupplierSettingsRoute
+  '/_authenticated/supplier/support': typeof AuthenticatedSupplierSupportRoute
+  '/_authenticated/supplier/warehouse': typeof AuthenticatedSupplierWarehouseRoute
+  '/_authenticated/supplier/': typeof AuthenticatedSupplierIndexRoute
+  '/_authenticated/supplier/products/$id': typeof AuthenticatedSupplierProductsIdRoute
+  '/_authenticated/supplier/products/new': typeof AuthenticatedSupplierProductsNewRoute
+  '/_authenticated/supplier/products/': typeof AuthenticatedSupplierProductsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -268,6 +438,23 @@ export interface FileRouteTypes {
     | '/products/$slug'
     | '/suppliers/$id'
     | '/orders/$id'
+    | '/supplier/analytics'
+    | '/supplier/customers'
+    | '/supplier/documents'
+    | '/supplier/inventory'
+    | '/supplier/notifications'
+    | '/supplier/orders'
+    | '/supplier/pricing'
+    | '/supplier/profile'
+    | '/supplier/promotions'
+    | '/supplier/reviews'
+    | '/supplier/settings'
+    | '/supplier/support'
+    | '/supplier/warehouse'
+    | '/supplier/'
+    | '/supplier/products/$id'
+    | '/supplier/products/new'
+    | '/supplier/products/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -294,6 +481,23 @@ export interface FileRouteTypes {
     | '/products/$slug'
     | '/suppliers/$id'
     | '/orders/$id'
+    | '/supplier/analytics'
+    | '/supplier/customers'
+    | '/supplier/documents'
+    | '/supplier/inventory'
+    | '/supplier/notifications'
+    | '/supplier/orders'
+    | '/supplier/pricing'
+    | '/supplier/profile'
+    | '/supplier/promotions'
+    | '/supplier/reviews'
+    | '/supplier/settings'
+    | '/supplier/support'
+    | '/supplier/warehouse'
+    | '/supplier'
+    | '/supplier/products/$id'
+    | '/supplier/products/new'
+    | '/supplier/products'
   id:
     | '__root__'
     | '/'
@@ -321,6 +525,23 @@ export interface FileRouteTypes {
     | '/products/$slug'
     | '/suppliers/$id'
     | '/_authenticated/orders/$id'
+    | '/_authenticated/supplier/analytics'
+    | '/_authenticated/supplier/customers'
+    | '/_authenticated/supplier/documents'
+    | '/_authenticated/supplier/inventory'
+    | '/_authenticated/supplier/notifications'
+    | '/_authenticated/supplier/orders'
+    | '/_authenticated/supplier/pricing'
+    | '/_authenticated/supplier/profile'
+    | '/_authenticated/supplier/promotions'
+    | '/_authenticated/supplier/reviews'
+    | '/_authenticated/supplier/settings'
+    | '/_authenticated/supplier/support'
+    | '/_authenticated/supplier/warehouse'
+    | '/_authenticated/supplier/'
+    | '/_authenticated/supplier/products/$id'
+    | '/_authenticated/supplier/products/new'
+    | '/_authenticated/supplier/products/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -507,12 +728,131 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAddressesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/supplier/': {
+      id: '/_authenticated/supplier/'
+      path: '/supplier'
+      fullPath: '/supplier/'
+      preLoaderRoute: typeof AuthenticatedSupplierIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/supplier/warehouse': {
+      id: '/_authenticated/supplier/warehouse'
+      path: '/supplier/warehouse'
+      fullPath: '/supplier/warehouse'
+      preLoaderRoute: typeof AuthenticatedSupplierWarehouseRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/supplier/support': {
+      id: '/_authenticated/supplier/support'
+      path: '/supplier/support'
+      fullPath: '/supplier/support'
+      preLoaderRoute: typeof AuthenticatedSupplierSupportRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/supplier/settings': {
+      id: '/_authenticated/supplier/settings'
+      path: '/supplier/settings'
+      fullPath: '/supplier/settings'
+      preLoaderRoute: typeof AuthenticatedSupplierSettingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/supplier/reviews': {
+      id: '/_authenticated/supplier/reviews'
+      path: '/supplier/reviews'
+      fullPath: '/supplier/reviews'
+      preLoaderRoute: typeof AuthenticatedSupplierReviewsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/supplier/promotions': {
+      id: '/_authenticated/supplier/promotions'
+      path: '/supplier/promotions'
+      fullPath: '/supplier/promotions'
+      preLoaderRoute: typeof AuthenticatedSupplierPromotionsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/supplier/profile': {
+      id: '/_authenticated/supplier/profile'
+      path: '/supplier/profile'
+      fullPath: '/supplier/profile'
+      preLoaderRoute: typeof AuthenticatedSupplierProfileRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/supplier/pricing': {
+      id: '/_authenticated/supplier/pricing'
+      path: '/supplier/pricing'
+      fullPath: '/supplier/pricing'
+      preLoaderRoute: typeof AuthenticatedSupplierPricingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/supplier/orders': {
+      id: '/_authenticated/supplier/orders'
+      path: '/supplier/orders'
+      fullPath: '/supplier/orders'
+      preLoaderRoute: typeof AuthenticatedSupplierOrdersRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/supplier/notifications': {
+      id: '/_authenticated/supplier/notifications'
+      path: '/supplier/notifications'
+      fullPath: '/supplier/notifications'
+      preLoaderRoute: typeof AuthenticatedSupplierNotificationsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/supplier/inventory': {
+      id: '/_authenticated/supplier/inventory'
+      path: '/supplier/inventory'
+      fullPath: '/supplier/inventory'
+      preLoaderRoute: typeof AuthenticatedSupplierInventoryRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/supplier/documents': {
+      id: '/_authenticated/supplier/documents'
+      path: '/supplier/documents'
+      fullPath: '/supplier/documents'
+      preLoaderRoute: typeof AuthenticatedSupplierDocumentsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/supplier/customers': {
+      id: '/_authenticated/supplier/customers'
+      path: '/supplier/customers'
+      fullPath: '/supplier/customers'
+      preLoaderRoute: typeof AuthenticatedSupplierCustomersRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/supplier/analytics': {
+      id: '/_authenticated/supplier/analytics'
+      path: '/supplier/analytics'
+      fullPath: '/supplier/analytics'
+      preLoaderRoute: typeof AuthenticatedSupplierAnalyticsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/orders/$id': {
       id: '/_authenticated/orders/$id'
       path: '/$id'
       fullPath: '/orders/$id'
       preLoaderRoute: typeof AuthenticatedOrdersIdRouteImport
       parentRoute: typeof AuthenticatedOrdersRoute
+    }
+    '/_authenticated/supplier/products/': {
+      id: '/_authenticated/supplier/products/'
+      path: '/supplier/products'
+      fullPath: '/supplier/products/'
+      preLoaderRoute: typeof AuthenticatedSupplierProductsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/supplier/products/new': {
+      id: '/_authenticated/supplier/products/new'
+      path: '/supplier/products/new'
+      fullPath: '/supplier/products/new'
+      preLoaderRoute: typeof AuthenticatedSupplierProductsNewRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/supplier/products/$id': {
+      id: '/_authenticated/supplier/products/$id'
+      path: '/supplier/products/$id'
+      fullPath: '/supplier/products/$id'
+      preLoaderRoute: typeof AuthenticatedSupplierProductsIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
   }
 }
@@ -541,6 +881,23 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedWishlistRoute: typeof AuthenticatedWishlistRoute
+  AuthenticatedSupplierAnalyticsRoute: typeof AuthenticatedSupplierAnalyticsRoute
+  AuthenticatedSupplierCustomersRoute: typeof AuthenticatedSupplierCustomersRoute
+  AuthenticatedSupplierDocumentsRoute: typeof AuthenticatedSupplierDocumentsRoute
+  AuthenticatedSupplierInventoryRoute: typeof AuthenticatedSupplierInventoryRoute
+  AuthenticatedSupplierNotificationsRoute: typeof AuthenticatedSupplierNotificationsRoute
+  AuthenticatedSupplierOrdersRoute: typeof AuthenticatedSupplierOrdersRoute
+  AuthenticatedSupplierPricingRoute: typeof AuthenticatedSupplierPricingRoute
+  AuthenticatedSupplierProfileRoute: typeof AuthenticatedSupplierProfileRoute
+  AuthenticatedSupplierPromotionsRoute: typeof AuthenticatedSupplierPromotionsRoute
+  AuthenticatedSupplierReviewsRoute: typeof AuthenticatedSupplierReviewsRoute
+  AuthenticatedSupplierSettingsRoute: typeof AuthenticatedSupplierSettingsRoute
+  AuthenticatedSupplierSupportRoute: typeof AuthenticatedSupplierSupportRoute
+  AuthenticatedSupplierWarehouseRoute: typeof AuthenticatedSupplierWarehouseRoute
+  AuthenticatedSupplierIndexRoute: typeof AuthenticatedSupplierIndexRoute
+  AuthenticatedSupplierProductsIdRoute: typeof AuthenticatedSupplierProductsIdRoute
+  AuthenticatedSupplierProductsNewRoute: typeof AuthenticatedSupplierProductsNewRoute
+  AuthenticatedSupplierProductsIndexRoute: typeof AuthenticatedSupplierProductsIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -556,6 +913,25 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedWishlistRoute: AuthenticatedWishlistRoute,
+  AuthenticatedSupplierAnalyticsRoute: AuthenticatedSupplierAnalyticsRoute,
+  AuthenticatedSupplierCustomersRoute: AuthenticatedSupplierCustomersRoute,
+  AuthenticatedSupplierDocumentsRoute: AuthenticatedSupplierDocumentsRoute,
+  AuthenticatedSupplierInventoryRoute: AuthenticatedSupplierInventoryRoute,
+  AuthenticatedSupplierNotificationsRoute:
+    AuthenticatedSupplierNotificationsRoute,
+  AuthenticatedSupplierOrdersRoute: AuthenticatedSupplierOrdersRoute,
+  AuthenticatedSupplierPricingRoute: AuthenticatedSupplierPricingRoute,
+  AuthenticatedSupplierProfileRoute: AuthenticatedSupplierProfileRoute,
+  AuthenticatedSupplierPromotionsRoute: AuthenticatedSupplierPromotionsRoute,
+  AuthenticatedSupplierReviewsRoute: AuthenticatedSupplierReviewsRoute,
+  AuthenticatedSupplierSettingsRoute: AuthenticatedSupplierSettingsRoute,
+  AuthenticatedSupplierSupportRoute: AuthenticatedSupplierSupportRoute,
+  AuthenticatedSupplierWarehouseRoute: AuthenticatedSupplierWarehouseRoute,
+  AuthenticatedSupplierIndexRoute: AuthenticatedSupplierIndexRoute,
+  AuthenticatedSupplierProductsIdRoute: AuthenticatedSupplierProductsIdRoute,
+  AuthenticatedSupplierProductsNewRoute: AuthenticatedSupplierProductsNewRoute,
+  AuthenticatedSupplierProductsIndexRoute:
+    AuthenticatedSupplierProductsIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
