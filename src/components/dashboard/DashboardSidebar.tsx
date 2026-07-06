@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  BarChart3, Boxes, FileText, HelpCircle, Heart, LayoutDashboard, LogOut,
+  BarChart3, Boxes, FileText, HelpCircle, Heart, LayoutDashboard, LogOut, MapPin,
   Package, Settings, ShieldCheck, ShoppingBag, ShoppingCart, Store, Tag, User, Users,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -14,6 +14,8 @@ import {
 import { Logo } from "@/components/common/Logo";
 import { useRoles } from "@/hooks/useProfile";
 import { supabase } from "@/integrations/supabase/client";
+import { useCart } from "@/hooks/useCart";
+import { useWishlist } from "@/hooks/useWishlist";
 
 const MAIN = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
@@ -21,6 +23,7 @@ const MAIN = [
   { title: "Orders", url: "/orders", icon: Package },
   { title: "Wishlist", url: "/wishlist", icon: Heart },
   { title: "Cart", url: "/cart", icon: ShoppingCart },
+  { title: "Addresses", url: "/addresses", icon: MapPin },
   { title: "Suppliers", url: "/suppliers", icon: ShoppingBag },
 ] as const;
 
