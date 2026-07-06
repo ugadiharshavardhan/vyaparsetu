@@ -207,7 +207,7 @@ function ProductPage() {
               {Object.entries(product.specifications).map(([k, v]) => (
                 <div key={k} className="flex items-center justify-between p-4 text-sm">
                   <dt className="text-muted-foreground">{k}</dt>
-                  <dd className="font-medium text-foreground">{v}</dd>
+                  <dd className="font-medium text-foreground">{String(v)}</dd>
                 </div>
               ))}
             </dl>
