@@ -77,7 +77,7 @@ export function useUpdateCartItem() {
       quantity?: number;
       saved_for_later?: boolean;
     }) => {
-      const patch: Record<string, unknown> = {};
+      const patch: { quantity?: number; saved_for_later?: boolean } = {};
       if (quantity !== undefined) patch.quantity = quantity;
       if (saved_for_later !== undefined) patch.saved_for_later = saved_for_later;
       const { error } = await supabase.from("cart_items").update(patch).eq("id", id);
