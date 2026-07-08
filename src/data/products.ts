@@ -1,4 +1,5 @@
 import type { Product, Supplier } from "@/types";
+import tataSaltImage from "@/assets/tata-salt.jpg";
 
 const S = (id: string, name: string, location: string, verified = true, rating = 4.6, yearsActive = 8): Supplier => ({
   id,
