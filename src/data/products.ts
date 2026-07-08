@@ -1,4 +1,5 @@
 import type { Product, Supplier } from "@/types";
+import tataSaltImage from "@/assets/tata-salt.jpg";
 
 const S = (id: string, name: string, location: string, verified = true, rating = 4.6, yearsActive = 8): Supplier => ({
   id,
@@ -124,7 +125,7 @@ const RAW_PRODUCTS: Product[] = [
     name: "Tata Salt Iodized (Carton of 24 x 1kg)",
     brand: "Tata",
     category: "staples",
-    image: img("photo-1600185365483-26d7a4cc7519"),
+    image: tataSaltImage,
     wholesalePrice: 480,
     mrp: 576,
     moq: 10,
