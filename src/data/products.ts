@@ -125,7 +125,7 @@ const RAW_PRODUCTS: Product[] = [
     name: "Tata Salt Iodized (Carton of 24 x 1kg)",
     brand: "Tata",
     category: "staples",
-    image: img("photo-1518110925495-b37653d31da6"),
+    image: tataSaltImage,
     wholesalePrice: 480,
     mrp: 576,
     moq: 10,
