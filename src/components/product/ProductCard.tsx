@@ -45,9 +45,9 @@ export function ProductCard({ product, onQuickView }: Props) {
         to="/products/$slug"
         params={{ slug: product.slug }}
         aria-label={product.name}
-        className="absolute inset-0 z-0"
+        className="absolute inset-0 z-10"
       />
-      <div className="relative z-[1] aspect-[4/3] overflow-hidden bg-secondary">
+      <div className="relative aspect-[4/3] overflow-hidden bg-secondary">
         <img
           src={product.image}
           alt={product.name}
