@@ -41,6 +41,12 @@ export function ProductCard({ product, onQuickView }: Props) {
       transition={{ type: "spring", stiffness: 260, damping: 22 }}
       className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-soft transition-shadow hover:shadow-elevated"
     >
+      <Link
+        to="/products/$slug"
+        params={{ slug: product.slug }}
+        aria-label={product.name}
+        className="absolute inset-0 z-10"
+      />
       <div className="relative aspect-[4/3] overflow-hidden bg-secondary">
         <img
           src={product.image}
@@ -60,7 +66,7 @@ export function ProductCard({ product, onQuickView }: Props) {
             </span>
           )}
         </div>
-        <div className="absolute right-3 top-3 flex flex-col gap-1.5">
+        <div className="absolute right-3 top-3 z-20 flex flex-col gap-1.5">
           <button
             onClick={(e) => {
               e.preventDefault();
@@ -99,7 +105,7 @@ export function ProductCard({ product, onQuickView }: Props) {
         <Link
           to="/products/$slug"
           params={{ slug: product.slug }}
-          className="line-clamp-2 text-sm font-semibold text-foreground transition-colors hover:text-brand"
+          className="relative z-20 line-clamp-2 text-sm font-semibold text-foreground transition-colors hover:text-brand"
         >
           {product.name}
         </Link>
@@ -124,7 +130,7 @@ export function ProductCard({ product, onQuickView }: Props) {
           {product.supplier.location}
         </div>
 
-        <div className="mt-3 flex items-center gap-2">
+        <div className="relative z-20 mt-3 flex items-center gap-2">
           <Button asChild size="sm" variant="outline" className="flex-1">
             <Link to="/products/$slug" params={{ slug: product.slug }}>View</Link>
           </Button>
