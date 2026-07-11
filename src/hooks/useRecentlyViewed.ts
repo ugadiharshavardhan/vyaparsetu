@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 const KEY = "vs.recently-viewed";
 const MAX = 12;
@@ -16,16 +16,16 @@ export function useRecentlyViewed() {
 
   useEffect(() => { setIds(read()); }, []);
 
-  const push = (id: string) => {
+  const push = useCallback((id: string) => {
     const next = [id, ...read().filter((x) => x !== id)].slice(0, MAX);
     try { localStorage.setItem(KEY, JSON.stringify(next)); } catch {}
     setIds(next);
-  };
+  }, []);
 
-  const clear = () => {
+  const clear = useCallback(() => {
     try { localStorage.removeItem(KEY); } catch {}
     setIds([]);
-  };
+  }, []);
 
   return { ids, push, clear };
 }
