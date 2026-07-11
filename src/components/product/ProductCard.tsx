@@ -41,7 +41,13 @@ export function ProductCard({ product, onQuickView }: Props) {
       transition={{ type: "spring", stiffness: 260, damping: 22 }}
       className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-soft transition-shadow hover:shadow-elevated"
     >
-      <div className="relative aspect-[4/3] overflow-hidden bg-secondary">
+      <Link
+        to="/products/$slug"
+        params={{ slug: product.slug }}
+        aria-label={product.name}
+        className="absolute inset-0 z-0"
+      />
+      <div className="relative z-[1] aspect-[4/3] overflow-hidden bg-secondary">
         <img
           src={product.image}
           alt={product.name}
