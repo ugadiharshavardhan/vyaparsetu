@@ -105,7 +105,7 @@ export function ProductCard({ product, onQuickView }: Props) {
         <Link
           to="/products/$slug"
           params={{ slug: product.slug }}
-          className="line-clamp-2 text-sm font-semibold text-foreground transition-colors hover:text-brand"
+          className="relative z-20 line-clamp-2 text-sm font-semibold text-foreground transition-colors hover:text-brand"
         >
           {product.name}
         </Link>
