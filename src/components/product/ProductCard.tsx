@@ -66,7 +66,7 @@ export function ProductCard({ product, onQuickView }: Props) {
             </span>
           )}
         </div>
-        <div className="absolute right-3 top-3 flex flex-col gap-1.5">
+        <div className="absolute right-3 top-3 z-20 flex flex-col gap-1.5">
           <button
             onClick={(e) => {
               e.preventDefault();
