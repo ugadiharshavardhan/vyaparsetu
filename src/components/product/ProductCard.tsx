@@ -130,7 +130,7 @@ export function ProductCard({ product, onQuickView }: Props) {
           {product.supplier.location}
         </div>
 
-        <div className="mt-3 flex items-center gap-2">
+        <div className="relative z-20 mt-3 flex items-center gap-2">
           <Button asChild size="sm" variant="outline" className="flex-1">
             <Link to="/products/$slug" params={{ slug: product.slug }}>View</Link>
           </Button>
