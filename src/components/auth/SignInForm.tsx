@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { GoogleButton } from "./GoogleButton";
+import { resolvePostLoginPath } from "@/lib/postLoginRedirect";
 
 const schema = z.object({
   email: z.string().trim().email("Please enter a valid email").max(255),
@@ -32,7 +33,7 @@ export function SignInForm() {
   });
 
   const submit = async (values: FormValues) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email: values.email,
       password: values.password,
     });
@@ -41,7 +42,8 @@ export function SignInForm() {
       return;
     }
     toast.success("Welcome back!");
-    navigate({ to: (search.redirect as never) ?? "/dashboard" });
+    const path = search.redirect ?? (data.user ? await resolvePostLoginPath(data.user.id) : "/dashboard");
+    navigate({ to: path as never });
   };
 
   const handleGoogle = async () => {
@@ -56,7 +58,9 @@ export function SignInForm() {
         return;
       }
       if (result.redirected) return;
-      navigate({ to: (search.redirect as never) ?? "/dashboard" });
+      const { data } = await supabase.auth.getUser();
+      const path = search.redirect ?? (data.user ? await resolvePostLoginPath(data.user.id) : "/dashboard");
+      navigate({ to: path as never });
     } catch {
       toast.error("Google sign-in failed. Please try again.");
       setGoogleLoading(false);

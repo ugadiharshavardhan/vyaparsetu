@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { CheckCircle2, Eye, EyeOff, Loader2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Eye, EyeOff, Factory, Loader2, ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,14 +11,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { GoogleButton } from "./GoogleButton";
+import type { BusinessRole } from "./RoleSelect";
+import { resolvePostLoginPath } from "@/lib/postLoginRedirect";
 
 const schema = z
   .object({
@@ -37,7 +32,6 @@ const schema = z
       .regex(/[a-z]/, "Must include a lowercase letter")
       .regex(/[0-9]/, "Must include a number"),
     confirmPassword: z.string(),
-    businessType: z.enum(["retailer", "wholesaler", "manufacturer", "distributor", "other"]),
     gstNumber: z
       .string()
       .trim()
@@ -46,6 +40,7 @@ const schema = z
         (v) => !v || /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[0-9A-Z]{1}Z[0-9A-Z]{1}$/.test(v),
         "Enter a valid 15-character GSTIN",
       ),
+    address: z.string().trim().optional(),
     acceptTerms: z.literal(true, {
       errorMap: () => ({ message: "You must accept the terms to continue" }),
     }),
@@ -57,7 +52,17 @@ const schema = z
 
 type FormValues = z.infer<typeof schema>;
 
-export function SignUpForm() {
+// Buyer role maps to retailer; seller maps to manufacturer (RBAC-compatible).
+const roleToBusinessType = (role: BusinessRole) =>
+  role === "seller" ? "manufacturer" : "retailer";
+
+export function SignUpForm({
+  role,
+  onBack,
+}: {
+  role: BusinessRole;
+  onBack?: () => void;
+}) {
   const [show, setShow] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
@@ -65,7 +70,6 @@ export function SignUpForm() {
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { businessType: "retailer" },
   });
 
   const submit = async (values: FormValues) => {
@@ -78,8 +82,10 @@ export function SignUpForm() {
           full_name: values.fullName,
           business_name: values.businessName,
           phone: values.phone,
-          business_type: values.businessType,
+          business_type: roleToBusinessType(role),
+          business_role: role,
           gst_number: values.gstNumber ?? "",
+          address: values.address ?? "",
         },
       },
     });
@@ -100,6 +106,13 @@ export function SignUpForm() {
   const handleGoogle = async () => {
     setGoogleLoading(true);
     try {
+      // Remember the chosen role so the handle_new_user trigger / onboarding
+      // can honour it after the OAuth roundtrip.
+      try {
+        sessionStorage.setItem("vs:signup_role", role);
+      } catch {
+        // ignore
+      }
       const result = await lovable.auth.signInWithOAuth("google", {
         redirect_uri: window.location.origin,
       });
@@ -109,7 +122,9 @@ export function SignUpForm() {
         return;
       }
       if (result.redirected) return;
-      navigate({ to: "/dashboard" });
+      const { data } = await supabase.auth.getUser();
+      const path = data.user ? await resolvePostLoginPath(data.user.id) : "/dashboard";
+      navigate({ to: path as never });
     } catch {
       toast.error("Google sign-in failed. Please try again.");
       setGoogleLoading(false);
@@ -125,7 +140,7 @@ export function SignUpForm() {
         <h3 className="mt-4 font-display text-xl font-semibold">Welcome to VyaparSetu!</h3>
         <p className="mt-2 text-sm text-muted-foreground">
           Your business account for <span className="font-medium text-foreground">{success}</span> is ready.
-          You can sign in now to start sourcing.
+          You can sign in now to start {role === "seller" ? "selling" : "sourcing"}.
         </p>
         <Button asChild size="lg" className="mt-6 w-full shadow-brand">
           <Link to="/auth">Continue to sign in</Link>
@@ -134,8 +149,31 @@ export function SignUpForm() {
     );
   }
 
+  const RoleIcon = role === "seller" ? Factory : ShoppingBag;
+
   return (
     <div className="space-y-5">
+      <div className="flex items-center justify-between rounded-xl border border-border bg-brand-soft/40 px-3 py-2">
+        <div className="flex items-center gap-2 text-sm">
+          <div className="grid h-8 w-8 place-items-center rounded-lg gradient-brand text-white">
+            <RoleIcon className="h-4 w-4" />
+          </div>
+          <div>
+            <div className="font-semibold leading-tight">
+              {role === "seller" ? "Selling on VyaparSetu" : "Sourcing on VyaparSetu"}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {role === "seller" ? "Manufacturer / seller account" : "Retailer / buyer account"}
+            </div>
+          </div>
+        </div>
+        {onBack && (
+          <Button variant="ghost" size="sm" onClick={onBack} className="text-xs">
+            <ArrowLeft className="mr-1 h-3.5 w-3.5" /> Change
+          </Button>
+        )}
+      </div>
+
       <GoogleButton onClick={handleGoogle} loading={googleLoading} label="Sign up with Google" />
       <div className="relative flex items-center gap-3">
         <div className="h-px flex-1 bg-border" />
@@ -178,32 +216,17 @@ export function SignUpForm() {
           </div>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <Label htmlFor="businessType">Business type</Label>
-            <Select
-              defaultValue="retailer"
-              onValueChange={(v) => form.setValue("businessType", v as FormValues["businessType"])}
-            >
-              <SelectTrigger id="businessType" className="mt-1.5 h-11">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="retailer">Retailer</SelectItem>
-                <SelectItem value="wholesaler">Wholesaler</SelectItem>
-                <SelectItem value="distributor">Distributor</SelectItem>
-                <SelectItem value="manufacturer">Manufacturer</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label htmlFor="gst">GSTIN <span className="text-muted-foreground">(optional)</span></Label>
-            <Input id="gst" placeholder="29ABCDE1234F1Z5" className="mt-1.5 h-11 uppercase" {...form.register("gstNumber")} />
-            {form.formState.errors.gstNumber && (
-              <p className="mt-1 text-xs text-destructive">{form.formState.errors.gstNumber.message}</p>
-            )}
-          </div>
+        <div>
+          <Label htmlFor="gst">GSTIN <span className="text-muted-foreground">(optional)</span></Label>
+          <Input id="gst" placeholder="29ABCDE1234F1Z5" className="mt-1.5 h-11 uppercase" {...form.register("gstNumber")} />
+          {form.formState.errors.gstNumber && (
+            <p className="mt-1 text-xs text-destructive">{form.formState.errors.gstNumber.message}</p>
+          )}
+        </div>
+
+        <div>
+          <Label htmlFor="address">Business address <span className="text-muted-foreground">(optional)</span></Label>
+          <Input id="address" placeholder="Shop 12, MG Road, Mumbai" className="mt-1.5 h-11" {...form.register("address")} />
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
