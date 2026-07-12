@@ -27,7 +27,9 @@ export const Route = createFileRoute("/_authenticated")({
       throw redirect({ to: "/onboarding" });
     }
     if (done && onOnboarding) {
-      throw redirect({ to: "/dashboard" });
+      const { resolvePostLoginPath } = await import("@/lib/postLoginRedirect");
+      const path = await resolvePostLoginPath(data.user.id);
+      throw redirect({ to: path });
     }
 
     return { user: data.user };
