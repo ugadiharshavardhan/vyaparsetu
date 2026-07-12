@@ -1,11 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
-  Boxes, ClipboardCheck, Download, LineChart, Package, PackageCheck,
+  Boxes, ClipboardCheck, Download, Package, PackageCheck,
   ShoppingBag, Sparkles, TrendingUp, Truck, Wallet, ArrowUpRight,
 } from "lucide-react";
-import {
-  Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis,
-} from "recharts";
 import { toast } from "sonner";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { PageHeader } from "@/components/common/PageHeader";
