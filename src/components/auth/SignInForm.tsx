@@ -58,7 +58,9 @@ export function SignInForm() {
         return;
       }
       if (result.redirected) return;
-      navigate({ to: (search.redirect as never) ?? "/dashboard" });
+      const { data } = await supabase.auth.getUser();
+      const path = search.redirect ?? (data.user ? await resolvePostLoginPath(data.user.id) : "/dashboard");
+      navigate({ to: path as never });
     } catch {
       toast.error("Google sign-in failed. Please try again.");
       setGoogleLoading(false);
