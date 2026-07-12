@@ -11,14 +11,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { GoogleButton } from "./GoogleButton";
+import type { BusinessRole } from "./RoleSelect";
+import { resolvePostLoginPath } from "@/lib/postLoginRedirect";
+import { ArrowLeft, ShoppingBag, Factory } from "lucide-react";
+import { Button as UIButton } from "@/components/ui/button";
 
 const schema = z
   .object({
