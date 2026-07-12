@@ -33,7 +33,7 @@ export function SignInForm() {
   });
 
   const submit = async (values: FormValues) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email: values.email,
       password: values.password,
     });
@@ -42,7 +42,8 @@ export function SignInForm() {
       return;
     }
     toast.success("Welcome back!");
-    navigate({ to: (search.redirect as never) ?? "/dashboard" });
+    const path = search.redirect ?? (data.user ? await resolvePostLoginPath(data.user.id) : "/dashboard");
+    navigate({ to: path as never });
   };
 
   const handleGoogle = async () => {
