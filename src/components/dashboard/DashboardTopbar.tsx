@@ -15,8 +15,8 @@ import { DEMO_NOTIFICATIONS } from "@/data/dashboard";
 
 const LABELS: Record<string, string> = {
   dashboard: "Dashboard", profile: "Profile", settings: "Settings",
-  orders: "Orders", cart: "Cart", wishlist: "Wishlist",
-  marketplace: "Marketplace", suppliers: "Suppliers", admin: "Admin",
+  orders: "Orders", cart: "Cart", wishlist: "Wishlist", payments: "Payments",
+  marketplace: "Marketplace", suppliers: "Suppliers", admin: "Admin", supplier: "Seller",
   notifications: "Notifications", help: "Help", onboarding: "Onboarding",
 };
 
