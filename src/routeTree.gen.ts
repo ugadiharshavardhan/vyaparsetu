@@ -42,6 +42,7 @@ import { Route as AuthenticatedSupplierReviewsRouteImport } from './routes/_auth
 import { Route as AuthenticatedSupplierPromotionsRouteImport } from './routes/_authenticated/supplier.promotions'
 import { Route as AuthenticatedSupplierProfileRouteImport } from './routes/_authenticated/supplier.profile'
 import { Route as AuthenticatedSupplierPricingRouteImport } from './routes/_authenticated/supplier.pricing'
+import { Route as AuthenticatedSupplierPaymentsRouteImport } from './routes/_authenticated/supplier.payments'
 import { Route as AuthenticatedSupplierOrdersRouteImport } from './routes/_authenticated/supplier.orders'
 import { Route as AuthenticatedSupplierNotificationsRouteImport } from './routes/_authenticated/supplier.notifications'
 import { Route as AuthenticatedSupplierInventoryRouteImport } from './routes/_authenticated/supplier.inventory'
@@ -243,6 +244,12 @@ const AuthenticatedSupplierPricingRoute =
   AuthenticatedSupplierPricingRouteImport.update({
     id: '/supplier/pricing',
     path: '/supplier/pricing',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedSupplierPaymentsRoute =
+  AuthenticatedSupplierPaymentsRouteImport.update({
+    id: '/supplier/payments',
+    path: '/supplier/payments',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedSupplierOrdersRoute =
@@ -465,6 +472,7 @@ export interface FileRoutesByFullPath {
   '/supplier/inventory': typeof AuthenticatedSupplierInventoryRoute
   '/supplier/notifications': typeof AuthenticatedSupplierNotificationsRoute
   '/supplier/orders': typeof AuthenticatedSupplierOrdersRoute
+  '/supplier/payments': typeof AuthenticatedSupplierPaymentsRoute
   '/supplier/pricing': typeof AuthenticatedSupplierPricingRoute
   '/supplier/profile': typeof AuthenticatedSupplierProfileRoute
   '/supplier/promotions': typeof AuthenticatedSupplierPromotionsRoute
@@ -527,6 +535,7 @@ export interface FileRoutesByTo {
   '/supplier/inventory': typeof AuthenticatedSupplierInventoryRoute
   '/supplier/notifications': typeof AuthenticatedSupplierNotificationsRoute
   '/supplier/orders': typeof AuthenticatedSupplierOrdersRoute
+  '/supplier/payments': typeof AuthenticatedSupplierPaymentsRoute
   '/supplier/pricing': typeof AuthenticatedSupplierPricingRoute
   '/supplier/profile': typeof AuthenticatedSupplierProfileRoute
   '/supplier/promotions': typeof AuthenticatedSupplierPromotionsRoute
@@ -592,6 +601,7 @@ export interface FileRoutesById {
   '/_authenticated/supplier/inventory': typeof AuthenticatedSupplierInventoryRoute
   '/_authenticated/supplier/notifications': typeof AuthenticatedSupplierNotificationsRoute
   '/_authenticated/supplier/orders': typeof AuthenticatedSupplierOrdersRoute
+  '/_authenticated/supplier/payments': typeof AuthenticatedSupplierPaymentsRoute
   '/_authenticated/supplier/pricing': typeof AuthenticatedSupplierPricingRoute
   '/_authenticated/supplier/profile': typeof AuthenticatedSupplierProfileRoute
   '/_authenticated/supplier/promotions': typeof AuthenticatedSupplierPromotionsRoute
@@ -657,6 +667,7 @@ export interface FileRouteTypes {
     | '/supplier/inventory'
     | '/supplier/notifications'
     | '/supplier/orders'
+    | '/supplier/payments'
     | '/supplier/pricing'
     | '/supplier/profile'
     | '/supplier/promotions'
@@ -719,6 +730,7 @@ export interface FileRouteTypes {
     | '/supplier/inventory'
     | '/supplier/notifications'
     | '/supplier/orders'
+    | '/supplier/payments'
     | '/supplier/pricing'
     | '/supplier/profile'
     | '/supplier/promotions'
@@ -783,6 +795,7 @@ export interface FileRouteTypes {
     | '/_authenticated/supplier/inventory'
     | '/_authenticated/supplier/notifications'
     | '/_authenticated/supplier/orders'
+    | '/_authenticated/supplier/payments'
     | '/_authenticated/supplier/pricing'
     | '/_authenticated/supplier/profile'
     | '/_authenticated/supplier/promotions'
@@ -1042,6 +1055,13 @@ declare module '@tanstack/react-router' {
       path: '/supplier/pricing'
       fullPath: '/supplier/pricing'
       preLoaderRoute: typeof AuthenticatedSupplierPricingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/supplier/payments': {
+      id: '/_authenticated/supplier/payments'
+      path: '/supplier/payments'
+      fullPath: '/supplier/payments'
+      preLoaderRoute: typeof AuthenticatedSupplierPaymentsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/supplier/orders': {
@@ -1328,6 +1348,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedSupplierInventoryRoute: typeof AuthenticatedSupplierInventoryRoute
   AuthenticatedSupplierNotificationsRoute: typeof AuthenticatedSupplierNotificationsRoute
   AuthenticatedSupplierOrdersRoute: typeof AuthenticatedSupplierOrdersRoute
+  AuthenticatedSupplierPaymentsRoute: typeof AuthenticatedSupplierPaymentsRoute
   AuthenticatedSupplierPricingRoute: typeof AuthenticatedSupplierPricingRoute
   AuthenticatedSupplierProfileRoute: typeof AuthenticatedSupplierProfileRoute
   AuthenticatedSupplierPromotionsRoute: typeof AuthenticatedSupplierPromotionsRoute
@@ -1362,6 +1383,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedSupplierNotificationsRoute:
     AuthenticatedSupplierNotificationsRoute,
   AuthenticatedSupplierOrdersRoute: AuthenticatedSupplierOrdersRoute,
+  AuthenticatedSupplierPaymentsRoute: AuthenticatedSupplierPaymentsRoute,
   AuthenticatedSupplierPricingRoute: AuthenticatedSupplierPricingRoute,
   AuthenticatedSupplierProfileRoute: AuthenticatedSupplierProfileRoute,
   AuthenticatedSupplierPromotionsRoute: AuthenticatedSupplierPromotionsRoute,
