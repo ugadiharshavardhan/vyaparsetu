@@ -1,11 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
-  Boxes, ClipboardCheck, Download, LineChart, Package, PackageCheck,
+  Boxes, ClipboardCheck, Download, Package, PackageCheck,
   ShoppingBag, Sparkles, TrendingUp, Truck, Wallet, ArrowUpRight,
 } from "lucide-react";
-import {
-  Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis,
-} from "recharts";
 import { toast } from "sonner";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -99,32 +96,12 @@ function SupplierDashboard() {
           </SectionCard>
         </div>
 
-        <SectionCard title="Monthly sales" description="Revenue trend over the last 12 months">
-          <div className="h-72">
-            <ResponsiveContainer>
-              <AreaChart data={revenueSeries}>
-                <defs>
-                  <linearGradient id="rev" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="hsl(var(--brand))" stopOpacity={0.4} />
-                    <stop offset="100%" stopColor="hsl(var(--brand))" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" />
-                <XAxis dataKey="month" tickLine={false} axisLine={false} className="text-xs" />
-                <YAxis tickLine={false} axisLine={false} className="text-xs" tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-                <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid hsl(var(--border))" }} formatter={(v: number) => inr(v)} />
-                <Area type="monotone" dataKey="revenue" stroke="hsl(var(--brand))" strokeWidth={2} fill="url(#rev)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </SectionCard>
-
         <SectionCard title="Quick actions">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <QuickAction icon={Package} label="Add product" to="/supplier/products/new" />
             <QuickAction icon={Boxes} label="Manage inventory" to="/supplier/inventory" />
             <QuickAction icon={Truck} label="Dispatch orders" to="/supplier/dispatch" />
-            <QuickAction icon={LineChart} label="Download report" to="/supplier/analytics" />
+            <QuickAction icon={TrendingUp} label="View analytics" to="/supplier/analytics" />
           </div>
         </SectionCard>
       </div>

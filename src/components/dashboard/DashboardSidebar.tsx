@@ -1,8 +1,8 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  BarChart3, Bell, Boxes, Building2, FileText, HelpCircle, Heart, LayoutDashboard, LifeBuoy,
-  LineChart, LogOut, MapPin, Megaphone, Package, PackageOpen, ReceiptText,
-  Settings, ShieldCheck, ShoppingBag, ShoppingCart, Star, Store, Tag, User, Users, Warehouse,
+  BarChart3, Bell, Boxes, FileText, LayoutDashboard, LifeBuoy,
+  LineChart, LogOut, Megaphone, Package, PackageOpen, ReceiptText,
+  Settings, ShieldCheck, ShoppingCart, Store, Tag, User, Users, Warehouse,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
@@ -18,20 +18,28 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCart } from "@/hooks/useCart";
 import { useWishlist } from "@/hooks/useWishlist";
 
+// Buyer sidebar — Phase 8 simplified. Wishlist, Suppliers, Addresses, Help,
+// Settings remain reachable directly by URL (routes preserved, nav hidden).
 const MAIN = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Marketplace", url: "/marketplace", icon: Store },
   { title: "Orders", url: "/orders", icon: Package },
-  { title: "Wishlist", url: "/wishlist", icon: Heart },
   { title: "Cart", url: "/cart", icon: ShoppingCart },
-  { title: "Addresses", url: "/addresses", icon: MapPin },
-  { title: "Suppliers", url: "/suppliers", icon: ShoppingBag },
+  { title: "Payments", url: "/payments", icon: ReceiptText },
+  { title: "Profile", url: "/profile", icon: User },
 ] as const;
 
-const ACCOUNT = [
-  { title: "Profile", url: "/profile", icon: User },
-  { title: "Settings", url: "/settings", icon: Settings },
-  { title: "Help", url: "/help", icon: HelpCircle },
+// Seller sidebar — Phase 8 simplified. Customers, Warehouse, Pricing,
+// Promotions, Reviews, Business profile, Documents, Notifications, Analytics,
+// Support routes remain reachable directly by URL (nav hidden).
+const SUPPLIER = [
+  { title: "Dashboard", url: "/supplier", icon: LayoutDashboard },
+  { title: "Products", url: "/supplier/products", icon: PackageOpen },
+  { title: "Orders", url: "/supplier/orders", icon: ReceiptText },
+  { title: "Inventory", url: "/supplier/inventory", icon: Boxes },
+  { title: "Dispatch", url: "/supplier/dispatch", icon: Warehouse },
+  { title: "Payments", url: "/supplier/payments", icon: ReceiptText },
+  { title: "Settings", url: "/supplier/settings", icon: Settings },
 ] as const;
 
 const ADMIN = [
@@ -54,29 +62,6 @@ const ADMIN = [
   { title: "Audit logs", url: "/admin/audit", icon: FileText },
   { title: "Security", url: "/admin/security", icon: ShieldCheck },
   { title: "Settings", url: "/admin/settings", icon: Settings },
-] as const;
-
-const SUPPLIER = [
-  { title: "Dashboard", url: "/supplier", icon: LayoutDashboard },
-  { title: "Products", url: "/supplier/products", icon: PackageOpen },
-  { title: "Orders", url: "/supplier/orders", icon: ReceiptText },
-  { title: "Inventory", url: "/supplier/inventory", icon: Boxes },
-  { title: "Dispatch Center", url: "/supplier/dispatch", icon: Warehouse },
-  { title: "Payments", url: "/supplier/payments", icon: ReceiptText },
-  { title: "Analytics", url: "/supplier/analytics", icon: LineChart },
-  { title: "Settings", url: "/supplier/settings", icon: Settings },
-] as const;
-
-const SUPPLIER_MORE = [
-  { title: "Customers", url: "/supplier/customers", icon: Users },
-  { title: "Warehouse", url: "/supplier/warehouse", icon: Warehouse },
-  { title: "Pricing", url: "/supplier/pricing", icon: Tag },
-  { title: "Promotions", url: "/supplier/promotions", icon: Megaphone },
-  { title: "Reviews", url: "/supplier/reviews", icon: Star },
-  { title: "Business profile", url: "/supplier/profile", icon: Building2 },
-  { title: "Documents", url: "/supplier/documents", icon: FileText },
-  { title: "Notifications", url: "/supplier/notifications", icon: Bell },
-  { title: "Support", url: "/supplier/support", icon: LifeBuoy },
 ] as const;
 
 export function DashboardSidebar() {
@@ -144,15 +129,12 @@ export function DashboardSidebar() {
         </Link>
       </SidebarHeader>
       <SidebarContent>
-        <SidebarGroup>
-          {!collapsed && <SidebarGroupLabel>Workspace</SidebarGroupLabel>}
-          <SidebarGroupContent>{renderItems(MAIN)}</SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          {!collapsed && <SidebarGroupLabel>Account</SidebarGroupLabel>}
-          <SidebarGroupContent>{renderItems(ACCOUNT)}</SidebarGroupContent>
-        </SidebarGroup>
+        {!isSupplier && (
+          <SidebarGroup>
+            {!collapsed && <SidebarGroupLabel>Workspace</SidebarGroupLabel>}
+            <SidebarGroupContent>{renderItems(MAIN)}</SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
         {isSupplier && (
           <SidebarGroup>
@@ -160,15 +142,6 @@ export function DashboardSidebar() {
             <SidebarGroupContent>{renderItems(SUPPLIER)}</SidebarGroupContent>
           </SidebarGroup>
         )}
-
-        {isSupplier && (
-          <SidebarGroup>
-            {!collapsed && <SidebarGroupLabel>More tools</SidebarGroupLabel>}
-            <SidebarGroupContent>{renderItems(SUPPLIER_MORE)}</SidebarGroupContent>
-          </SidebarGroup>
-        )}
-
-
 
         {isAdmin && (
           <SidebarGroup>

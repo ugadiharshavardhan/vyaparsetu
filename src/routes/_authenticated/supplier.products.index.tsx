@@ -86,7 +86,7 @@ function SupplierProductsPage() {
           description="Manage products, inventory, pricing and stock."
           action={
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" onClick={() => toast.info("Bulk upload template downloading")}><Upload className="mr-1.5 h-4 w-4" /> Bulk upload</Button>
+              <Button variant="outline" disabled title="Coming soon" onClick={() => toast.info("Bulk upload — coming soon")}><Upload className="mr-1.5 h-4 w-4" /> Bulk upload <span className="ml-1.5 rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-bold uppercase text-muted-foreground">Soon</span></Button>
               <Button variant="outline" onClick={() => toast.info("Export queued")}><Download className="mr-1.5 h-4 w-4" /> Export CSV</Button>
               <Button asChild><Link to="/supplier/products/new"><Plus className="mr-1.5 h-4 w-4" /> Add product</Link></Button>
             </div>

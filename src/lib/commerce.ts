@@ -127,10 +127,10 @@ export const ORDER_STATUS_FLOW = [
 
 export const STATUS_LABELS: Record<string, string> = {
   pending: "Pending",
-  confirmed: "Order Confirmed",
-  processing: "Processing",
-  packed: "Packed",
-  shipped: "Shipped",
+  confirmed: "Order Placed",
+  processing: "Accepted",
+  packed: "Packing",
+  shipped: "Ready for Pickup",
   out_for_delivery: "Out for Delivery",
   delivered: "Delivered",
   cancelled: "Cancelled",
