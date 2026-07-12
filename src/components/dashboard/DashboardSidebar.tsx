@@ -18,65 +18,30 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCart } from "@/hooks/useCart";
 import { useWishlist } from "@/hooks/useWishlist";
 
+// Buyer sidebar — simplified for Phase 8. Hidden routes (Wishlist, Suppliers,
+// Addresses, Help, Settings) remain reachable directly by URL.
 const MAIN = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Marketplace", url: "/marketplace", icon: Store },
   { title: "Orders", url: "/orders", icon: Package },
-  { title: "Wishlist", url: "/wishlist", icon: Heart },
   { title: "Cart", url: "/cart", icon: ShoppingCart },
-  { title: "Addresses", url: "/addresses", icon: MapPin },
-  { title: "Suppliers", url: "/suppliers", icon: ShoppingBag },
-] as const;
-
-const ACCOUNT = [
+  { title: "Payments", url: "/payments", icon: ReceiptText },
   { title: "Profile", url: "/profile", icon: User },
-  { title: "Settings", url: "/settings", icon: Settings },
-  { title: "Help", url: "/help", icon: HelpCircle },
 ] as const;
 
-const ADMIN = [
-  { title: "Overview", url: "/admin", icon: LayoutDashboard },
-  { title: "Analytics", url: "/admin/analytics", icon: BarChart3 },
-  { title: "Users", url: "/admin/users", icon: Users },
-  { title: "Verifications", url: "/admin/verifications", icon: ShieldCheck },
-  { title: "Products", url: "/admin/products", icon: Boxes },
-  { title: "Categories", url: "/admin/categories", icon: Tag },
-  { title: "Orders", url: "/admin/orders", icon: Package },
-  { title: "Payments", url: "/admin/payments", icon: ReceiptText },
-  { title: "Finance", url: "/admin/finance", icon: LineChart },
-  { title: "Support", url: "/admin/support", icon: LifeBuoy },
-  { title: "Coupons", url: "/admin/coupons", icon: Tag },
-  { title: "Banners", url: "/admin/banners", icon: Megaphone },
-  { title: "CMS", url: "/admin/cms", icon: FileText },
-  { title: "Notifications", url: "/admin/notifications", icon: Bell },
-  { title: "Reports", url: "/admin/reports", icon: FileText },
-  { title: "Roles", url: "/admin/roles", icon: ShieldCheck },
-  { title: "Audit logs", url: "/admin/audit", icon: FileText },
-  { title: "Security", url: "/admin/security", icon: ShieldCheck },
-  { title: "Settings", url: "/admin/settings", icon: Settings },
-] as const;
+const ACCOUNT: readonly { title: string; url: string; icon: typeof Store }[] = [];
 
+// Seller sidebar — simplified for Phase 8. Customers, Warehouse, Pricing,
+// Promotions, Reviews, Business profile, Documents, Notifications, Analytics,
+// Support routes remain reachable directly by URL.
 const SUPPLIER = [
   { title: "Dashboard", url: "/supplier", icon: LayoutDashboard },
   { title: "Products", url: "/supplier/products", icon: PackageOpen },
   { title: "Orders", url: "/supplier/orders", icon: ReceiptText },
   { title: "Inventory", url: "/supplier/inventory", icon: Boxes },
-  { title: "Dispatch Center", url: "/supplier/dispatch", icon: Warehouse },
+  { title: "Dispatch", url: "/supplier/dispatch", icon: Warehouse },
   { title: "Payments", url: "/supplier/payments", icon: ReceiptText },
-  { title: "Analytics", url: "/supplier/analytics", icon: LineChart },
   { title: "Settings", url: "/supplier/settings", icon: Settings },
-] as const;
-
-const SUPPLIER_MORE = [
-  { title: "Customers", url: "/supplier/customers", icon: Users },
-  { title: "Warehouse", url: "/supplier/warehouse", icon: Warehouse },
-  { title: "Pricing", url: "/supplier/pricing", icon: Tag },
-  { title: "Promotions", url: "/supplier/promotions", icon: Megaphone },
-  { title: "Reviews", url: "/supplier/reviews", icon: Star },
-  { title: "Business profile", url: "/supplier/profile", icon: Building2 },
-  { title: "Documents", url: "/supplier/documents", icon: FileText },
-  { title: "Notifications", url: "/supplier/notifications", icon: Bell },
-  { title: "Support", url: "/supplier/support", icon: LifeBuoy },
 ] as const;
 
 export function DashboardSidebar() {
