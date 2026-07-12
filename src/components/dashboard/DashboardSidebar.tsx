@@ -59,10 +59,16 @@ const ADMIN = [
 const SUPPLIER = [
   { title: "Dashboard", url: "/supplier", icon: LayoutDashboard },
   { title: "Products", url: "/supplier/products", icon: PackageOpen },
-  { title: "Inventory", url: "/supplier/inventory", icon: Boxes },
   { title: "Orders", url: "/supplier/orders", icon: ReceiptText },
-  { title: "Customers", url: "/supplier/customers", icon: Users },
+  { title: "Inventory", url: "/supplier/inventory", icon: Boxes },
+  { title: "Dispatch Center", url: "/supplier/dispatch", icon: Warehouse },
+  { title: "Payments", url: "/supplier/payments", icon: ReceiptText },
   { title: "Analytics", url: "/supplier/analytics", icon: LineChart },
+  { title: "Settings", url: "/supplier/settings", icon: Settings },
+] as const;
+
+const SUPPLIER_MORE = [
+  { title: "Customers", url: "/supplier/customers", icon: Users },
   { title: "Warehouse", url: "/supplier/warehouse", icon: Warehouse },
   { title: "Pricing", url: "/supplier/pricing", icon: Tag },
   { title: "Promotions", url: "/supplier/promotions", icon: Megaphone },
@@ -71,7 +77,6 @@ const SUPPLIER = [
   { title: "Documents", url: "/supplier/documents", icon: FileText },
   { title: "Notifications", url: "/supplier/notifications", icon: Bell },
   { title: "Support", url: "/supplier/support", icon: LifeBuoy },
-  { title: "Settings", url: "/supplier/settings", icon: Settings },
 ] as const;
 
 export function DashboardSidebar() {
