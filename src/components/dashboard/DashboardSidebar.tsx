@@ -156,10 +156,18 @@ export function DashboardSidebar() {
 
         {isSupplier && (
           <SidebarGroup>
-            {!collapsed && <SidebarGroupLabel>Supplier portal</SidebarGroupLabel>}
+            {!collapsed && <SidebarGroupLabel>Seller workspace</SidebarGroupLabel>}
             <SidebarGroupContent>{renderItems(SUPPLIER)}</SidebarGroupContent>
           </SidebarGroup>
         )}
+
+        {isSupplier && (
+          <SidebarGroup>
+            {!collapsed && <SidebarGroupLabel>More tools</SidebarGroupLabel>}
+            <SidebarGroupContent>{renderItems(SUPPLIER_MORE)}</SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
 
 
         {isAdmin && (
