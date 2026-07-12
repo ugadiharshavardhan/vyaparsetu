@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { GoogleButton } from "./GoogleButton";
+import { resolvePostLoginPath } from "@/lib/postLoginRedirect";
 
 const schema = z.object({
   email: z.string().trim().email("Please enter a valid email").max(255),
