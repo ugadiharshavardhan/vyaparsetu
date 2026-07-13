@@ -1,9 +1,10 @@
 import type { ReactNode } from "react";
+import { useContext } from "react";
 import { useRouterState } from "@tanstack/react-router";
 import { Header } from "./Header";
 import { Footer } from "./Footer";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
-import { useAuth } from "@/hooks/useAuth";
+import { AuthContext } from "@/hooks/useAuth";
 
 // Routes that always use the dashboard shell (sidebar + topbar). We hide the
 // marketing site chrome for these paths and let the dashboard layout render
@@ -21,10 +22,14 @@ const SHARED_PREFIXES = ["/marketplace", "/suppliers", "/products", "/categories
 
 export function SiteLayout({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
-  const { isAuthenticated } = useAuth();
+  // Read AuthContext directly so this layout still works when rendered by the
+  // root route's error/notFound boundaries (which mount outside AuthProvider).
+  const auth = useContext(AuthContext);
+  const isAuthenticated = !!auth?.isAuthenticated;
 
   const isApp = APP_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
   const isShared = SHARED_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
+
 
   if (isApp) {
     return <div className="min-h-screen bg-background text-foreground">{children}</div>;
