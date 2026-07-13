@@ -1,7 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  BarChart3, Bell, Boxes, FileText, LayoutDashboard, LifeBuoy,
-  LineChart, LogOut, Megaphone, Package, PackageOpen, ReceiptText,
+  BarChart3, Bell, Boxes, FileText, Info, LayoutDashboard, LifeBuoy,
+  LineChart, LogOut, Mail, Megaphone, Package, PackageOpen, ReceiptText,
   Settings, ShieldCheck, ShoppingCart, Store, Tag, User, Users, Warehouse,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
