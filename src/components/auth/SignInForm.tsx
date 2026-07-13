@@ -74,6 +74,18 @@ export function SignInForm({ role, onBack }: { role?: "buyer" | "seller"; onBack
 
   return (
     <div className="space-y-5">
+      {role && (
+        <div className="flex items-center justify-between rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs">
+          <span className="text-muted-foreground">
+            Signing in as <span className="font-semibold text-foreground">{role === "seller" ? "Seller" : "Customer"}</span>
+          </span>
+          {onBack && (
+            <button type="button" onClick={onBack} className="font-semibold text-brand hover:underline">
+              Change
+            </button>
+          )}
+        </div>
+      )}
       <GoogleButton onClick={handleGoogle} loading={googleLoading} />
 
       <div className="relative flex items-center gap-3">
