@@ -75,8 +75,12 @@ export function DashboardSidebar() {
   const collapsed = state === "collapsed";
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const { data: roles } = useRoles();
+  const sessionMode = useSessionMode();
   const isAdmin = roles?.includes("admin");
-  const isSupplier = !!roles?.some((r) => r === "wholesaler" || r === "manufacturer" || r === "distributor");
+  const hasSellerRole = !!roles?.some((r) => r === "wholesaler" || r === "manufacturer" || r === "distributor");
+  // Session mode (chosen at sign-in) wins over DB roles so a user who signed
+  // in as "Customer" sees the buyer sidebar even if they also have seller roles.
+  const isSupplier = sessionMode === "seller" || (sessionMode !== "buyer" && hasSellerRole);
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { data: cart } = useCart();
@@ -96,6 +100,7 @@ export function DashboardSidebar() {
     try {
       await qc.cancelQueries();
       qc.clear();
+      clearSessionMode();
       await supabase.auth.signOut();
       toast.success("Signed out");
       navigate({ to: "/auth", search: { mode: "signin" }, replace: true });
