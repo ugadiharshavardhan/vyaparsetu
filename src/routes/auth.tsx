@@ -37,34 +37,34 @@ function AuthPage() {
   const navigate = useNavigate();
   const [mode, setMode] = useState<"signin" | "signup">(search.mode ?? "signin");
   const [role, setRole] = useState<BusinessRole | null>(null);
-  const [step, setStep] = useState<"role" | "form">(
-    (search.mode ?? "signin") === "signup" ? "role" : "form",
-  );
+  const [step, setStep] = useState<"role" | "form">("role");
 
   const switchMode = (m: "signin" | "signup") => {
     setMode(m);
-    setStep(m === "signup" ? "role" : "form");
-    if (m === "signin") setRole(null);
+    setStep("role");
+    setRole(null);
     navigate({ to: "/auth", search: { mode: m, redirect: search.redirect } });
   };
 
-  const isRoleStep = mode === "signup" && step === "role";
+  const isRoleStep = step === "role";
 
   return (
     <AuthLayout
       eyebrow={mode === "signin" ? "Welcome back" : "Get started"}
       title={
-        mode === "signin"
-          ? "Sign in to VyaparSetu"
-          : isRoleStep
-            ? "How will you use VyaparSetu?"
+        isRoleStep
+          ? mode === "signin"
+            ? "How would you like to sign in?"
+            : "How will you use VyaparSetu?"
+          : mode === "signin"
+            ? "Sign in to VyaparSetu"
             : "Create your business account"
       }
       subtitle={
-        mode === "signin"
-          ? "Access your orders, credit line and supplier network."
-          : isRoleStep
-            ? "Choose your workspace — you can add more capabilities later."
+        isRoleStep
+          ? "Choose your workspace — you can switch anytime."
+          : mode === "signin"
+            ? "Access your orders, credit line and supplier network."
             : "Join 84,000+ Indian businesses trading on VyaparSetu."
       }
     >
@@ -84,8 +84,7 @@ function AuthPage() {
         ))}
       </div>
 
-      {mode === "signin" && <SignInForm />}
-      {mode === "signup" && step === "role" && (
+      {isRoleStep && (
         <RoleSelect
           value={role}
           onChange={setRole}
@@ -95,7 +94,10 @@ function AuthPage() {
           }}
         />
       )}
-      {mode === "signup" && step === "form" && role && (
+      {!isRoleStep && mode === "signin" && role && (
+        <SignInForm role={role} onBack={() => setStep("role")} />
+      )}
+      {!isRoleStep && mode === "signup" && role && (
         <SignUpForm role={role} onBack={() => setStep("role")} />
       )}
 

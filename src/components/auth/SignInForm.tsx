@@ -21,7 +21,7 @@ const schema = z.object({
 });
 type FormValues = z.infer<typeof schema>;
 
-export function SignInForm() {
+export function SignInForm({ role, onBack }: { role?: "buyer" | "seller"; onBack?: () => void } = {}) {
   const [show, setShow] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const navigate = useNavigate();
@@ -31,6 +31,9 @@ export function SignInForm() {
     resolver: zodResolver(schema),
     defaultValues: { remember: true },
   });
+
+  const roleRedirect = (fallback: string) =>
+    role === "seller" ? "/supplier" : role === "buyer" ? "/marketplace" : fallback;
 
   const submit = async (values: FormValues) => {
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -42,7 +45,8 @@ export function SignInForm() {
       return;
     }
     toast.success("Welcome back!");
-    const path = search.redirect ?? (data.user ? await resolvePostLoginPath(data.user.id) : "/dashboard");
+    const fallback = data.user ? await resolvePostLoginPath(data.user.id) : "/dashboard";
+    const path = search.redirect ?? roleRedirect(fallback);
     navigate({ to: path as never });
   };
 
@@ -59,7 +63,8 @@ export function SignInForm() {
       }
       if (result.redirected) return;
       const { data } = await supabase.auth.getUser();
-      const path = search.redirect ?? (data.user ? await resolvePostLoginPath(data.user.id) : "/dashboard");
+      const fallback = data.user ? await resolvePostLoginPath(data.user.id) : "/dashboard";
+      const path = search.redirect ?? roleRedirect(fallback);
       navigate({ to: path as never });
     } catch {
       toast.error("Google sign-in failed. Please try again.");
@@ -69,6 +74,18 @@ export function SignInForm() {
 
   return (
     <div className="space-y-5">
+      {role && (
+        <div className="flex items-center justify-between rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs">
+          <span className="text-muted-foreground">
+            Signing in as <span className="font-semibold text-foreground">{role === "seller" ? "Seller" : "Customer"}</span>
+          </span>
+          {onBack && (
+            <button type="button" onClick={onBack} className="font-semibold text-brand hover:underline">
+              Change
+            </button>
+          )}
+        </div>
+      )}
       <GoogleButton onClick={handleGoogle} loading={googleLoading} />
 
       <div className="relative flex items-center gap-3">
