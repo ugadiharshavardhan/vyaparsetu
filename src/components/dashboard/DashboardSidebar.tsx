@@ -161,6 +161,14 @@ export function DashboardSidebar() {
           </SidebarGroup>
         )}
 
+        {isSupplier && (
+          <SidebarGroup>
+            {!collapsed && <SidebarGroupLabel>Explore</SidebarGroupLabel>}
+            <SidebarGroupContent>{renderItems(SELLER_EXPLORE)}</SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+
         {isAdmin && (
           <SidebarGroup>
             {!collapsed && <SidebarGroupLabel>Admin</SidebarGroupLabel>}
