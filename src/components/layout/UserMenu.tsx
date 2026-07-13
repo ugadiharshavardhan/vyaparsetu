@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
+import { useContext } from "react";
 import { toast } from "sonner";
 import {
   Heart,
@@ -20,7 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { AuthContext, useAuth } from "@/hooks/useAuth";
 import { useProfile, useRoles } from "@/hooks/useProfile";
 import { useSessionMode } from "@/hooks/useSessionMode";
 import { clearSessionMode } from "@/lib/sessionMode";
@@ -32,37 +33,49 @@ function initials(name?: string | null, email?: string | null) {
 }
 
 export function UserMenu() {
+  const auth = useContext(AuthContext);
+
+  if (!auth) return <GuestActions />;
+
+  return <ProvidedUserMenu />;
+}
+
+function GuestActions() {
+  return (
+    <div className="flex items-center gap-2">
+      <Link
+        to="/auth"
+        search={{ mode: "signin" }}
+        className="hidden rounded-full px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground md:inline-flex"
+      >
+        Sign in
+      </Link>
+      <Link
+        to="/auth"
+        search={{ mode: "signup" }}
+        className="inline-flex items-center rounded-full bg-brand px-4 py-2 text-sm font-semibold text-white shadow-brand transition hover:opacity-95"
+      >
+        Get Started
+      </Link>
+    </div>
+  );
+}
+
+function ProvidedUserMenu() {
   const { user, isAuthenticated, loading } = useAuth();
   const { data: profile } = useProfile();
   const { data: roles } = useRoles();
+  const sessionMode = useSessionMode();
   const navigate = useNavigate();
   const qc = useQueryClient();
 
   if (loading) return <Skeleton className="h-10 w-10 rounded-full" />;
 
   if (!isAuthenticated) {
-    return (
-      <div className="flex items-center gap-2">
-        <Link
-          to="/auth"
-          search={{ mode: "signin" }}
-          className="hidden rounded-full px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground md:inline-flex"
-        >
-          Sign in
-        </Link>
-        <Link
-          to="/auth"
-          search={{ mode: "signup" }}
-          className="inline-flex items-center rounded-full bg-brand px-4 py-2 text-sm font-semibold text-white shadow-brand transition hover:opacity-95"
-        >
-          Get Started
-        </Link>
-      </div>
-    );
+    return <GuestActions />;
   }
 
   const isAdmin = roles?.includes("admin");
-  const sessionMode = useSessionMode();
   const hasSellerRole = !!roles?.some((r) => r === "wholesaler" || r === "manufacturer" || r === "distributor");
   const isSeller = sessionMode === "seller" || (sessionMode !== "buyer" && hasSellerRole);
   const handleSignOut = async () => {
