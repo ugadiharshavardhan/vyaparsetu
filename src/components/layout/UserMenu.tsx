@@ -62,10 +62,14 @@ export function UserMenu() {
   }
 
   const isAdmin = roles?.includes("admin");
+  const sessionMode = useSessionMode();
+  const hasSellerRole = !!roles?.some((r) => r === "wholesaler" || r === "manufacturer" || r === "distributor");
+  const isSeller = sessionMode === "seller" || (sessionMode !== "buyer" && hasSellerRole);
   const handleSignOut = async () => {
     try {
       await qc.cancelQueries();
       qc.clear();
+      clearSessionMode();
       await supabase.auth.signOut();
       toast.success("You've been signed out");
       navigate({ to: "/", replace: true });
