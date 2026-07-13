@@ -1,14 +1,23 @@
 import { supabase } from "@/integrations/supabase/client";
+import { getSessionMode } from "@/lib/sessionMode";
 
 /**
  * Resolve where a user should land after a successful auth event.
- * - admin  → /admin
- * - manufacturer / wholesaler / distributor (seller-side) → /supplier
- * - retailer (buyer-side) or unknown → /dashboard
- * Onboarding gate on /_authenticated will still redirect to /onboarding
+ *
+ * Priority:
+ *  1. Session mode chosen at sign-in (buyer → /marketplace, seller → /supplier)
+ *  2. Admin role → /admin
+ *  3. Seller-side DB roles → /supplier
+ *  4. Buyer / unknown → /marketplace
+ *
+ * The onboarding gate on /_authenticated will still redirect to /onboarding
  * when the profile is incomplete.
  */
 export async function resolvePostLoginPath(userId: string): Promise<string> {
+  const mode = getSessionMode();
+  if (mode === "seller") return "/supplier";
+  if (mode === "buyer") return "/marketplace";
+
   try {
     const { data } = await supabase
       .from("user_roles")
@@ -19,8 +28,8 @@ export async function resolvePostLoginPath(userId: string): Promise<string> {
     if (roles.some((r) => ["manufacturer", "wholesaler", "distributor"].includes(r))) {
       return "/supplier";
     }
-    return "/dashboard";
+    return "/marketplace";
   } catch {
-    return "/dashboard";
+    return "/marketplace";
   }
 }
