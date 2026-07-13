@@ -121,8 +121,9 @@ function CheckoutPage() {
   const eta = estimatedDeliveryDate(5);
 
   return (
-    
+    <>
       <div className="container-page py-8">
+
         <div className="mb-8">
           <CheckoutStepper steps={STEPS} current={step} />
         </div>
