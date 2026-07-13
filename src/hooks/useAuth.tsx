@@ -12,6 +12,16 @@ type AuthContextValue = {
   signOut: () => Promise<void>;
 };
 
+const unauthenticatedAuthContext: AuthContextValue = {
+  session: null,
+  user: null,
+  loading: false,
+  isAuthenticated: false,
+  signOut: async () => {
+    await supabase.auth.signOut();
+  },
+};
+
 export const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -54,6 +64,5 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used inside <AuthProvider>");
-  return ctx;
+  return ctx ?? unauthenticatedAuthContext;
 }

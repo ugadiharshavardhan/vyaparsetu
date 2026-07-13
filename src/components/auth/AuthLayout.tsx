@@ -1,5 +1,4 @@
 import { motion } from "framer-motion";
-import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { Logo } from "@/components/common/Logo";
 import { ShieldCheck, Sparkles, TrendingUp } from "lucide-react";
@@ -46,9 +45,9 @@ export function AuthLayout({
           <div className="absolute inset-0 gradient-brand" />
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_white,_transparent_55%)] opacity-25" />
           <div className="relative flex h-full flex-col justify-between p-12 text-white">
-            <Link to="/" className="w-max">
+            <div className="w-max">
               <Logo />
-            </Link>
+            </div>
             <div className="max-w-md space-y-8">
               <h2 className="font-display text-3xl font-bold leading-tight">
                 Wholesale Bharat, delivered directly to your shop.
