@@ -330,6 +330,7 @@ function CheckoutPage() {
         </div>
       </div>
       <AddressFormDialog open={addrOpen} onOpenChange={setAddrOpen} />
-    
+    </>
   );
 }
+
