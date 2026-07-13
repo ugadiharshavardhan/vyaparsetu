@@ -4,7 +4,6 @@ import { toast } from "sonner";
 import {
   Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
-import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { PageHeader } from "@/components/common/PageHeader";
 import { SectionCard } from "@/components/dashboard/SectionCard";
 import { StatCard } from "@/components/dashboard/StatCard";
@@ -47,7 +46,7 @@ function PaymentsPage() {
   ];
 
   return (
-    <DashboardLayout>
+    
       <div className="container-page space-y-6 py-8">
         <PageHeader
           title="Payments"
@@ -105,6 +104,6 @@ function PaymentsPage() {
           />
         </SectionCard>
       </div>
-    </DashboardLayout>
+    
   );
 }

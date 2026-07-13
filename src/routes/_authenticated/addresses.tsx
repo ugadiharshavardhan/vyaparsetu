@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { MapPin, Plus } from "lucide-react";
-import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -32,7 +31,7 @@ function AddressesPage() {
   };
 
   return (
-    <DashboardLayout>
+    
       <div className="container-page py-8">
         <div className="mb-6 flex items-start justify-between gap-4">
           <PageHeader title="Shipping addresses" description="Manage delivery locations for your orders." />
@@ -71,6 +70,6 @@ function AddressesPage() {
         )}
       </div>
       <AddressFormDialog open={open} onOpenChange={setOpen} initial={editing} />
-    </DashboardLayout>
+    
   );
 }

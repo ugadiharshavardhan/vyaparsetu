@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { PackageSearch, Search } from "lucide-react";
-import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,7 +37,7 @@ function OrdersPage() {
   }, [orders, tab, query]);
 
   return (
-    <DashboardLayout>
+    
       <div className="container-page py-8">
         <PageHeader
           title="Orders"
@@ -89,6 +88,6 @@ function OrdersPage() {
           </div>
         )}
       </div>
-    </DashboardLayout>
+    
   );
 }

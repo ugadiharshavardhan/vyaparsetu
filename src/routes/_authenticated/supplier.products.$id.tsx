@@ -1,6 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { PageHeader } from "@/components/common/PageHeader";
 import { ProductForm } from "@/components/supplier/ProductForm";
 import { Button } from "@/components/ui/button";
@@ -19,12 +18,12 @@ function EditProductPage() {
 
   if (!product) {
     return (
-      <DashboardLayout>
+      
         <div className="container-page py-10">
           <PageHeader title="Product not found" description="This product may have been deleted." />
           <Button className="mt-6" onClick={() => navigate({ to: "/supplier/products" })}>Back to products</Button>
         </div>
-      </DashboardLayout>
+      
     );
   }
 
@@ -32,7 +31,7 @@ function EditProductPage() {
   void _id; void _c; void _u;
 
   return (
-    <DashboardLayout>
+    
       <div className="container-page space-y-6 py-8">
         <PageHeader
           title={product.name}
@@ -60,6 +59,6 @@ function EditProductPage() {
           }}
         />
       </div>
-    </DashboardLayout>
+    
   );
 }

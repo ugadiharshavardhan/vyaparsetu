@@ -2,7 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { FileText, Package, PackageCheck, Truck } from "lucide-react";
 import { toast } from "sonner";
-import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { PageHeader } from "@/components/common/PageHeader";
 import { SectionCard } from "@/components/dashboard/SectionCard";
 import { StatCard } from "@/components/dashboard/StatCard";
@@ -48,7 +47,7 @@ function SupplierOrdersPage() {
   const revenue = orders.filter((o) => o.status !== "cancelled").reduce((s, o) => s + o.amount, 0);
 
   return (
-    <DashboardLayout>
+    
       <div className="container-page space-y-6 py-8">
         <PageHeader title="Orders" description="Accept, pack and ship customer orders from a single command centre." />
 
@@ -129,7 +128,7 @@ function SupplierOrdersPage() {
           ]}
         />
       </div>
-    </DashboardLayout>
+    
   );
 }
 

@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { PageHeader } from "@/components/common/PageHeader";
 import { SectionCard } from "@/components/dashboard/SectionCard";
 import { Button } from "@/components/ui/button";
@@ -32,7 +31,7 @@ function PricingPage() {
   };
 
   return (
-    <DashboardLayout>
+    
       <div className="container-page space-y-6 py-8">
         <PageHeader title="Pricing" description="Tune wholesale, MRP and bulk-tier pricing across your catalog." />
 
@@ -104,7 +103,7 @@ function PricingPage() {
           />
         </SectionCard>
       </div>
-    </DashboardLayout>
+    
   );
 }
 

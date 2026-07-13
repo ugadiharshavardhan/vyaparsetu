@@ -1,6 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, Download, HelpCircle, Package, RotateCcw, Truck, XCircle } from "lucide-react";
-import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { OrderTimeline } from "@/components/orders/OrderTimeline";
@@ -22,23 +21,23 @@ function OrderDetailPage() {
 
   if (isLoading) {
     return (
-      <DashboardLayout>
+      
         <div className="container-page py-8">
           <Skeleton className="h-8 w-40" />
           <Skeleton className="mt-4 h-96 w-full rounded-2xl" />
         </div>
-      </DashboardLayout>
+      
     );
   }
 
   if (!order) {
     return (
-      <DashboardLayout>
+      
         <div className="container-page py-16 text-center">
           <h2 className="text-xl font-bold">Order not found</h2>
           <Button className="mt-4" onClick={() => navigate({ to: "/orders" })}>Back to orders</Button>
         </div>
-      </DashboardLayout>
+      
     );
   }
 
@@ -46,7 +45,7 @@ function OrderDetailPage() {
   const canCancel = ["pending", "confirmed", "processing"].includes(order.status);
 
   return (
-    <DashboardLayout>
+    
       <div className="container-page py-8">
         <Link to="/orders" className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-4 w-4" /> Back to orders
@@ -175,7 +174,7 @@ function OrderDetailPage() {
           </aside>
         </div>
       </div>
-    </DashboardLayout>
+    
   );
 }
 

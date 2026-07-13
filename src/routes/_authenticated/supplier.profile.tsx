@@ -2,7 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Building2, Camera, Facebook, Globe, Instagram, Linkedin } from "lucide-react";
 import { toast } from "sonner";
-import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { PageHeader } from "@/components/common/PageHeader";
 import { SectionCard } from "@/components/dashboard/SectionCard";
 import { Button } from "@/components/ui/button";
@@ -24,7 +23,7 @@ function BusinessProfilePage() {
   const [social, setSocial] = useState({ website: "", instagram: "", facebook: "", linkedin: "" });
 
   return (
-    <DashboardLayout>
+    
       <div className="container-page space-y-6 py-8">
         <PageHeader
           title="Business profile"
@@ -107,7 +106,7 @@ function BusinessProfilePage() {
           </div>
         </SectionCard>
       </div>
-    </DashboardLayout>
+    
   );
 }
 

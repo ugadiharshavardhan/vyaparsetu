@@ -3,7 +3,6 @@ import { z } from "zod";
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, ArrowRight, Loader2, MapPin, Plus, ShieldCheck, Sparkles, Truck } from "lucide-react";
-import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { CheckoutStepper } from "@/components/checkout/CheckoutStepper";
 import { PaymentMethodPicker } from "@/components/checkout/PaymentCard";
@@ -76,14 +75,14 @@ function CheckoutPage() {
 
   if (items.length === 0 && step < 3) {
     return (
-      <DashboardLayout>
+      
         <div className="container-page py-16 text-center">
           <h2 className="text-xl font-bold">Your cart is empty</h2>
           <Button className="mt-4 shadow-brand" onClick={() => navigate({ to: "/marketplace" })}>
             Browse marketplace
           </Button>
         </div>
-      </DashboardLayout>
+      
     );
   }
 
@@ -122,7 +121,7 @@ function CheckoutPage() {
   const eta = estimatedDeliveryDate(5);
 
   return (
-    <DashboardLayout>
+    
       <div className="container-page py-8">
         <div className="mb-8">
           <CheckoutStepper steps={STEPS} current={step} />
@@ -330,6 +329,6 @@ function CheckoutPage() {
         </div>
       </div>
       <AddressFormDialog open={addrOpen} onOpenChange={setAddrOpen} />
-    </DashboardLayout>
+    
   );
 }

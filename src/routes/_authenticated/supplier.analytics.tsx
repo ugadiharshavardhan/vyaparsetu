@@ -3,7 +3,6 @@ import {
   Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
 import { LineChart as LineIcon, Package, TrendingUp, Users } from "lucide-react";
-import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { PageHeader } from "@/components/common/PageHeader";
 import { SectionCard } from "@/components/dashboard/SectionCard";
 import { StatCard } from "@/components/dashboard/StatCard";
@@ -27,7 +26,7 @@ function AnalyticsPage() {
   const conversion = 4.8;
 
   return (
-    <DashboardLayout>
+    
       <div className="container-page space-y-6 py-8">
         <PageHeader title="Analytics" description="Deep-dive into revenue, catalog velocity and customer growth." />
 
@@ -120,6 +119,6 @@ function AnalyticsPage() {
           </div>
         </SectionCard>
       </div>
-    </DashboardLayout>
+    
   );
 }

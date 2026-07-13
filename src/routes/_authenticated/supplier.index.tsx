@@ -4,7 +4,6 @@ import {
   ShoppingBag, Sparkles, TrendingUp, Truck, Wallet, ArrowUpRight,
 } from "lucide-react";
 import { toast } from "sonner";
-import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { PageHeader } from "@/components/common/PageHeader";
 import { SectionCard } from "@/components/dashboard/SectionCard";
 import { StatCard } from "@/components/dashboard/StatCard";
@@ -33,7 +32,7 @@ function SupplierDashboard() {
   const incoming = orders.filter((o) => o.status === "pending" || o.status === "accepted" || o.status === "packed").slice(0, 6);
 
   return (
-    <DashboardLayout>
+    
       <div className="container-page space-y-8 py-8">
         <PageHeader
           title="Seller workspace"
@@ -105,7 +104,7 @@ function SupplierDashboard() {
           </div>
         </SectionCard>
       </div>
-    </DashboardLayout>
+    
   );
 }
 
