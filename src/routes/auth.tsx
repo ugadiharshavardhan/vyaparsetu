@@ -37,18 +37,16 @@ function AuthPage() {
   const navigate = useNavigate();
   const [mode, setMode] = useState<"signin" | "signup">(search.mode ?? "signin");
   const [role, setRole] = useState<BusinessRole | null>(null);
-  const [step, setStep] = useState<"role" | "form">(
-    (search.mode ?? "signin") === "signup" ? "role" : "form",
-  );
+  const [step, setStep] = useState<"role" | "form">("role");
 
   const switchMode = (m: "signin" | "signup") => {
     setMode(m);
-    setStep(m === "signup" ? "role" : "form");
-    if (m === "signin") setRole(null);
+    setStep("role");
+    setRole(null);
     navigate({ to: "/auth", search: { mode: m, redirect: search.redirect } });
   };
 
-  const isRoleStep = mode === "signup" && step === "role";
+  const isRoleStep = step === "role";
 
   return (
     <AuthLayout
