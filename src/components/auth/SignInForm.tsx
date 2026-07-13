@@ -45,7 +45,8 @@ export function SignInForm({ role, onBack }: { role?: "buyer" | "seller"; onBack
       return;
     }
     toast.success("Welcome back!");
-    const path = search.redirect ?? (data.user ? await resolvePostLoginPath(data.user.id) : "/dashboard");
+    const fallback = data.user ? await resolvePostLoginPath(data.user.id) : "/dashboard";
+    const path = search.redirect ?? roleRedirect(fallback);
     navigate({ to: path as never });
   };
 
