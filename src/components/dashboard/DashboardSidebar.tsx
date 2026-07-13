@@ -143,6 +143,13 @@ export function DashboardSidebar() {
           </SidebarGroup>
         )}
 
+        {!isSupplier && (
+          <SidebarGroup>
+            {!collapsed && <SidebarGroupLabel>Explore</SidebarGroupLabel>}
+            <SidebarGroupContent>{renderItems(EXPLORE)}</SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
         {isSupplier && (
           <SidebarGroup>
             {!collapsed && <SidebarGroupLabel>Seller workspace</SidebarGroupLabel>}
