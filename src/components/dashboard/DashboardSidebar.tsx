@@ -48,6 +48,14 @@ const SUPPLIER = [
   { title: "Settings", url: "/supplier/settings", icon: Settings },
 ] as const;
 
+const SELLER_EXPLORE = [
+  { title: "Marketplace", url: "/marketplace", icon: Store },
+  { title: "Categories", url: "/categories", icon: Tag },
+  { title: "Suppliers", url: "/suppliers", icon: Users },
+  { title: "About", url: "/about", icon: Info },
+  { title: "Contact", url: "/contact", icon: Mail },
+] as const;
+
 const ADMIN = [
   { title: "Overview", url: "/admin", icon: LayoutDashboard },
   { title: "Analytics", url: "/admin/analytics", icon: BarChart3 },
@@ -160,6 +168,14 @@ export function DashboardSidebar() {
             <SidebarGroupContent>{renderItems(SUPPLIER)}</SidebarGroupContent>
           </SidebarGroup>
         )}
+
+        {isSupplier && (
+          <SidebarGroup>
+            {!collapsed && <SidebarGroupLabel>Explore</SidebarGroupLabel>}
+            <SidebarGroupContent>{renderItems(SELLER_EXPLORE)}</SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
 
         {isAdmin && (
           <SidebarGroup>
