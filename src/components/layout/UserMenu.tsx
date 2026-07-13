@@ -22,6 +22,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile, useRoles } from "@/hooks/useProfile";
+import { useSessionMode } from "@/hooks/useSessionMode";
+import { clearSessionMode } from "@/lib/sessionMode";
 
 function initials(name?: string | null, email?: string | null) {
   const source = name?.trim() || email || "";
@@ -60,10 +62,14 @@ export function UserMenu() {
   }
 
   const isAdmin = roles?.includes("admin");
+  const sessionMode = useSessionMode();
+  const hasSellerRole = !!roles?.some((r) => r === "wholesaler" || r === "manufacturer" || r === "distributor");
+  const isSeller = sessionMode === "seller" || (sessionMode !== "buyer" && hasSellerRole);
   const handleSignOut = async () => {
     try {
       await qc.cancelQueries();
       qc.clear();
+      clearSessionMode();
       await supabase.auth.signOut();
       toast.success("You've been signed out");
       navigate({ to: "/", replace: true });
@@ -96,11 +102,13 @@ export function UserMenu() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link to="/dashboard" className="cursor-pointer">
-            <LayoutDashboard className="mr-2 h-4 w-4" /> Dashboard
-          </Link>
-        </DropdownMenuItem>
+        {isSeller && (
+          <DropdownMenuItem asChild>
+            <Link to="/dashboard" className="cursor-pointer">
+              <LayoutDashboard className="mr-2 h-4 w-4" /> Dashboard
+            </Link>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem asChild>
           <Link to="/profile" className="cursor-pointer">
             <UserIcon className="mr-2 h-4 w-4" /> Profile
