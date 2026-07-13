@@ -21,7 +21,7 @@ const schema = z.object({
 });
 type FormValues = z.infer<typeof schema>;
 
-export function SignInForm() {
+export function SignInForm({ role, onBack }: { role?: "buyer" | "seller"; onBack?: () => void } = {}) {
   const [show, setShow] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const navigate = useNavigate();
@@ -31,6 +31,9 @@ export function SignInForm() {
     resolver: zodResolver(schema),
     defaultValues: { remember: true },
   });
+
+  const roleRedirect = (fallback: string) =>
+    role === "seller" ? "/supplier" : role === "buyer" ? "/marketplace" : fallback;
 
   const submit = async (values: FormValues) => {
     const { data, error } = await supabase.auth.signInWithPassword({
