@@ -1,7 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  BarChart3, Bell, Boxes, FileText, LayoutDashboard, LifeBuoy,
-  LineChart, LogOut, Megaphone, Package, PackageOpen, ReceiptText,
+  BarChart3, Bell, Boxes, FileText, Info, LayoutDashboard, LifeBuoy,
+  LineChart, LogOut, Mail, Megaphone, Package, PackageOpen, ReceiptText,
   Settings, ShieldCheck, ShoppingCart, Store, Tag, User, Users, Warehouse,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -23,10 +23,17 @@ import { useWishlist } from "@/hooks/useWishlist";
 const MAIN = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Marketplace", url: "/marketplace", icon: Store },
+  { title: "Categories", url: "/categories", icon: Tag },
+  { title: "Suppliers", url: "/suppliers", icon: Users },
   { title: "Orders", url: "/orders", icon: Package },
   { title: "Cart", url: "/cart", icon: ShoppingCart },
   { title: "Payments", url: "/payments", icon: ReceiptText },
   { title: "Profile", url: "/profile", icon: User },
+] as const;
+
+const EXPLORE = [
+  { title: "About", url: "/about", icon: Info },
+  { title: "Contact", url: "/contact", icon: Mail },
 ] as const;
 
 // Seller sidebar — Phase 8 simplified. Customers, Warehouse, Pricing,
@@ -133,6 +140,13 @@ export function DashboardSidebar() {
           <SidebarGroup>
             {!collapsed && <SidebarGroupLabel>Workspace</SidebarGroupLabel>}
             <SidebarGroupContent>{renderItems(MAIN)}</SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        {!isSupplier && (
+          <SidebarGroup>
+            {!collapsed && <SidebarGroupLabel>Explore</SidebarGroupLabel>}
+            <SidebarGroupContent>{renderItems(EXPLORE)}</SidebarGroupContent>
           </SidebarGroup>
         )}
 
