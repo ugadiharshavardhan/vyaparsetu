@@ -17,6 +17,8 @@ import { useRoles } from "@/hooks/useProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { useCart } from "@/hooks/useCart";
 import { useWishlist } from "@/hooks/useWishlist";
+import { useSessionMode } from "@/hooks/useSessionMode";
+import { clearSessionMode } from "@/lib/sessionMode";
 
 // Buyer sidebar — Phase 8 simplified. Wishlist, Suppliers, Addresses, Help,
 // Settings remain reachable directly by URL (routes preserved, nav hidden).
