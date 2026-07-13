@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { GoogleButton } from "./GoogleButton";
 import { resolvePostLoginPath } from "@/lib/postLoginRedirect";
+import { setSessionMode, clearSessionMode } from "@/lib/sessionMode";
 
 const schema = z.object({
   email: z.string().trim().email("Please enter a valid email").max(255),
@@ -35,6 +36,12 @@ export function SignInForm({ role, onBack }: { role?: "buyer" | "seller"; onBack
   const roleRedirect = (fallback: string) =>
     role === "seller" ? "/supplier" : role === "buyer" ? "/marketplace" : fallback;
 
+  const persistMode = () => {
+    if (role === "seller") setSessionMode("seller");
+    else if (role === "buyer") setSessionMode("buyer");
+    else clearSessionMode();
+  };
+
   const submit = async (values: FormValues) => {
     const { data, error } = await supabase.auth.signInWithPassword({
       email: values.email,
@@ -44,6 +51,7 @@ export function SignInForm({ role, onBack }: { role?: "buyer" | "seller"; onBack
       toast.error(error.message.includes("Invalid") ? "Incorrect email or password" : error.message);
       return;
     }
+    persistMode();
     toast.success("Welcome back!");
     const fallback = data.user ? await resolvePostLoginPath(data.user.id) : "/dashboard";
     const path = search.redirect ?? roleRedirect(fallback);
@@ -61,6 +69,7 @@ export function SignInForm({ role, onBack }: { role?: "buyer" | "seller"; onBack
         setGoogleLoading(false);
         return;
       }
+      persistMode();
       if (result.redirected) return;
       const { data } = await supabase.auth.getUser();
       const fallback = data.user ? await resolvePostLoginPath(data.user.id) : "/dashboard";
