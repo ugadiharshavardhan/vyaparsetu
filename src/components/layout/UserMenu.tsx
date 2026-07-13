@@ -22,6 +22,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile, useRoles } from "@/hooks/useProfile";
+import { useSessionMode } from "@/hooks/useSessionMode";
+import { clearSessionMode } from "@/lib/sessionMode";
 
 function initials(name?: string | null, email?: string | null) {
   const source = name?.trim() || email || "";
