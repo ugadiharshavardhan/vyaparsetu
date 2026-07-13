@@ -31,7 +31,7 @@ function AddressesPage() {
   };
 
   return (
-    
+    <>
       <div className="container-page py-8">
         <div className="mb-6 flex items-start justify-between gap-4">
           <PageHeader title="Shipping addresses" description="Manage delivery locations for your orders." />
@@ -70,6 +70,7 @@ function AddressesPage() {
         )}
       </div>
       <AddressFormDialog open={open} onOpenChange={setOpen} initial={editing} />
-    
+    </>
   );
 }
+
