@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { BookOpen, LifeBuoy, Mail, MessageCircle, Phone } from "lucide-react";
 import { toast } from "sonner";
-import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { PageHeader } from "@/components/common/PageHeader";
 import { SectionCard } from "@/components/dashboard/SectionCard";
 import { Button } from "@/components/ui/button";
@@ -16,7 +15,7 @@ export const Route = createFileRoute("/_authenticated/supplier/support")({
 
 function SupportPage() {
   return (
-    <DashboardLayout>
+    
       <div className="container-page space-y-6 py-8">
         <PageHeader title="Support" description="We're here 24/7 to help you grow." />
 
@@ -38,7 +37,7 @@ function SupportPage() {
           </div>
         </SectionCard>
       </div>
-    </DashboardLayout>
+    
   );
 }
 

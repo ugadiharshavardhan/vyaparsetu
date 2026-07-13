@@ -2,7 +2,6 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import { useMemo, useState } from "react";
 import { ArrowRight, Bookmark, ShoppingBag } from "lucide-react";
-import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -29,7 +28,7 @@ function CartPage() {
   const breakup = useMemo(() => computeTotals(active, null, coupon), [active, coupon]);
 
   return (
-    <DashboardLayout>
+    
       <div className="container-page py-8">
         <PageHeader
           title="Your cart"
@@ -128,7 +127,7 @@ function CartPage() {
           </div>
         )}
       </div>
-    </DashboardLayout>
+    
   );
 }
 

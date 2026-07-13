@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { PageHeader } from "@/components/common/PageHeader";
 import { SectionCard } from "@/components/dashboard/SectionCard";
 import { Button } from "@/components/ui/button";
@@ -15,7 +14,7 @@ export const Route = createFileRoute("/_authenticated/supplier/settings")({
 
 function SupplierSettingsPage() {
   return (
-    <DashboardLayout>
+    
       <div className="container-page space-y-6 py-8">
         <PageHeader title="Settings" description="Configure business, notifications, tax, shipping and security preferences." />
 
@@ -72,7 +71,7 @@ function SupplierSettingsPage() {
           <Button onClick={() => toast.success("Settings saved")}>Save all settings</Button>
         </div>
       </div>
-    </DashboardLayout>
+    
   );
 }
 

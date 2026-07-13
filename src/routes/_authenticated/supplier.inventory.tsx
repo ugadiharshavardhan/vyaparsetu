@@ -2,7 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { AlertTriangle, ArrowDown, ArrowUp, Boxes, Package } from "lucide-react";
 import { toast } from "sonner";
-import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { PageHeader } from "@/components/common/PageHeader";
 import { SectionCard } from "@/components/dashboard/SectionCard";
 import { StatCard } from "@/components/dashboard/StatCard";
@@ -34,7 +33,7 @@ function InventoryPage() {
   const out = products.filter((p) => p.stock === 0);
 
   return (
-    <DashboardLayout>
+    
       <div className="container-page space-y-6 py-8">
         <PageHeader title="Inventory" description="Track stock levels, reservations, and warehouse movements in real-time." />
 
@@ -113,7 +112,7 @@ function InventoryPage() {
           </ul>
         </SectionCard>
       </div>
-    </DashboardLayout>
+    
   );
 }
 

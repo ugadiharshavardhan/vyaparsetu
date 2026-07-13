@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Bell, Package, ShieldCheck, ShoppingBag, Star, Wallet } from "lucide-react";
-import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
 import { useSupplierNotifications } from "@/hooks/useSupplier";
@@ -21,7 +20,7 @@ const ICON: Record<string, React.ComponentType<{ className?: string }>> = {
 function NotificationsPage() {
   const { notifications, markAllRead, toggle } = useSupplierNotifications();
   return (
-    <DashboardLayout>
+    
       <div className="container-page space-y-6 py-8">
         <PageHeader
           title="Notifications"
@@ -48,6 +47,6 @@ function NotificationsPage() {
           })}
         </ul>
       </div>
-    </DashboardLayout>
+    
   );
 }

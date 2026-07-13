@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { FileCheck, FileText, Upload } from "lucide-react";
 import { toast } from "sonner";
-import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { PageHeader } from "@/components/common/PageHeader";
 import { SectionCard } from "@/components/dashboard/SectionCard";
 import { Button } from "@/components/ui/button";
@@ -23,7 +22,7 @@ const DOCUMENTS = [
 
 function DocumentsPage() {
   return (
-    <DashboardLayout>
+    
       <div className="container-page space-y-6 py-8">
         <PageHeader
           title="Documents"
@@ -49,6 +48,6 @@ function DocumentsPage() {
           </ul>
         </SectionCard>
       </div>
-    </DashboardLayout>
+    
   );
 }

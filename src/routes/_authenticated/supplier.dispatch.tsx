@@ -2,7 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Truck, PackageCheck, Clock, MapPin, Search, Printer, QrCode } from "lucide-react";
 import { toast } from "sonner";
-import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { PageHeader } from "@/components/common/PageHeader";
 import { SectionCard } from "@/components/dashboard/SectionCard";
 import { StatCard } from "@/components/dashboard/StatCard";
@@ -34,7 +33,7 @@ function DispatchPage() {
     .filter((o) => !q || `${o.orderNumber} ${o.customer} ${o.destination}`.toLowerCase().includes(q.toLowerCase()));
 
   return (
-    <DashboardLayout>
+    
       <div className="container-page space-y-6 py-8">
         <PageHeader
           title="Dispatch Center"
@@ -134,6 +133,6 @@ function DispatchPage() {
           </SectionCard>
         </div>
       </div>
-    </DashboardLayout>
+    
   );
 }

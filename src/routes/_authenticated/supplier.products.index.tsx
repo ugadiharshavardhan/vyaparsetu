@@ -5,7 +5,6 @@ import {
   Sparkles, Tag, Trash2, TrendingUp, Upload, Boxes,
 } from "lucide-react";
 import { toast } from "sonner";
-import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { PageHeader } from "@/components/common/PageHeader";
 import { SectionCard } from "@/components/dashboard/SectionCard";
 import { Button } from "@/components/ui/button";
@@ -79,7 +78,7 @@ function SupplierProductsPage() {
   const topCategory = categories.map((c) => ({ c, n: products.filter((p) => p.category === c).length })).sort((a, b) => b.n - a.n)[0];
 
   return (
-    <DashboardLayout>
+    
       <div className="container-page space-y-6 py-8">
         <PageHeader
           title="Product Management"
@@ -264,7 +263,7 @@ function SupplierProductsPage() {
           />
         </div>
       </div>
-    </DashboardLayout>
+    
   );
 }
 

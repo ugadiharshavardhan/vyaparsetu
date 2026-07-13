@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Mail, MessageSquare, Phone } from "lucide-react";
 import { toast } from "sonner";
-import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/supplier/DataTable";
@@ -17,7 +16,7 @@ export const Route = createFileRoute("/_authenticated/supplier/customers")({
 function CustomersPage() {
   const { customers } = useSupplierCustomers();
   return (
-    <DashboardLayout>
+    
       <div className="container-page space-y-6 py-8">
         <PageHeader title="Customers" description="Nurture repeat buyers and monitor spending patterns." />
         <DataTable<SupplierCustomer>
@@ -43,6 +42,6 @@ function CustomersPage() {
           ]}
         />
       </div>
-    </DashboardLayout>
+    
   );
 }
