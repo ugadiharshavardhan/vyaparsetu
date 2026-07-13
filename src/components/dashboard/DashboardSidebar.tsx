@@ -21,13 +21,10 @@ import { useWishlist } from "@/hooks/useWishlist";
 // Buyer sidebar — Phase 8 simplified. Wishlist, Suppliers, Addresses, Help,
 // Settings remain reachable directly by URL (routes preserved, nav hidden).
 const MAIN = [
-  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Marketplace", url: "/marketplace", icon: Store },
   { title: "Categories", url: "/categories", icon: Tag },
   { title: "Suppliers", url: "/suppliers", icon: Users },
-  { title: "Orders", url: "/orders", icon: Package },
   { title: "Cart", url: "/cart", icon: ShoppingCart },
-  { title: "Payments", url: "/payments", icon: ReceiptText },
   { title: "Profile", url: "/profile", icon: User },
 ] as const;
 
