@@ -63,7 +63,8 @@ export function SignInForm({ role, onBack }: { role?: "buyer" | "seller"; onBack
       }
       if (result.redirected) return;
       const { data } = await supabase.auth.getUser();
-      const path = search.redirect ?? (data.user ? await resolvePostLoginPath(data.user.id) : "/dashboard");
+      const fallback = data.user ? await resolvePostLoginPath(data.user.id) : "/dashboard";
+      const path = search.redirect ?? roleRedirect(fallback);
       navigate({ to: path as never });
     } catch {
       toast.error("Google sign-in failed. Please try again.");
