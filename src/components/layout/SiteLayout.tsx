@@ -18,7 +18,7 @@ const APP_PREFIXES = [
 // Public routes that should adopt the dashboard shell when the visitor is
 // signed in — e.g. Marketplace is exposed both as a public landing surface
 // and as a workspace destination from the buyer sidebar.
-const SHARED_PREFIXES = ["/marketplace", "/suppliers", "/products", "/categories"];
+const SHARED_PREFIXES = ["/marketplace", "/suppliers", "/products", "/categories", "/about", "/contact"];
 
 export function SiteLayout({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
