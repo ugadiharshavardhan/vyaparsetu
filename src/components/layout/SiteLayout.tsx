@@ -11,7 +11,7 @@ import { AuthContext } from "@/hooks/useAuth";
 // marketing site chrome for these paths and let the dashboard layout render
 // its own chrome.
 const APP_PREFIXES = [
-  "/dashboard", "/profile", "/settings", "/orders", "/wishlist",
+  "/dashboard", "/buyer/dashboard", "/seller/dashboard", "/profile", "/settings", "/orders", "/cart", "/wishlist",
   "/admin", "/notifications", "/help", "/onboarding", "/payments",
   "/addresses", "/supplier",
 ];

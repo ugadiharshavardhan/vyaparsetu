@@ -25,10 +25,14 @@ export type SupplierProduct = {
   stock: number;
   reserved: number;
   incoming: number;
+  reorderLevel?: number;
   warehouseId: string;
   deliveryDays: number;
   returnPolicy: string;
   warranty: string;
+  weight?: string;
+  dimensions?: string;
+  manufacturerName?: string;
   featured: boolean;
   visible: boolean;
   status: SupplierProductStatus;
@@ -54,7 +58,7 @@ export type StockMovement = {
   id: string;
   productId: string;
   productName: string;
-  type: "restock" | "adjustment" | "sale" | "return";
+  type: "restock" | "adjustment" | "sale" | "return" | "damaged";
   qty: number;
   note: string;
   createdAt: string;
@@ -102,4 +106,45 @@ export type SupplierCustomer = {
   spent: number;
   lastOrderAt: string;
   favoriteProduct: string;
+  gstNumber?: string;
+  address?: string;
+  ownerName?: string;
+  phone?: string;
+  email?: string;
+  status?: "active" | "inactive";
+};
+
+export type SupplierOrder = {
+  id: string;
+  orderNumber: string;
+  customer: string;
+  product: string;
+  qty: number;
+  amount: number;
+  status: "pending" | "accepted" | "packing" | "ready" | "picked_up" | "shipped" | "delivered" | "cancelled" | "returned";
+  createdAt: string;
+  expectedDelivery?: string;
+  destination: string;
+  paymentStatus: "paid" | "pending";
+  gstDetails?: string;
+  porterName?: string;
+  porterContact?: string;
+  vehicleDetails?: string;
+  pickupTime?: string;
+  pickupAddress?: string;
+};
+
+export type SupplierRFQ = {
+  id: string;
+  rfqNumber: string;
+  retailerId: string;
+  retailerName: string;
+  products: string;
+  qty: number;
+  targetPrice: number;
+  status: "new" | "pending_response" | "quoted" | "accepted" | "rejected" | "expired";
+  expiryDate: string;
+  createdAt: string;
+  sellerResponse?: string;
+  deliveryTimeline?: string;
 };

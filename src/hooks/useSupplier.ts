@@ -23,6 +23,8 @@ import type {
   SupplierProduct,
   SupplierReview,
   Warehouse,
+  SupplierOrder,
+  SupplierRFQ,
 } from "@/types/supplier";
 
 const KEY = "vs.supplier.v1";
@@ -263,29 +265,17 @@ export function useSupplierCustomers() {
 }
 
 /* ---------- Supplier orders (mock derived from customer data) ---------- */
-export type SupplierOrder = {
-  id: string;
-  orderNumber: string;
-  customer: string;
-  product: string;
-  qty: number;
-  amount: number;
-  status: "pending" | "accepted" | "packed" | "shipped" | "delivered" | "cancelled";
-  createdAt: string;
-  destination: string;
-  paymentStatus: "paid" | "pending";
-};
 
 const seedOrders = (): SupplierOrder[] => {
   const now = Date.now();
   return [
-    { id: "so1", orderNumber: "VS-1044", customer: "Sharma Kirana Store", product: "Aashirvaad Atta 10kg", qty: 12, amount: 4620, status: "pending", createdAt: new Date(now).toISOString(), destination: "Mumbai, MH", paymentStatus: "paid" },
-    { id: "so2", orderNumber: "VS-1043", customer: "Meena Wholesale", product: "Parle-G 800g", qty: 30, amount: 3300, status: "accepted", createdAt: new Date(now - 3600_000 * 4).toISOString(), destination: "Pune, MH", paymentStatus: "paid" },
-    { id: "so3", orderNumber: "VS-1042", customer: "Sharma Kirana Store", product: "Aashirvaad Atta 10kg", qty: 8, amount: 3080, status: "packed", createdAt: new Date(now - 86400_000).toISOString(), destination: "Mumbai, MH", paymentStatus: "paid" },
-    { id: "so4", orderNumber: "VS-1041", customer: "Suresh & Sons", product: "Tata Salt 1kg", qty: 48, amount: 1056, status: "shipped", createdAt: new Date(now - 86400_000 * 2).toISOString(), destination: "Ahmedabad, GJ", paymentStatus: "paid" },
-    { id: "so5", orderNumber: "VS-1040", customer: "New Bazaar Retail", product: "Britannia Marie Gold", qty: 30, amount: 1650, status: "delivered", createdAt: new Date(now - 86400_000 * 3).toISOString(), destination: "Delhi, DL", paymentStatus: "paid" },
-    { id: "so6", orderNumber: "VS-1039", customer: "Kalyan Distribution", product: "Aashirvaad Atta 10kg", qty: 20, amount: 7700, status: "delivered", createdAt: new Date(now - 86400_000 * 4).toISOString(), destination: "Chennai, TN", paymentStatus: "paid" },
-    { id: "so7", orderNumber: "VS-1038", customer: "Meena Wholesale", product: "Parle-G 800g", qty: 15, amount: 1650, status: "cancelled", createdAt: new Date(now - 86400_000 * 5).toISOString(), destination: "Pune, MH", paymentStatus: "pending" },
+    { id: "so1", orderNumber: "VS-1044", customer: "Sri Lakshmi Kirana", product: "Aashirvaad Shudh Chakki Atta 10kg", qty: 12, amount: 4620, status: "pending", createdAt: new Date(now).toISOString(), destination: "Mumbai, MH", paymentStatus: "paid", expectedDelivery: new Date(now + 86400_000 * 3).toISOString() },
+    { id: "so2", orderNumber: "VS-1043", customer: "Sai Super Market", product: "Parle-G Glucose Biscuits", qty: 30, amount: 3300, status: "accepted", createdAt: new Date(now - 3600_000 * 4).toISOString(), destination: "Pune, MH", paymentStatus: "paid", expectedDelivery: new Date(now + 86400_000 * 2).toISOString() },
+    { id: "so3", orderNumber: "VS-1042", customer: "Sri Lakshmi Kirana", product: "Aashirvaad Shudh Chakki Atta 10kg", qty: 8, amount: 3080, status: "packing", createdAt: new Date(now - 86400_000).toISOString(), destination: "Mumbai, MH", paymentStatus: "paid", expectedDelivery: new Date(now + 86400_000 * 1).toISOString() },
+    { id: "so4", orderNumber: "VS-1041", customer: "Balaji Traders", product: "Tata Salt Iodized 1kg", qty: 48, amount: 1056, status: "ready", createdAt: new Date(now - 86400_000 * 2).toISOString(), destination: "Ahmedabad, GJ", paymentStatus: "paid", expectedDelivery: new Date(now + 86400_000 * 1).toISOString() },
+    { id: "so5", orderNumber: "VS-1040", customer: "Vijaya Mart", product: "Britannia Marie Gold 120g Carton", qty: 30, amount: 1650, status: "shipped", createdAt: new Date(now - 86400_000 * 3).toISOString(), destination: "Hyderabad, TS", paymentStatus: "paid", expectedDelivery: new Date(now + 86400_000 * 0).toISOString(), porterName: "Raju Delivery", porterContact: "+91 98765 43210", vehicleDetails: "TS 01 AB 1234 (Tata Ace)", pickupTime: new Date(now - 86400_000 * 1).toISOString(), pickupAddress: "Central Hub" },
+    { id: "so6", orderNumber: "VS-1039", customer: "Ramesh Wholesale", product: "India Gate Classic Basmati Rice 5kg", qty: 20, amount: 7700, status: "delivered", createdAt: new Date(now - 86400_000 * 4).toISOString(), destination: "Delhi, DL", paymentStatus: "paid", porterName: "XpressBees", porterContact: "1800 123 456", pickupTime: new Date(now - 86400_000 * 2).toISOString() },
+    { id: "so7", orderNumber: "VS-1038", customer: "Sai Super Market", product: "Parle-G Glucose Biscuits", qty: 15, amount: 1650, status: "cancelled", createdAt: new Date(now - 86400_000 * 5).toISOString(), destination: "Pune, MH", paymentStatus: "pending" },
   ];
 };
 
@@ -327,7 +317,61 @@ export function useSupplierOrders() {
   }, []);
   return {
     orders: getOrders(),
-    updateStatus: (id: string, status: SupplierOrder["status"]) =>
-      writeOrders(getOrders().map((o) => (o.id === id ? { ...o, status } : o))),
+    updateStatus: (
+      id: string, 
+      status: SupplierOrder["status"],
+      logisticsUpdate?: { porterName?: string; porterContact?: string; vehicleDetails?: string; pickupTime?: string; pickupAddress?: string }
+    ) =>
+      writeOrders(getOrders().map((o) => (o.id === id ? { ...o, status, ...logisticsUpdate } : o))),
+  };
+}
+
+/* ---------- RFQs ---------- */
+import { seedRfqs } from "@/data/supplierSeed";
+
+const RFQ_KEY = "vs.supplier.rfqs.v1";
+
+function readRfqs(): SupplierRFQ[] {
+  if (typeof window === "undefined") return seedRfqs;
+  try {
+    const raw = window.localStorage.getItem(RFQ_KEY);
+    if (!raw) return seedRfqs;
+    return JSON.parse(raw);
+  } catch {
+    return seedRfqs;
+  }
+}
+
+const rfqListeners = new Set<() => void>();
+let rfqCache: SupplierRFQ[] | null = null;
+
+function getRfqs() {
+  if (!rfqCache) rfqCache = readRfqs();
+  return rfqCache;
+}
+
+function writeRfqs(next: SupplierRFQ[]) {
+  rfqCache = next;
+  if (typeof window !== "undefined") window.localStorage.setItem(RFQ_KEY, JSON.stringify(next));
+  rfqListeners.forEach((l) => l());
+}
+
+export function useSupplierRfqs() {
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const l = () => setTick((t) => t + 1);
+    rfqListeners.add(l);
+    return () => {
+      rfqListeners.delete(l);
+    };
+  }, []);
+  return {
+    rfqs: getRfqs(),
+    updateStatus: (id: string, status: SupplierRFQ["status"], sellerResponse?: string, deliveryTimeline?: string) =>
+      writeRfqs(
+        getRfqs().map((r) =>
+          r.id === id ? { ...r, status, sellerResponse: sellerResponse ?? r.sellerResponse, deliveryTimeline: deliveryTimeline ?? r.deliveryTimeline } : r
+        )
+      ),
   };
 }

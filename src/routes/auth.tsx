@@ -35,12 +35,11 @@ export const Route = createFileRoute("/auth")({
 function AuthPage() {
   const search = Route.useSearch();
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"signin" | "signup">(search.mode ?? "signin");
+  const mode = search.mode ?? "signin";
   const [role, setRole] = useState<BusinessRole | null>(null);
   const [step, setStep] = useState<"role" | "form">("role");
 
   const switchMode = (m: "signin" | "signup") => {
-    setMode(m);
     setStep("role");
     setRole(null);
     navigate({ to: "/auth", search: { mode: m, redirect: search.redirect } });

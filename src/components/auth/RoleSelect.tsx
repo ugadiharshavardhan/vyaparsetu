@@ -17,8 +17,8 @@ const OPTIONS: {
 }[] = [
   {
     role: "buyer",
-    title: "Source Products",
-    subtitle: "Purchase wholesale products directly from verified manufacturers.",
+    title: "🛒 Buyer (Retailer)",
+    subtitle: "Purchase products in bulk from manufacturers.",
     icon: ShoppingBag,
     features: [
       { icon: Store, label: "Browse marketplace" },
@@ -29,8 +29,8 @@ const OPTIONS: {
   },
   {
     role: "seller",
-    title: "Sell Products",
-    subtitle: "Sell products directly to retailers and manage your business.",
+    title: "🏭 Seller (Manufacturer)",
+    subtitle: "Sell products directly to retailers.",
     icon: Factory,
     features: [
       { icon: PackageCheck, label: "Product management" },
@@ -54,7 +54,7 @@ export function RoleSelect({
     <div className="space-y-6">
       <div className="text-center">
         <h2 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">
-          Welcome to VyaparSetu
+          What best describes your business?
         </h2>
         <p className="mt-2 text-sm text-muted-foreground">
           Select your business profile to continue

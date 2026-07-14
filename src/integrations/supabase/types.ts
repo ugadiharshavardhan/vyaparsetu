@@ -1,4 +1,4 @@
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
@@ -803,6 +803,129 @@ export type Database = {
         Relationships: []
       }
     }
+      inventory_movements: {
+        Row: {
+          id: string
+          product_id: string
+          warehouse_id: string | null
+          quantity_change: number
+          type: string
+          order_id: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          product_id: string
+          warehouse_id?: string | null
+          quantity_change: number
+          type: string
+          order_id?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          product_id?: string
+          warehouse_id?: string | null
+          quantity_change?: number
+          type?: string
+          order_id?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          id: string
+          user_id: string
+          type: string
+          title: string
+          body: string | null
+          read: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          type: string
+          title: string
+          body?: string | null
+          read?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          type?: string
+          title?: string
+          body?: string | null
+          read?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
+      messages: {
+        Row: {
+          id: string
+          sender_id: string
+          receiver_id: string
+          order_ref: string | null
+          product_ref: string | null
+          content: string
+          read: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          sender_id: string
+          receiver_id: string
+          order_ref?: string | null
+          product_ref?: string | null
+          content: string
+          read?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          sender_id?: string
+          receiver_id?: string
+          order_ref?: string | null
+          product_ref?: string | null
+          content?: string
+          read?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
+      reviews: {
+        Row: {
+          id: string
+          product_id: string
+          reviewer_id: string
+          rating: number
+          comment: string | null
+          verified_buyer: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          product_id: string
+          reviewer_id: string
+          rating: number
+          comment?: string | null
+          verified_buyer?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          product_id?: string
+          reviewer_id?: string
+          rating?: number
+          comment?: string | null
+          verified_buyer?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
     Views: {
       [_ in never]: never
     }

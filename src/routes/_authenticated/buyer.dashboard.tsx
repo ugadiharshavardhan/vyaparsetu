@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
-  ArrowRight, PackageSearch, RefreshCw, ShoppingCart, Store, TrendingUp, Truck,
+  ArrowRight, PackageSearch, RefreshCw, ShoppingCart, Store, TrendingUp, Truck, Sparkles, TrendingUp as TrendingIcon, Box
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/dashboard/StatCard";
@@ -14,7 +14,7 @@ import { useOrders } from "@/hooks/useOrders";
 import { useProducts } from "@/hooks/useCatalog";
 import { inr } from "@/lib/format";
 
-export const Route = createFileRoute("/_authenticated/dashboard")({
+export const Route = createFileRoute("/_authenticated/buyer/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — VyaparSetu" }] }),
   component: DashboardPage,
 });
@@ -71,6 +71,41 @@ function DashboardPage() {
         <QuickAction to="/marketplace" icon={Store} label="Browse marketplace" desc="Discover verified suppliers" />
         <QuickAction to="/orders" icon={RefreshCw} label="Reorder products" desc="Repeat past orders in one tap" />
         <QuickAction to="/orders" icon={PackageSearch} label="View orders" desc="Track deliveries live" />
+      </div>
+
+      {/* AI Business Insights */}
+      <div className="mt-10">
+        <div className="mb-4 flex items-center gap-2">
+          <Sparkles className="h-5 w-5 text-brand" />
+          <h2 className="text-xl font-bold font-display">AI Business Insights</h2>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="rounded-2xl border border-brand/20 bg-brand-soft/20 p-5 shadow-soft">
+            <div className="mb-3 flex items-center gap-2 text-brand">
+              <Box className="h-5 w-5" />
+              <h3 className="font-semibold">Suggested Restock</h3>
+            </div>
+            <p className="text-sm text-foreground/80 mb-4">
+              Based on your sales velocity, you will run out of <strong>Aashirvaad Atta</strong> in 5 days. We recommend ordering 20 bags now to avoid stockouts.
+            </p>
+            <Button size="sm" variant="outline" className="border-brand/40 text-brand hover:bg-brand hover:text-white" asChild>
+              <Link to="/marketplace">View Product</Link>
+            </Button>
+          </div>
+
+          <div className="rounded-2xl border border-info/20 bg-info/10 p-5 shadow-soft">
+            <div className="mb-3 flex items-center gap-2 text-info">
+              <TrendingIcon className="h-5 w-5" />
+              <h3 className="font-semibold">Trending Near You</h3>
+            </div>
+            <p className="text-sm text-foreground/80 mb-4">
+              <strong>Parle-G Glucose Biscuits</strong> are trending among retailers in your area (Mumbai). Stock up now to meet local demand.
+            </p>
+            <Button size="sm" variant="outline" className="border-info/40 text-info hover:bg-info hover:text-white" asChild>
+              <Link to="/marketplace">View Trends</Link>
+            </Button>
+          </div>
+        </div>
       </div>
 
       <div className="mt-10">

@@ -49,14 +49,28 @@ export function SearchDialog({
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return [];
-    return products.filter(
+    if (!q) return { products: [], brands: [], categories: [] };
+    
+    const matchedProducts = products.filter(
       (p) =>
         p.name.toLowerCase().includes(q) ||
         p.brand.toLowerCase().includes(q) ||
-        p.category.includes(q),
-    ).slice(0, 6);
-  }, [query, products]);
+        p.category.toLowerCase().includes(q) ||
+        p.supplier.name.toLowerCase().includes(q),
+    );
+
+    // Extract unique brands from matched products
+    const brands = Array.from(new Set(matchedProducts.map(p => p.brand))).slice(0, 3);
+    
+    // Match categories
+    const matchedCategories = categories.filter(c => c.name.toLowerCase().includes(q)).slice(0, 3);
+
+    return {
+      products: matchedProducts.slice(0, 5),
+      brands,
+      categories: matchedCategories
+    };
+  }, [query, products, categories]);
 
   const pushRecent = (term: string) => {
     const next = [term, ...recent.filter((t) => t !== term)].slice(0, 5);
@@ -82,28 +96,66 @@ export function SearchDialog({
       <CommandList>
         <CommandEmpty>No results. Try a different keyword.</CommandEmpty>
 
-        {results.length > 0 && (
-          <CommandGroup heading="Products">
-            {results.map((p) => (
-              <CommandItem
-                key={p.id}
-                value={p.name}
-                onSelect={() => {
-                  pushRecent(p.name);
-                  onOpenChange(false);
-                  navigate({ to: "/products/$slug", params: { slug: p.slug } });
-                }}
-                className="gap-3"
-              >
-                <img src={p.image} alt="" className="h-9 w-9 rounded-md object-cover" />
-                <div className="flex flex-col">
-                  <span className="text-sm font-medium">{p.name}</span>
-                  <span className="text-xs text-muted-foreground">{p.brand} · {p.supplier.name}</span>
-                </div>
-                <ArrowRight className="ml-auto h-4 w-4 text-muted-foreground" />
-              </CommandItem>
-            ))}
-          </CommandGroup>
+        {query && (results.products.length > 0 || results.brands.length > 0 || results.categories.length > 0) && (
+          <>
+            {results.categories.length > 0 && (
+              <CommandGroup heading="Categories">
+                {results.categories.map((c) => (
+                  <CommandItem
+                    key={c.id}
+                    value={`cat-${c.name}`}
+                    onSelect={() => {
+                      pushRecent(c.name);
+                      onOpenChange(false);
+                      navigate({ to: "/categories/$slug", params: { slug: c.slug } });
+                    }}
+                  >
+                    <SearchIcon className="mr-2 h-4 w-4 text-muted-foreground" />
+                    {c.name}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
+
+            {results.brands.length > 0 && (
+              <CommandGroup heading="Brands">
+                {results.brands.map((b) => (
+                  <CommandItem
+                    key={b}
+                    value={`brand-${b}`}
+                    onSelect={() => goToMarketplace(b)}
+                  >
+                    <SearchIcon className="mr-2 h-4 w-4 text-muted-foreground" />
+                    {b}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
+
+            {results.products.length > 0 && (
+              <CommandGroup heading="Products">
+                {results.products.map((p) => (
+                  <CommandItem
+                    key={p.id}
+                    value={p.name}
+                    onSelect={() => {
+                      pushRecent(p.name);
+                      onOpenChange(false);
+                      navigate({ to: "/products/$slug", params: { slug: p.slug } });
+                    }}
+                    className="gap-3"
+                  >
+                    <img src={p.image} alt="" className="h-9 w-9 rounded-md object-cover" />
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium">{p.name}</span>
+                      <span className="text-xs text-muted-foreground">{p.brand} · {p.supplier.name}</span>
+                    </div>
+                    <ArrowRight className="ml-auto h-4 w-4 text-muted-foreground" />
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
+          </>
         )}
 
         {!query && recent.length > 0 && (

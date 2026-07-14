@@ -332,8 +332,22 @@ function ProductPage() {
             </div>
           </TabsContent>
 
-          <TabsContent value="reviews" className="mt-6 grid gap-4 sm:grid-cols-3">
-            {REVIEWS.map((r) => <ReviewCard key={r.id} review={r} />)}
+          <TabsContent value="reviews" className="mt-6 max-w-5xl">
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border bg-card p-6 shadow-soft">
+              <div className="flex items-center gap-4">
+                <div className="text-4xl font-display font-bold text-foreground">{product.rating.toFixed(1)}</div>
+                <div>
+                  <RatingBadge value={product.rating} />
+                  <div className="text-xs text-muted-foreground mt-1">Based on {product.reviewCount} verified ratings</div>
+                </div>
+              </div>
+              <Button onClick={() => toast.success("Review form coming soon")} className="shadow-brand">
+                Write a Review
+              </Button>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-3">
+              {REVIEWS.map((r) => <ReviewCard key={r.id} review={r} />)}
+            </div>
           </TabsContent>
 
           <TabsContent value="faq" className="mt-6 max-w-3xl">

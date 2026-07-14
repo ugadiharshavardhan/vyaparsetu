@@ -1,145 +1,267 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { FileText, Package, PackageCheck, Truck } from "lucide-react";
+import {
+  FileText, Package, PackageCheck, Truck, Clock, CheckCircle2, Search, Printer, MoreVertical, XCircle, AlertCircle
+} from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/common/PageHeader";
 import { SectionCard } from "@/components/dashboard/SectionCard";
-import { StatCard } from "@/components/dashboard/StatCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DataTable } from "@/components/supplier/DataTable";
 import { Pill } from "@/components/supplier/Pill";
 import {
-  Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger,
-} from "@/components/ui/sheet";
-import { useSupplierOrders, type SupplierOrder } from "@/hooks/useSupplier";
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useSupplierOrders } from "@/hooks/useSupplier";
+import type { SupplierOrder } from "@/types/supplier";
 import { inr } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/supplier/orders")({
-  head: () => ({ meta: [{ title: "Orders — Supplier" }] }),
+  head: () => ({ meta: [{ title: "Orders — Seller" }] }),
   component: SupplierOrdersPage,
 });
 
 const STATUS_TONE: Record<SupplierOrder["status"], "warning" | "info" | "success" | "danger" | "muted"> = {
   pending: "warning",
   accepted: "info",
-  packed: "info",
+  packing: "info",
+  ready: "success",
+  picked_up: "info",
   shipped: "info",
   delivered: "success",
   cancelled: "danger",
+  returned: "danger",
+};
+
+const STATUS_LABEL: Record<SupplierOrder["status"], string> = {
+  pending: "Pending",
+  accepted: "Accepted",
+  packing: "Packing",
+  ready: "Ready for Pickup",
+  picked_up: "Picked Up",
+  shipped: "In Transit",
+  delivered: "Delivered",
+  cancelled: "Cancelled",
+  returned: "Returned",
 };
 
 function SupplierOrdersPage() {
   const { orders, updateStatus } = useSupplierOrders();
-  const [tab, setTab] = useState("all");
+  const navigate = useNavigate();
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [q, setQ] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [paymentFilter, setPaymentFilter] = useState("all");
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const counts = {
+    today: orders.filter((o) => new Date(o.createdAt) >= today).length,
+    pending: orders.filter((o) => o.status === "pending").length,
+    accepted: orders.filter((o) => o.status === "accepted").length,
+    packing: orders.filter((o) => o.status === "packing").length,
+    ready: orders.filter((o) => o.status === "ready").length,
+    completed: orders.filter((o) => o.status === "delivered").length,
+  };
 
   const filtered = orders.filter((o) => {
-    if (tab !== "all" && o.status !== tab) return false;
+    if (statusFilter !== "all" && o.status !== statusFilter) return false;
+    if (paymentFilter !== "all" && o.paymentStatus !== paymentFilter) return false;
     if (q && !`${o.orderNumber} ${o.customer} ${o.product}`.toLowerCase().includes(q.toLowerCase())) return false;
     return true;
   });
 
-  const pending = orders.filter((o) => o.status === "pending").length;
-  const inTransit = orders.filter((o) => o.status === "shipped" || o.status === "packed").length;
-  const delivered = orders.filter((o) => o.status === "delivered").length;
-  const revenue = orders.filter((o) => o.status !== "cancelled").reduce((s, o) => s + o.amount, 0);
+  const handleBulkStatus = (newStatus: SupplierOrder["status"]) => {
+    selectedIds.forEach(id => updateStatus(id, newStatus));
+    setSelectedIds([]);
+    toast.success(`Updated status to ${STATUS_LABEL[newStatus]} for ${selectedIds.length} orders`);
+  };
 
   return (
-    
-      <div className="container-page space-y-6 py-8">
-        <PageHeader title="Orders" description="Accept, pack and ship customer orders from a single command centre." />
+    <div className="container-page space-y-8 py-8">
+      <PageHeader
+        title="Orders"
+        description="Accept, pack, and manage customer orders from a single command centre."
+        action={
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => toast.info("Exporting orders")}><FileText className="mr-1.5 h-4 w-4" /> Export</Button>
+          </div>
+        }
+      />
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard label="Pending" value={String(pending)} icon={Package} tone="warning" hint="Action required" />
-          <StatCard label="In transit" value={String(inTransit)} icon={Truck} tone="info" hint="Shipping" delay={0.05} />
-          <StatCard label="Delivered" value={String(delivered)} icon={PackageCheck} tone="success" hint="Completed" delay={0.1} />
-          <StatCard label="Revenue" value={inr(revenue)} icon={FileText} tone="brand" hint="From orders" delay={0.15} />
-        </div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
+        <SummaryCard title="Orders Today" value={counts.today} icon={Clock} tint="bg-brand/10 text-brand" />
+        <SummaryCard title="Pending" value={counts.pending} icon={AlertCircle} tint="bg-warning/20 text-warning" />
+        <SummaryCard title="Accepted" value={counts.accepted} icon={CheckCircle2} tint="bg-info/20 text-info" />
+        <SummaryCard title="Packing" value={counts.packing} icon={Package} tint="bg-brand/10 text-brand" />
+        <SummaryCard title="Ready for Pickup" value={counts.ready} icon={Truck} tint="bg-[color:hsl(25_95%_53%)]/20 text-[color:hsl(25_95%_53%)]" />
+        <SummaryCard title="Completed" value={counts.completed} icon={PackageCheck} tint="bg-success/20 text-success" />
+      </div>
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <Tabs value={tab} onValueChange={setTab}>
-            <TabsList className="flex-wrap">
-              <TabsTrigger value="all">All</TabsTrigger>
-              <TabsTrigger value="pending">Pending</TabsTrigger>
-              <TabsTrigger value="accepted">Accepted</TabsTrigger>
-              <TabsTrigger value="packed">Packed</TabsTrigger>
-              <TabsTrigger value="shipped">Shipped</TabsTrigger>
-              <TabsTrigger value="delivered">Delivered</TabsTrigger>
-              <TabsTrigger value="cancelled">Cancelled</TabsTrigger>
-            </TabsList>
-          </Tabs>
-          <Input className="sm:w-72" placeholder="Search order number, customer, product" value={q} onChange={(e) => setQ(e.target.value)} />
+      <SectionCard className="p-0 overflow-visible">
+        <div className="p-4 border-b border-border flex flex-col gap-3 lg:flex-row lg:items-center bg-muted/10">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input className="pl-9 bg-background" placeholder="Search Order ID, Retailer, Product..." value={q} onChange={(e) => setQ(e.target.value)} />
+          </div>
+          
+          <div className="flex flex-wrap items-center gap-2">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-40 bg-background"><SelectValue placeholder="Order Status" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="accepted">Accepted</SelectItem>
+                <SelectItem value="packing">Packing</SelectItem>
+                <SelectItem value="ready">Ready for Pickup</SelectItem>
+                <SelectItem value="shipped">In Transit</SelectItem>
+                <SelectItem value="delivered">Delivered</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={paymentFilter} onValueChange={setPaymentFilter}>
+              <SelectTrigger className="w-40 bg-background"><SelectValue placeholder="Payment Status" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Payments</SelectItem>
+                <SelectItem value="paid">Paid</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <DataTable<SupplierOrder>
           rows={filtered}
+          selectable={true}
+          selectedIds={selectedIds}
+          onSelectChange={setSelectedIds}
+          pageSize={10}
+          bulkActions={
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" onClick={() => handleBulkStatus("accepted")}><CheckCircle2 className="mr-1.5 h-3.5 w-3.5" /> Accept</Button>
+              <Button size="sm" variant="outline" onClick={() => handleBulkStatus("packing")}><Package className="mr-1.5 h-3.5 w-3.5" /> Start Packing</Button>
+              <Button size="sm" variant="outline" onClick={() => handleBulkStatus("ready")}><Truck className="mr-1.5 h-3.5 w-3.5" /> Ready for Pickup</Button>
+              <Button size="sm" variant="destructive" onClick={() => handleBulkStatus("cancelled")}><XCircle className="mr-1.5 h-3.5 w-3.5" /> Reject</Button>
+            </div>
+          }
           columns={[
-            { key: "num", header: "Order", cell: (o) => <span className="font-semibold">{o.orderNumber}</span> },
-            { key: "cust", header: "Customer", cell: (o) => <div><div className="font-medium">{o.customer}</div><div className="text-xs text-muted-foreground">{o.destination}</div></div> },
-            { key: "prod", header: "Product", cell: (o) => <span>{o.product} <span className="text-muted-foreground">× {o.qty}</span></span> },
-            { key: "amt", header: "Amount", cell: (o) => <span className="font-semibold">{inr(o.amount)}</span> },
-            { key: "pay", header: "Payment", cell: (o) => <Pill tone={o.paymentStatus === "paid" ? "success" : "warning"}>{o.paymentStatus}</Pill> },
-            { key: "status", header: "Status", cell: (o) => <Pill tone={STATUS_TONE[o.status]}>{o.status}</Pill> },
+            { 
+              key: "id", 
+              header: "Order ID & Date", 
+              cell: (o) => (
+                <div className="flex flex-col">
+                  <span className="font-semibold text-foreground">{o.orderNumber}</span>
+                  <span className="text-xs text-muted-foreground">{new Date(o.createdAt).toLocaleDateString()}</span>
+                </div>
+              ) 
+            },
+            { 
+              key: "retailer", 
+              header: "Retailer", 
+              cell: (o) => (
+                <div className="flex flex-col">
+                  <span className="font-medium">{o.customer}</span>
+                  <span className="text-xs text-muted-foreground">{o.destination}</span>
+                </div>
+              ) 
+            },
+            { 
+              key: "product", 
+              header: "Products", 
+              cell: (o) => (
+                <div className="flex flex-col">
+                  <span className="font-medium text-sm">{o.product}</span>
+                  <span className="text-xs text-muted-foreground">Qty: {o.qty}</span>
+                </div>
+              ) 
+            },
+            { 
+              key: "value", 
+              header: "Order Value", 
+              cell: (o) => <span className="font-semibold">{inr(o.amount)}</span> 
+            },
+            { 
+              key: "payment", 
+              header: "Payment", 
+              cell: (o) => <Pill tone={o.paymentStatus === "paid" ? "success" : "warning"}>{o.paymentStatus}</Pill> 
+            },
+            { 
+              key: "status", 
+              header: "Status", 
+              cell: (o) => <Pill tone={STATUS_TONE[o.status]}>{STATUS_LABEL[o.status]}</Pill> 
+            },
             {
-              key: "date",
-              header: "Placed",
-              cell: (o) => <span className="text-xs text-muted-foreground">{new Date(o.createdAt).toLocaleString()}</span>,
+              key: "delivery",
+              header: "Expected Delivery",
+              cell: (o) => <span className="text-sm font-medium">{o.expectedDelivery ? new Date(o.expectedDelivery).toLocaleDateString() : "TBD"}</span>
             },
             {
               key: "actions",
               header: "",
               className: "text-right",
               cell: (o) => (
-                <Sheet>
-                  <SheetTrigger asChild>
-                    <Button size="sm" variant="outline">Manage</Button>
-                  </SheetTrigger>
-                  <SheetContent className="w-full sm:max-w-md">
-                    <SheetHeader>
-                      <SheetTitle>Order {o.orderNumber}</SheetTitle>
-                      <SheetDescription>{o.customer} • {o.destination}</SheetDescription>
-                    </SheetHeader>
-                    <div className="mt-6 space-y-4 text-sm">
-                      <div className="rounded-xl border border-border bg-muted/30 p-3">
-                        <div className="font-semibold">{o.product}</div>
-                        <div className="text-xs text-muted-foreground">Qty {o.qty} • {inr(o.amount)}</div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <ActionButton label="Accept" onClick={() => { updateStatus(o.id, "accepted"); toast.success("Order accepted"); }} />
-                        <ActionButton label="Reject" tone="danger" onClick={() => { updateStatus(o.id, "cancelled"); toast.success("Order rejected"); }} />
-                        <ActionButton label="Mark packed" onClick={() => { updateStatus(o.id, "packed"); toast.success("Marked packed"); }} />
-                        <ActionButton label="Mark shipped" onClick={() => { updateStatus(o.id, "shipped"); toast.success("Marked shipped"); }} />
-                        <ActionButton label="Mark delivered" onClick={() => { updateStatus(o.id, "delivered"); toast.success("Marked delivered"); }} />
-                        <ActionButton label="Cancel" tone="danger" onClick={() => { updateStatus(o.id, "cancelled"); toast.success("Order cancelled"); }} />
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <Button variant="outline" onClick={() => toast.info("Invoice PDF coming soon")}><FileText className="mr-1.5 h-4 w-4" />Invoice</Button>
-                        <Button variant="outline" onClick={() => toast.info("Packing slip coming soon")}><Package className="mr-1.5 h-4 w-4" />Packing slip</Button>
-                        <Button variant="outline" onClick={() => toast.info("Delivery partner coming soon")}><Truck className="mr-1.5 h-4 w-4" />Assign delivery</Button>
-                        <Button variant="outline" onClick={() => toast.info("Refund flow coming soon")}>Refund</Button>
-                      </div>
-                    </div>
-                  </SheetContent>
-                </Sheet>
+                <div className="flex items-center justify-end gap-1">
+                  <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); navigate({ to: "/supplier/orders/$id", params: { id: o.id } }); }}>View</Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      {o.status === "pending" && (
+                        <>
+                          <DropdownMenuItem onClick={() => { updateStatus(o.id, "accepted"); toast.success("Order Accepted"); }}><CheckCircle2 className="mr-2 h-3.5 w-3.5" /> Accept Order</DropdownMenuItem>
+                          <DropdownMenuItem className="text-destructive" onClick={() => { updateStatus(o.id, "cancelled"); toast.success("Order Rejected"); }}><XCircle className="mr-2 h-3.5 w-3.5" /> Reject Order</DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                        </>
+                      )}
+                      {o.status === "accepted" && (
+                        <DropdownMenuItem onClick={() => { updateStatus(o.id, "packing"); toast.success("Packing Started"); }}><Package className="mr-2 h-3.5 w-3.5" /> Start Packing</DropdownMenuItem>
+                      )}
+                      {o.status === "packing" && (
+                        <DropdownMenuItem onClick={() => { updateStatus(o.id, "ready"); toast.success("Ready for Pickup"); }}><Truck className="mr-2 h-3.5 w-3.5" /> Mark Ready for Pickup</DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem onClick={() => toast.info("Printing invoice...")}><Printer className="mr-2 h-3.5 w-3.5" /> Print Invoice</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               ),
             },
           ]}
+          onRowClick={(o) => navigate({ to: "/supplier/orders/$id", params: { id: o.id } })}
+          empty={
+            <div className="space-y-4 py-12 text-center">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-muted/50">
+                <Package className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <div>
+                <div className="text-lg font-semibold text-foreground">No orders found</div>
+                <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">You don't have any orders matching your criteria.</p>
+              </div>
+            </div>
+          }
         />
-      </div>
-    
+      </SectionCard>
+    </div>
   );
 }
 
-function ActionButton({ label, onClick, tone }: { label: string; onClick: () => void; tone?: "danger" }) {
+function SummaryCard({ title, value, icon: Icon, tint }: { title: string; value: number | string; icon: React.ComponentType<{ className?: string }>; tint: string }) {
   return (
-    <Button
-      variant={tone === "danger" ? "outline" : "default"}
-      className={tone === "danger" ? "text-destructive" : ""}
-      onClick={onClick}
-    >
-      {label}
-    </Button>
+    <div className="rounded-2xl border border-border bg-card p-4 shadow-soft">
+      <div className="flex items-center gap-2 mb-2">
+        <span className={cn("grid h-7 w-7 place-items-center rounded-lg", tint)}><Icon className="h-3.5 w-3.5" /></span>
+        <span className="text-xs font-medium text-muted-foreground line-clamp-1">{title}</span>
+      </div>
+      <div className="text-xl font-display font-bold">{value}</div>
+    </div>
   );
 }
