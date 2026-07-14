@@ -26,6 +26,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { useAccountFlags } from "@/hooks/useAccountFlags";
 import { useSessionMode } from "@/hooks/useSessionMode";
 import { clearSessionMode } from "@/lib/sessionMode";
+import { openCartSheet } from "@/hooks/useCartSheet";
 
 function initials(name?: string | null, email?: string | null) {
   const source = name?.trim() || email || "";
@@ -116,31 +117,39 @@ function ProvidedUserMenu() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         {isSeller && (
-          <DropdownMenuItem asChild>
-            <Link to="/dashboard" className="cursor-pointer">
-              <LayoutDashboard className="mr-2 h-4 w-4" /> Dashboard
-            </Link>
+          <DropdownMenuItem
+            className="cursor-pointer"
+            onSelect={() => navigate({ to: "/supplier" })}
+          >
+            <LayoutDashboard className="mr-2 h-4 w-4" /> Dashboard
           </DropdownMenuItem>
         )}
-        <DropdownMenuItem asChild>
-          <Link to="/profile" className="cursor-pointer">
-            <UserIcon className="mr-2 h-4 w-4" /> Profile
-          </Link>
+        <DropdownMenuItem
+          className="cursor-pointer"
+          onSelect={(e) => {
+            e.preventDefault();
+            void navigate({ to: "/profile" });
+          }}
+        >
+          <UserIcon className="mr-2 h-4 w-4" /> Profile
         </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to="/wishlist" className="cursor-pointer">
-            <Heart className="mr-2 h-4 w-4" /> Wishlist
-          </Link>
+        <DropdownMenuItem
+          className="cursor-pointer"
+          onSelect={(e) => {
+            e.preventDefault();
+            void navigate({ to: "/wishlist" });
+          }}
+        >
+          <Heart className="mr-2 h-4 w-4" /> Saved items
         </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to="/cart" className="cursor-pointer">
-            <ShoppingCart className="mr-2 h-4 w-4" /> Cart
-          </Link>
+        <DropdownMenuItem className="cursor-pointer" onSelect={() => openCartSheet()}>
+          <ShoppingCart className="mr-2 h-4 w-4" /> Cart
         </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to="/settings" className="cursor-pointer">
-            <SettingsIcon className="mr-2 h-4 w-4" /> Settings
-          </Link>
+        <DropdownMenuItem
+          className="cursor-pointer"
+          onSelect={() => navigate({ to: "/settings" })}
+        >
+          <SettingsIcon className="mr-2 h-4 w-4" /> Settings
         </DropdownMenuItem>
         {isAdmin && (
           <DropdownMenuItem asChild>

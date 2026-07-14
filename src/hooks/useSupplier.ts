@@ -1,13 +1,20 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   seedCustomers,
   seedMovements,
   seedNotifications,
-  seedProducts,
   seedPromotions,
   seedReviews,
   seedWarehouses,
 } from "@/data/supplierSeed";
+import { supabase } from "@/integrations/supabase/client";
+import { useProducts } from "@/hooks/useCatalog";
+import {
+  mapCatalogProductToSupplier,
+  supplierDraftToInsert,
+  supplierPatchToUpdate,
+} from "@/lib/supplierProductMap";
 import type {
   Promotion,
   StockMovement,
@@ -19,9 +26,9 @@ import type {
 } from "@/types/supplier";
 
 const KEY = "vs.supplier.v1";
+const PRODUCTS_KEY = ["catalog-products"] as const;
 
 type Store = {
-  products: SupplierProduct[];
   warehouses: Warehouse[];
   movements: StockMovement[];
   promotions: Promotion[];
@@ -31,7 +38,6 @@ type Store = {
 };
 
 const defaultStore = (): Store => ({
-  products: seedProducts,
   warehouses: seedWarehouses,
   movements: seedMovements,
   promotions: seedPromotions,
@@ -45,7 +51,10 @@ function readStore(): Store {
   try {
     const raw = window.localStorage.getItem(KEY);
     if (!raw) return defaultStore();
-    return { ...defaultStore(), ...JSON.parse(raw) };
+    const parsed = JSON.parse(raw) as Partial<Store> & { products?: unknown };
+    const { products: _ignore, ...rest } = parsed;
+    void _ignore;
+    return { ...defaultStore(), ...rest };
   } catch {
     return defaultStore();
   }
@@ -84,46 +93,71 @@ function useStore(): [Store, (updater: (s: Store) => Store) => void] {
 
 const uid = (prefix: string) => `${prefix}${Math.random().toString(36).slice(2, 8)}`;
 
-/* ---------- Products ---------- */
+/* ---------- Products (catalog from Supabase) ---------- */
 export function useSupplierProducts() {
-  const [store, update] = useStore();
+  const query = useProducts();
+  const queryClient = useQueryClient();
+  const products = useMemo(
+    () => (query.data ?? []).map(mapCatalogProductToSupplier),
+    [query.data],
+  );
+
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: PRODUCTS_KEY });
+
   return {
-    products: store.products,
-    create: (p: Omit<SupplierProduct, "id" | "createdAt" | "updatedAt">) =>
-      update((s) => ({
-        ...s,
-        products: [
-          { ...p, id: uid("sp"), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-          ...s.products,
-        ],
-      })),
-    updateProduct: (id: string, patch: Partial<SupplierProduct>) =>
-      update((s) => ({
-        ...s,
-        products: s.products.map((p) => (p.id === id ? { ...p, ...patch, updatedAt: new Date().toISOString() } : p)),
-      })),
-    remove: (id: string) => update((s) => ({ ...s, products: s.products.filter((p) => p.id !== id) })),
-    duplicate: (id: string) =>
-      update((s) => {
-        const original = s.products.find((p) => p.id === id);
-        if (!original) return s;
-        const copy: SupplierProduct = {
-          ...original,
-          id: uid("sp"),
-          name: `${original.name} (Copy)`,
-          sku: `${original.sku}-COPY`,
-          status: "draft",
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-        return { ...s, products: [copy, ...s.products] };
-      }),
+    products,
+    isLoading: query.isLoading,
+    error: query.error,
+    create: async (p: Omit<SupplierProduct, "id" | "createdAt" | "updatedAt">) => {
+      const id = uid("p");
+      const row = supplierDraftToInsert(p, id);
+      const { error } = await supabase.from("products").insert(row);
+      if (error) throw error;
+      await invalidate();
+      return id;
+    },
+    updateProduct: async (id: string, patch: Partial<SupplierProduct>) => {
+      const update = supplierPatchToUpdate(patch);
+      if (Object.keys(update).length === 0) return;
+      const { error } = await supabase.from("products").update(update).eq("id", id);
+      if (error) throw error;
+      await invalidate();
+    },
+    remove: async (id: string) => {
+      const { error } = await supabase.from("products").delete().eq("id", id);
+      if (error) throw error;
+      await invalidate();
+    },
+    duplicate: async (id: string) => {
+      const original = products.find((p) => p.id === id);
+      if (!original) return;
+      const { id: _id, createdAt: _c, updatedAt: _u, ...draft } = original;
+      void _id;
+      void _c;
+      void _u;
+      await createLike(draft);
+      async function createLike(d: Omit<SupplierProduct, "id" | "createdAt" | "updatedAt">) {
+        const newId = uid("p");
+        const row = supplierDraftToInsert(
+          {
+            ...d,
+            name: `${d.name} (Copy)`,
+            sku: `${d.sku}-COPY`,
+            status: "draft",
+          },
+          newId,
+        );
+        const { error } = await supabase.from("products").insert(row);
+        if (error) throw error;
+        await invalidate();
+      }
+    },
   };
 }
 
 export function useSupplierProduct(id: string) {
-  const { products } = useSupplierProducts();
-  return products.find((p) => p.id === id);
+  const { products, isLoading } = useSupplierProducts();
+  return { product: products.find((p) => p.id === id), isLoading };
 }
 
 /* ---------- Warehouses ---------- */
@@ -148,19 +182,33 @@ export function useWarehouses() {
 /* ---------- Stock ---------- */
 export function useStockMovements() {
   const [store, update] = useStore();
+  const queryClient = useQueryClient();
   return {
     movements: store.movements,
-    adjust: (product: SupplierProduct, qty: number, note: string, type: StockMovement["type"] = "adjustment") =>
+    adjust: async (product: SupplierProduct, qty: number, note: string, type: StockMovement["type"] = "adjustment") => {
+      const nextStock = Math.max(0, product.stock + qty);
+      const { error } = await supabase
+        .from("products")
+        .update({ stock_count: nextStock, in_stock: nextStock > 0 })
+        .eq("id", product.id);
+      if (error) throw error;
+      await queryClient.invalidateQueries({ queryKey: PRODUCTS_KEY });
       update((s) => ({
         ...s,
-        products: s.products.map((p) =>
-          p.id === product.id ? { ...p, stock: Math.max(0, p.stock + qty), updatedAt: new Date().toISOString() } : p,
-        ),
         movements: [
-          { id: uid("m"), productId: product.id, productName: product.name, type, qty, note, createdAt: new Date().toISOString() },
+          {
+            id: uid("m"),
+            productId: product.id,
+            productName: product.name,
+            type,
+            qty,
+            note,
+            createdAt: new Date().toISOString(),
+          },
           ...s.movements,
         ].slice(0, 200),
-      })),
+      }));
+    },
   };
 }
 

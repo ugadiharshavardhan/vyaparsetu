@@ -5,6 +5,7 @@ import type { Order } from "@/types/commerce";
 import { STATUS_LABELS } from "@/lib/commerce";
 import { inr } from "@/lib/format";
 import { Button } from "@/components/ui/button";
+import { useRepeatOrder } from "@/hooks/useCart";
 
 const STATUS_STYLES: Record<string, string> = {
   pending: "bg-amber-50 text-amber-700 border-amber-200",
@@ -23,6 +24,18 @@ export function OrderCard({ order }: { order: Order }) {
   const items = order.order_items ?? [];
   const previewImages = items.slice(0, 3);
   const remaining = items.length - previewImages.length;
+  const repeat = useRepeatOrder();
+
+  const onRepeat = (e: { preventDefault: () => void; stopPropagation: () => void }) => {
+    e.preventDefault();
+    e.stopPropagation();
+    repeat.mutate(
+      items.map((it) => ({
+        product_snapshot: it.product_snapshot,
+        quantity: it.quantity,
+      })),
+    );
+  };
 
   return (
     <motion.div
@@ -87,8 +100,14 @@ export function OrderCard({ order }: { order: Order }) {
             : "TBD"}
         </div>
         <div className="flex gap-2">
-          <Button size="sm" variant="ghost">
-            <RotateCcw className="mr-1.5 h-3.5 w-3.5" /> Repeat order
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={repeat.isPending || items.length === 0}
+            onClick={onRepeat}
+          >
+            <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+            {repeat.isPending ? "Adding…" : "Repeat order"}
           </Button>
           <Button size="sm" asChild className="shadow-brand">
             <Link to="/orders/$id" params={{ id: order.id }}>

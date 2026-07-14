@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,18 +11,18 @@ import { SectionCard } from "@/components/dashboard/SectionCard";
 import { ImageManager } from "./ImageManager";
 import type { SupplierProduct } from "@/types/supplier";
 import { useWarehouses } from "@/hooks/useSupplier";
+import { useCategories } from "@/hooks/useCatalog";
 
-const CATEGORIES = ["groceries", "snacks", "personal-care", "household", "beverages", "packaging"];
 const UNITS = ["bag", "carton", "case", "pack", "box", "piece", "kg", "litre"];
 
 type Draft = Omit<SupplierProduct, "id" | "createdAt" | "updatedAt">;
 
-export const emptyDraft = (warehouseId = ""): Draft => ({
+export const emptyDraft = (warehouseId = "", categorySlug = ""): Draft => ({
   name: "",
   brand: "",
   sku: "",
   hsn: "",
-  category: "groceries",
+  category: categorySlug,
   subCategory: "",
   gstRate: 18,
   description: "",
@@ -59,8 +59,18 @@ export function ProductForm({
   submitLabel?: string;
 }) {
   const { warehouses } = useWarehouses();
+  const { data: categories = [] } = useCategories();
   const [draft, setDraft] = useState<Draft>(initial);
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) => setDraft((d) => ({ ...d, [key]: value }));
+
+  useEffect(() => {
+    if (!draft.category && categories[0]?.slug) {
+      set("category", categories[0].slug);
+    }
+  }, [categories, draft.category]);
+
+  const selectedCategory = categories.find((c) => c.slug === draft.category);
+  const subCategories = selectedCategory?.subCategories ?? [];
 
   const [highlightInput, setHighlightInput] = useState("");
   const [specKey, setSpecKey] = useState("");
@@ -103,17 +113,34 @@ export function ProductForm({
             <Input value={draft.hsn} onChange={(e) => set("hsn", e.target.value)} />
           </Field>
           <Field label="Category">
-            <Select value={draft.category} onValueChange={(v) => set("category", v)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+            <Select
+              value={draft.category || categories[0]?.slug || ""}
+              onValueChange={(v) => {
+                set("category", v);
+                set("subCategory", "");
+              }}
+            >
+              <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
               <SelectContent>
-                {CATEGORIES.map((c) => (
-                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                {categories.map((c) => (
+                  <SelectItem key={c.id} value={c.slug}>{c.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </Field>
           <Field label="Sub-category">
-            <Input value={draft.subCategory} onChange={(e) => set("subCategory", e.target.value)} />
+            {subCategories.length > 0 ? (
+              <Select value={draft.subCategory || undefined} onValueChange={(v) => set("subCategory", v)}>
+                <SelectTrigger><SelectValue placeholder="Select sub-category" /></SelectTrigger>
+                <SelectContent>
+                  {subCategories.map((s) => (
+                    <SelectItem key={s.slug} value={s.slug}>{s.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input value={draft.subCategory} onChange={(e) => set("subCategory", e.target.value)} placeholder="Optional" />
+            )}
           </Field>
           <Field label="GST %">
             <Input type="number" value={draft.gstRate} onChange={(e) => set("gstRate", Number(e.target.value))} />

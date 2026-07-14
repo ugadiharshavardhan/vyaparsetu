@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { OrderTimeline } from "@/components/orders/OrderTimeline";
 import { useCancelOrder, useOrder } from "@/hooks/useOrders";
+import { useRepeatOrder } from "@/hooks/useCart";
 import { inr } from "@/lib/format";
 import { STATUS_LABELS } from "@/lib/commerce";
 import { toast } from "sonner";
@@ -17,6 +18,7 @@ function OrderDetailPage() {
   const { id } = Route.useParams();
   const { data: order, isLoading } = useOrder(id);
   const cancel = useCancelOrder();
+  const repeat = useRepeatOrder();
   const navigate = useNavigate();
 
   if (isLoading) {
@@ -44,6 +46,20 @@ function OrderDetailPage() {
   const items = order.order_items ?? [];
   const canCancel = ["pending", "confirmed", "processing"].includes(order.status);
 
+  const onRepeat = () => {
+    repeat.mutate(
+      items.map((it) => ({
+        product_snapshot: it.product_snapshot,
+        quantity: it.quantity,
+      })),
+      {
+        onSuccess: () => {
+          void navigate({ to: "/cart" });
+        },
+      },
+    );
+  };
+
   return (
     
       <div className="container-page py-8">
@@ -65,8 +81,14 @@ function OrderDetailPage() {
             <Button variant="outline" size="sm" onClick={() => toast.info("Invoice generation coming soon")}>
               <Download className="mr-1.5 h-4 w-4" /> Invoice
             </Button>
-            <Button variant="outline" size="sm">
-              <RotateCcw className="mr-1.5 h-4 w-4" /> Repeat order
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={repeat.isPending || items.length === 0}
+              onClick={onRepeat}
+            >
+              <RotateCcw className="mr-1.5 h-4 w-4" />
+              {repeat.isPending ? "Adding…" : "Repeat order"}
             </Button>
             {canCancel && (
               <Button

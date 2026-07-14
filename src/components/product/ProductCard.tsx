@@ -1,17 +1,14 @@
 import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { Eye, Heart, MapPin, Package, ShieldCheck, ShoppingCart, Truck } from "lucide-react";
+import { Eye, MapPin, Package, ShieldCheck, Truck } from "lucide-react";
+import { useState } from "react";
 import type { Product } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Rating } from "@/components/common/Rating";
 import { VerifiedBadge } from "@/components/common/VerifiedBadge";
+import { AddToCartControl } from "@/components/cart/AddToCartControl";
+import { SaveProductButton } from "@/components/product/SaveProductButton";
 import { discountPct, inr } from "@/lib/format";
-import { useAddToCart } from "@/hooks/useCart";
-import { useToggleWishlist, useWishlist } from "@/hooks/useWishlist";
-import { toSnapshot } from "@/lib/commerce";
-import { useAuth } from "@/hooks/useAuth";
-import { useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
 
 const PRODUCT_FALLBACK =
   "https://images.unsplash.com/photo-1604719312566-8912e9227c6a?auto=format&fit=crop&w=800&q=70";
@@ -44,21 +41,6 @@ type Props = {
 
 export function ProductCard({ product, onQuickView }: Props) {
   const off = discountPct(product.mrp, product.wholesalePrice);
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const { data: wishlist } = useWishlist();
-  const isFav = !!wishlist?.find((w) => w.product_id === product.id);
-  const toggle = useToggleWishlist();
-  const add = useAddToCart();
-  const snapshot = toSnapshot(product);
-
-  const requireAuth = (fn: () => void) => {
-    if (!user) {
-      navigate({ to: "/auth", search: { mode: "signin" } });
-      return;
-    }
-    fn();
-  };
 
   return (
     <motion.article
@@ -91,18 +73,7 @@ export function ProductCard({ product, onQuickView }: Props) {
           )}
         </div>
         <div className="absolute right-3 top-3 z-20 flex flex-col gap-1.5">
-          <button
-            onClick={(e) => {
-              e.preventDefault();
-              requireAuth(() => toggle.mutate({ snapshot }));
-            }}
-            className={`grid h-8 w-8 place-items-center rounded-full bg-white/95 shadow-soft backdrop-blur transition-colors ${
-              isFav ? "text-destructive" : "text-muted-foreground hover:text-destructive"
-            }`}
-            aria-label="Favorite"
-          >
-            <Heart className={`h-4 w-4 ${isFav ? "fill-current" : ""}`} />
-          </button>
+          <SaveProductButton product={product} variant="icon" />
           <button
             onClick={(e) => {
               e.preventDefault();
@@ -168,18 +139,12 @@ export function ProductCard({ product, onQuickView }: Props) {
           )}
         </div>
 
-        <div className="relative z-20 mt-3 flex items-center gap-2">
+        <div className="relative z-20 mt-3 flex flex-wrap items-center gap-2">
           <Button asChild size="sm" variant="outline" className="flex-1">
             <Link to="/products/$slug" params={{ slug: product.slug }}>View</Link>
           </Button>
-          <Button
-            size="sm"
-            className="flex-1 shadow-brand"
-            disabled={!product.inStock || add.isPending}
-            onClick={() => requireAuth(() => add.mutate({ snapshot }))}
-          >
-            <ShoppingCart className="mr-1.5 h-3.5 w-3.5" /> Add
-          </Button>
+          <SaveProductButton product={product} variant="button" size="sm" />
+          <AddToCartControl product={product} size="sm" className="min-w-[6.5rem] flex-1" />
         </div>
       </div>
     </motion.article>

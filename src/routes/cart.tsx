@@ -5,6 +5,7 @@ import { ArrowRight, Bookmark, ShoppingBag } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/hooks/useAuth";
 import { useCart } from "@/hooks/useCart";
 import { CartItemRow } from "@/components/cart/CartItemRow";
 import { PriceSummary } from "@/components/cart/PriceSummary";
@@ -12,12 +13,13 @@ import { CouponInput } from "@/components/cart/CouponInput";
 import { computeTotals } from "@/lib/commerce";
 import type { Coupon } from "@/types/commerce";
 
-export const Route = createFileRoute("/_authenticated/cart")({
+export const Route = createFileRoute("/cart")({
   head: () => ({ meta: [{ title: "Cart — VyaparSetu" }] }),
   component: CartPage,
 });
 
 function CartPage() {
+  const { user } = useAuth();
   const { data: items = [], isLoading, isError, error, refetch, isFetching } = useCart();
   const [coupon, setCoupon] = useState<Coupon | null>(null);
   const navigate = useNavigate();
@@ -32,6 +34,17 @@ function CartPage() {
       return computeTotals([], null, null);
     }
   }, [active, coupon]);
+
+  const goCheckout = () => {
+    if (!user) {
+      navigate({
+        to: "/auth",
+        search: { mode: "signin", redirect: `/checkout${coupon?.code ? `?coupon=${coupon.code}` : ""}` },
+      });
+      return;
+    }
+    navigate({ to: "/checkout", search: { coupon: coupon?.code ?? "" } });
+  };
 
   if (isError) {
     return (
@@ -53,7 +66,11 @@ function CartPage() {
     <div className="container-page py-8 pb-24 lg:pb-8">
       <PageHeader
         title="Your cart"
-        description={`${active.length} ${active.length === 1 ? "item" : "items"} · Bulk pricing applied`}
+        description={
+          !user
+            ? `${active.length} ${active.length === 1 ? "item" : "items"} · Guest cart (sign in to checkout)`
+            : `${active.length} ${active.length === 1 ? "item" : "items"} · Bulk pricing applied`
+        }
       />
 
       {isLoading ? (
@@ -101,22 +118,27 @@ function CartPage() {
           </div>
 
           <aside className="space-y-4 lg:sticky lg:top-24 lg:h-max">
-            <CouponInput
-              subtotal={breakup.subtotal}
-              coupon={coupon}
-              onApply={setCoupon}
-              onClear={() => setCoupon(null)}
-            />
+            {user ? (
+              <CouponInput
+                subtotal={breakup.subtotal}
+                coupon={coupon}
+                onApply={setCoupon}
+                onClear={() => setCoupon(null)}
+              />
+            ) : (
+              <div className="rounded-xl border border-border bg-secondary/50 p-3 text-xs text-muted-foreground">
+                Sign in to apply coupons and place your order. Items in this guest cart will merge into your account.
+              </div>
+            )}
             <PriceSummary breakup={breakup} itemCount={active.length} />
             <Button
               size="lg"
               className="w-full shadow-brand"
               disabled={active.length === 0}
-              onClick={() =>
-                navigate({ to: "/checkout", search: { coupon: coupon?.code ?? "" } })
-              }
+              onClick={goCheckout}
             >
-              Proceed to checkout <ArrowRight className="ml-2 h-4 w-4" />
+              {user ? "Proceed to checkout" : "Sign in to checkout"}{" "}
+              <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
             <div className="rounded-xl bg-secondary/60 p-3 text-[11px] text-muted-foreground">
               Free shipping on orders above ₹10,000. GST invoices on every order.
@@ -139,12 +161,8 @@ function CartPage() {
                   })}
                 </div>
               </div>
-              <Button
-                className="shadow-brand"
-                disabled={active.length === 0}
-                onClick={() => navigate({ to: "/checkout", search: { coupon: coupon?.code ?? "" } })}
-              >
-                Checkout
+              <Button className="shadow-brand" disabled={active.length === 0} onClick={goCheckout}>
+                {user ? "Checkout" : "Sign in"}
               </Button>
             </div>
           </motion.div>

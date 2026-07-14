@@ -15,6 +15,7 @@ import { Route as MarketplaceRouteImport } from './routes/marketplace'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CategoriesRouteImport } from './routes/categories'
+import { Route as CartRouteImport } from './routes/cart'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
@@ -33,7 +34,6 @@ import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authen
 import { Route as AuthenticatedHelpRouteImport } from './routes/_authenticated/help'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCheckoutRouteImport } from './routes/_authenticated/checkout'
-import { Route as AuthenticatedCartRouteImport } from './routes/_authenticated/cart'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedAddressesRouteImport } from './routes/_authenticated/addresses'
 import { Route as AuthenticatedSupplierIndexRouteImport } from './routes/_authenticated/supplier.index'
@@ -104,6 +104,11 @@ const ContactRoute = ContactRouteImport.update({
 const CategoriesRoute = CategoriesRouteImport.update({
   id: '/categories',
   path: '/categories',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CartRoute = CartRouteImport.update({
+  id: '/cart',
+  path: '/cart',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -194,11 +199,6 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
 const AuthenticatedCheckoutRoute = AuthenticatedCheckoutRouteImport.update({
   id: '/checkout',
   path: '/checkout',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedCartRoute = AuthenticatedCartRouteImport.update({
-  id: '/cart',
-  path: '/cart',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
@@ -444,6 +444,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
+  '/cart': typeof CartRoute
   '/categories': typeof CategoriesRouteWithChildren
   '/contact': typeof ContactRoute
   '/forgot-password': typeof ForgotPasswordRoute
@@ -452,7 +453,6 @@ export interface FileRoutesByFullPath {
   '/suppliers': typeof SuppliersRouteWithChildren
   '/addresses': typeof AuthenticatedAddressesRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
-  '/cart': typeof AuthenticatedCartRoute
   '/checkout': typeof AuthenticatedCheckoutRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/help': typeof AuthenticatedHelpRoute
@@ -511,13 +511,13 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
+  '/cart': typeof CartRoute
   '/contact': typeof ContactRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/marketplace': typeof MarketplaceRoute
   '/reset-password': typeof ResetPasswordRoute
   '/suppliers': typeof SuppliersRouteWithChildren
   '/addresses': typeof AuthenticatedAddressesRoute
-  '/cart': typeof AuthenticatedCartRoute
   '/checkout': typeof AuthenticatedCheckoutRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/help': typeof AuthenticatedHelpRoute
@@ -578,6 +578,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
+  '/cart': typeof CartRoute
   '/categories': typeof CategoriesRouteWithChildren
   '/contact': typeof ContactRoute
   '/forgot-password': typeof ForgotPasswordRoute
@@ -586,7 +587,6 @@ export interface FileRoutesById {
   '/suppliers': typeof SuppliersRouteWithChildren
   '/_authenticated/addresses': typeof AuthenticatedAddressesRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
-  '/_authenticated/cart': typeof AuthenticatedCartRoute
   '/_authenticated/checkout': typeof AuthenticatedCheckoutRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/help': typeof AuthenticatedHelpRoute
@@ -647,6 +647,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/auth'
+    | '/cart'
     | '/categories'
     | '/contact'
     | '/forgot-password'
@@ -655,7 +656,6 @@ export interface FileRouteTypes {
     | '/suppliers'
     | '/addresses'
     | '/admin'
-    | '/cart'
     | '/checkout'
     | '/dashboard'
     | '/help'
@@ -714,13 +714,13 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/auth'
+    | '/cart'
     | '/contact'
     | '/forgot-password'
     | '/marketplace'
     | '/reset-password'
     | '/suppliers'
     | '/addresses'
-    | '/cart'
     | '/checkout'
     | '/dashboard'
     | '/help'
@@ -780,6 +780,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/about'
     | '/auth'
+    | '/cart'
     | '/categories'
     | '/contact'
     | '/forgot-password'
@@ -788,7 +789,6 @@ export interface FileRouteTypes {
     | '/suppliers'
     | '/_authenticated/addresses'
     | '/_authenticated/admin'
-    | '/_authenticated/cart'
     | '/_authenticated/checkout'
     | '/_authenticated/dashboard'
     | '/_authenticated/help'
@@ -849,6 +849,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AboutRoute: typeof AboutRoute
   AuthRoute: typeof AuthRoute
+  CartRoute: typeof CartRoute
   CategoriesRoute: typeof CategoriesRouteWithChildren
   ContactRoute: typeof ContactRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
@@ -900,6 +901,13 @@ declare module '@tanstack/react-router' {
       path: '/categories'
       fullPath: '/categories'
       preLoaderRoute: typeof CategoriesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cart': {
+      id: '/cart'
+      path: '/cart'
+      fullPath: '/cart'
+      preLoaderRoute: typeof CartRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -1026,13 +1034,6 @@ declare module '@tanstack/react-router' {
       path: '/checkout'
       fullPath: '/checkout'
       preLoaderRoute: typeof AuthenticatedCheckoutRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/cart': {
-      id: '/_authenticated/cart'
-      path: '/cart'
-      fullPath: '/cart'
-      preLoaderRoute: typeof AuthenticatedCartRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin': {
@@ -1386,7 +1387,6 @@ const AuthenticatedOrdersRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAddressesRoute: typeof AuthenticatedAddressesRoute
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
-  AuthenticatedCartRoute: typeof AuthenticatedCartRoute
   AuthenticatedCheckoutRoute: typeof AuthenticatedCheckoutRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedHelpRoute: typeof AuthenticatedHelpRoute
@@ -1421,7 +1421,6 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAddressesRoute: AuthenticatedAddressesRoute,
   AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
-  AuthenticatedCartRoute: AuthenticatedCartRoute,
   AuthenticatedCheckoutRoute: AuthenticatedCheckoutRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedHelpRoute: AuthenticatedHelpRoute,
@@ -1489,6 +1488,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AboutRoute: AboutRoute,
   AuthRoute: AuthRoute,
+  CartRoute: CartRoute,
   CategoriesRoute: CategoriesRouteWithChildren,
   ContactRoute: ContactRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,

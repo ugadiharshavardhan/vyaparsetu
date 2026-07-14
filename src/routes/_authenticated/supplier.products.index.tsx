@@ -211,14 +211,14 @@ function SupplierProductsPage() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => { duplicate(p.id); toast.success("Duplicated"); }}>
+                      <DropdownMenuItem onClick={() => { void duplicate(p.id).then(() => toast.success("Duplicated")).catch((e: Error) => toast.error(e.message)); }}>
                         <Copy className="mr-2 h-3.5 w-3.5" /> Duplicate
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => { updateProduct(p.id, { status: p.status === "archived" ? "draft" : "archived" }); toast.success("Updated"); }}>
+                      <DropdownMenuItem onClick={() => { void updateProduct(p.id, { status: p.status === "archived" ? "draft" : "archived" }).then(() => toast.success("Updated")).catch((e: Error) => toast.error(e.message)); }}>
                         <Package className="mr-2 h-3.5 w-3.5" /> {p.status === "archived" ? "Unarchive" : "Archive"}
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-destructive" onClick={() => { remove(p.id); toast.success("Deleted"); }}>
+                      <DropdownMenuItem className="text-destructive" onClick={() => { void remove(p.id).then(() => toast.success("Deleted")).catch((e: Error) => toast.error(e.message)); }}>
                         <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete
                       </DropdownMenuItem>
                     </DropdownMenuContent>

@@ -1,4 +1,4 @@
-import { Building2, Home, Warehouse, Star, Pencil, Trash2 } from "lucide-react";
+import { Building2, Home, Warehouse, Star, Pencil, Trash2, MapPin } from "lucide-react";
 import type { ShippingAddress } from "@/types/commerce";
 import { Button } from "@/components/ui/button";
 
@@ -83,6 +83,12 @@ export function AddressCard({
           {address.city}, {address.state} — {address.pincode}
         </div>
         <div className="text-muted-foreground">Phone: {address.phone}</div>
+        {address.latitude != null && address.longitude != null && (
+          <div className="mt-1 inline-flex items-center gap-1 text-[11px] text-brand">
+            <MapPin className="h-3 w-3" />
+            Pin {address.latitude.toFixed(4)}, {address.longitude.toFixed(4)}
+          </div>
+        )}
         {address.gst_number && (
           <div className="mt-1 inline-block rounded-md bg-secondary px-2 py-0.5 text-[11px] font-medium">
             GST: {address.gst_number}

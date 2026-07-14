@@ -429,6 +429,8 @@ export type Database = {
           is_default: boolean
           label: string | null
           landmark: string | null
+          latitude: number | null
+          longitude: number | null
           line1: string
           line2: string | null
           phone: string
@@ -448,6 +450,8 @@ export type Database = {
           is_default?: boolean
           label?: string | null
           landmark?: string | null
+          latitude?: number | null
+          longitude?: number | null
           line1: string
           line2?: string | null
           phone: string
@@ -467,6 +471,8 @@ export type Database = {
           is_default?: boolean
           label?: string | null
           landmark?: string | null
+          latitude?: number | null
+          longitude?: number | null
           line1?: string
           line2?: string | null
           phone?: string
@@ -485,6 +491,9 @@ export type Database = {
           full_name: string | null
           business_name: string | null
           phone: string | null
+          address: string | null
+          whatsapp: string | null
+          shipping_address: Json | null
           created_at: string
           updated_at: string
         }
@@ -494,6 +503,9 @@ export type Database = {
           full_name?: string | null
           business_name?: string | null
           phone?: string | null
+          address?: string | null
+          whatsapp?: string | null
+          shipping_address?: Json | null
           created_at?: string
           updated_at?: string
         }
@@ -503,6 +515,9 @@ export type Database = {
           full_name?: string | null
           business_name?: string | null
           phone?: string | null
+          address?: string | null
+          whatsapp?: string | null
+          shipping_address?: Json | null
           created_at?: string
           updated_at?: string
         }
@@ -648,10 +663,30 @@ export type Database = {
           id: string
           email: string | null
           full_name: string | null
+          owner_name: string | null
           business_name: string | null
           phone: string | null
+          whatsapp: string | null
+          business_email: string | null
+          website: string | null
+          business_type: Database["public"]["Enums"]["business_type"] | null
+          business_category: string | null
           gst_number: string | null
+          pan_number: string | null
+          years_in_business: number | null
           address: string | null
+          city: string | null
+          state: string | null
+          country: string | null
+          pincode: string | null
+          logo_url: string | null
+          shop_image_url: string | null
+          gst_certificate_url: string | null
+          pan_document_url: string | null
+          alternate_phone: string | null
+          avatar_url: string | null
+          verification_status: Database["public"]["Enums"]["verification_status"]
+          onboarding_completed: boolean
           created_at: string
           updated_at: string
         }
@@ -659,10 +694,30 @@ export type Database = {
           id: string
           email?: string | null
           full_name?: string | null
+          owner_name?: string | null
           business_name?: string | null
           phone?: string | null
+          whatsapp?: string | null
+          business_email?: string | null
+          website?: string | null
+          business_type?: Database["public"]["Enums"]["business_type"] | null
+          business_category?: string | null
           gst_number?: string | null
+          pan_number?: string | null
+          years_in_business?: number | null
           address?: string | null
+          city?: string | null
+          state?: string | null
+          country?: string | null
+          pincode?: string | null
+          logo_url?: string | null
+          shop_image_url?: string | null
+          gst_certificate_url?: string | null
+          pan_document_url?: string | null
+          alternate_phone?: string | null
+          avatar_url?: string | null
+          verification_status?: Database["public"]["Enums"]["verification_status"]
+          onboarding_completed?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -670,10 +725,30 @@ export type Database = {
           id?: string
           email?: string | null
           full_name?: string | null
+          owner_name?: string | null
           business_name?: string | null
           phone?: string | null
+          whatsapp?: string | null
+          business_email?: string | null
+          website?: string | null
+          business_type?: Database["public"]["Enums"]["business_type"] | null
+          business_category?: string | null
           gst_number?: string | null
+          pan_number?: string | null
+          years_in_business?: number | null
           address?: string | null
+          city?: string | null
+          state?: string | null
+          country?: string | null
+          pincode?: string | null
+          logo_url?: string | null
+          shop_image_url?: string | null
+          gst_certificate_url?: string | null
+          pan_document_url?: string | null
+          alternate_phone?: string | null
+          avatar_url?: string | null
+          verification_status?: Database["public"]["Enums"]["verification_status"]
+          onboarding_completed?: boolean
           created_at?: string
           updated_at?: string
         }

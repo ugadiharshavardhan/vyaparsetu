@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  BarChart3, Bell, Boxes, FileText, Info, LayoutDashboard, LifeBuoy,
+  BarChart3, Bell, Boxes, FileText, Heart, Info, LayoutDashboard, LifeBuoy,
   LineChart, LogOut, Mail, Megaphone, Package, PackageOpen, ReceiptText,
   Settings, ShieldCheck, ShoppingCart, Store, Tag, User, Users, Warehouse,
 } from "lucide-react";
@@ -15,7 +15,7 @@ import {
 import { Logo } from "@/components/common/Logo";
 import { useAccountFlags } from "@/hooks/useAccountFlags";
 import { supabase } from "@/integrations/supabase/client";
-import { useCart } from "@/hooks/useCart";
+import { useCartCount } from "@/hooks/useCart";
 import { useWishlist } from "@/hooks/useWishlist";
 import { useSessionMode } from "@/hooks/useSessionMode";
 import { clearSessionMode } from "@/lib/sessionMode";
@@ -26,7 +26,12 @@ const MAIN = [
   { title: "Marketplace", url: "/marketplace", icon: Store },
   { title: "Suppliers", url: "/suppliers", icon: Users },
   { title: "Cart", url: "/cart", icon: ShoppingCart },
+  { title: "Saved items", url: "/wishlist", icon: Heart },
+] as const;
+
+const ACCOUNT = [
   { title: "Profile", url: "/profile", icon: User },
+  { title: "Saved items", url: "/wishlist", icon: Heart },
 ] as const;
 
 const EXPLORE = [
@@ -84,9 +89,8 @@ export function DashboardSidebar() {
   const isSupplier = sessionMode === "seller" || (sessionMode !== "buyer" && !!account?.isSeller);
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const { data: cart } = useCart();
+  const cartCount = useCartCount();
   const { data: wishlist } = useWishlist();
-  const cartCount = cart?.filter((c) => !c.saved_for_later).length ?? 0;
   const wishCount = wishlist?.length ?? 0;
 
   const badgeFor = (url: string): number => {
@@ -172,6 +176,22 @@ export function DashboardSidebar() {
           </SidebarGroup>
         )}
 
+        {/* Profile / saved items for sellers (buyers already have these in Workspace) */}
+        {isSupplier && (
+          <SidebarGroup>
+            {!collapsed && <SidebarGroupLabel>Account</SidebarGroupLabel>}
+            <SidebarGroupContent>{renderItems(ACCOUNT)}</SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        {!isSupplier && (
+          <SidebarGroup>
+            {!collapsed && <SidebarGroupLabel>Account</SidebarGroupLabel>}
+            <SidebarGroupContent>
+              {renderItems([{ title: "Profile", url: "/profile", icon: User }] as const)}
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
         {isAdmin && (
           <SidebarGroup>

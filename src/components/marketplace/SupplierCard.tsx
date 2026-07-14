@@ -43,7 +43,11 @@ export function SupplierCard({ supplier, productCount }: { supplier: Supplier; p
         </div>
       </div>
       <Button asChild variant="outline" className="mt-5 w-full">
-        <Link to="/suppliers/$id" params={{ id: supplier.id }}>
+        <Link
+          to="/suppliers/$id"
+          params={{ id: supplier.id }}
+          preload="intent"
+        >
           <ShieldCheck className="mr-1.5 h-4 w-4" /> View store
         </Link>
       </Button>

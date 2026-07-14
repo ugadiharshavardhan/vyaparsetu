@@ -3,7 +3,7 @@ import {
   Award, BadgeCheck, Building2, Calendar, ChevronRight,
   MapPin, MessageCircle, ShieldCheck, TrendingUp,
 } from "lucide-react";
-import { getSupplierById } from "@/data/suppliers";
+import { getSupplierById, SUPPLIERS } from "@/data/suppliers";
 import { getBySupplier, useCategories, useProducts } from "@/hooks/useCatalog";
 import { Button } from "@/components/ui/button";
 import { VerifiedBadge } from "@/components/common/VerifiedBadge";
@@ -12,11 +12,64 @@ import { ProductGrid } from "@/components/product/ProductGrid";
 import { SectionHeading } from "@/components/common/SectionHeading";
 import { ReviewCard, type ReviewData } from "@/components/product/ReviewCard";
 import { ProductGridSkeleton } from "@/components/product/ProductCardSkeleton";
+import { supabase } from "@/integrations/supabase/client";
+import { mapDbProduct, type DbProduct } from "@/lib/catalogMap";
+import type { Supplier } from "@/types";
+
+function supplierFromProductRow(row: unknown): Supplier | null {
+  try {
+    const product = mapDbProduct(row as DbProduct);
+    if (!product.supplier?.id) return null;
+    return {
+      ...product.supplier,
+      description:
+        product.supplier.description ??
+        `${product.supplier.name} — verified wholesale partner on VyaparSetu.`,
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function resolveSupplier(id: string): Promise<Supplier | null> {
+  const normalized = id.trim();
+  if (!normalized) return null;
+
+  const fromDirectory =
+    getSupplierById(normalized) ||
+    SUPPLIERS.find((s) => s.id.toLowerCase() === normalized.toLowerCase()) ||
+    SUPPLIERS.find((s) => s.name.toLowerCase() === normalized.toLowerCase());
+  if (fromDirectory) return fromDirectory;
+
+  try {
+    const { data: rows, error } = await supabase.from("products").select("*").limit(400);
+    if (error) {
+      console.warn("[resolveSupplier]", error.message);
+      return null;
+    }
+    for (const row of rows ?? []) {
+      const raw = (row as { supplier?: { id?: string; name?: string } }).supplier;
+      if (!raw) continue;
+      if (String(raw.id) === normalized || String(raw.id).toLowerCase() === normalized.toLowerCase()) {
+        return supplierFromProductRow(row);
+      }
+      if (raw.name && raw.name.toLowerCase() === normalized.toLowerCase()) {
+        return supplierFromProductRow(row);
+      }
+    }
+  } catch (e) {
+    console.warn("[resolveSupplier]", e);
+  }
+  return null;
+}
 
 export const Route = createFileRoute("/suppliers/$id")({
-  loader: ({ params }) => {
-    const supplier = getSupplierById(params.id);
-    if (!supplier) throw notFound();
+  ssr: false,
+  loader: async ({ params }) => {
+    const id = decodeURIComponent(params.id ?? "").trim();
+    if (!id) throw notFound();
+    const supplier = await resolveSupplier(id);
+    if (!supplier?.id) throw notFound();
     return { supplier };
   },
   head: ({ loaderData }) => ({
@@ -28,6 +81,7 @@ export const Route = createFileRoute("/suppliers/$id")({
   notFoundComponent: () => (
     <div className="container-page py-24 text-center">
       <h1 className="font-display text-3xl font-bold">Supplier not found</h1>
+      <p className="mt-2 text-muted-foreground">This store may have been removed or the link is invalid.</p>
       <Button asChild className="mt-6"><Link to="/suppliers">All suppliers</Link></Button>
     </div>
   ),
@@ -87,23 +141,25 @@ function SupplierProfile() {
               {supplier.businessType && (
                 <span className="inline-flex items-center gap-1"><Building2 className="h-3.5 w-3.5" /> {supplier.businessType}</span>
               )}
-              <span className="inline-flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> {supplier.location}</span>
+              <span className="inline-flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> {supplier.location || "India"}</span>
               {supplier.established && (
                 <span className="inline-flex items-center gap-1"><Calendar className="h-3.5 w-3.5" /> Est. {supplier.established}</span>
               )}
-              <Rating value={supplier.rating} />
+              <Rating value={supplier.rating || 4.5} />
             </div>
           </div>
-          <Button size="lg" className="shadow-brand" disabled title="Direct chat launches next phase">
-            <MessageCircle className="mr-1.5 h-4 w-4" /> Contact supplier
+          <Button size="lg" className="shadow-brand" asChild>
+            <a href={`mailto:hello@vyaparsetu.in?subject=${encodeURIComponent(`Inquiry for ${supplier.name}`)}`}>
+              <MessageCircle className="mr-1.5 h-4 w-4" /> Contact supplier
+            </a>
           </Button>
         </div>
 
         <div className="grid grid-cols-2 gap-4 border-t border-border p-6 sm:grid-cols-4 sm:p-8">
           <Stat icon={ShieldCheck} label="Products" value={String(products.length)} />
           <Stat icon={TrendingUp} label="Response rate" value={`${supplier.responseRate ?? 92}%`} />
-          <Stat icon={Award} label="Years active" value={`${supplier.yearsActive}+`} />
-          <Stat icon={BadgeCheck} label="Rating" value={supplier.rating.toFixed(1)} />
+          <Stat icon={Award} label="Years active" value={`${supplier.yearsActive || 1}+`} />
+          <Stat icon={BadgeCheck} label="Rating" value={(supplier.rating || 4.5).toFixed(1)} />
         </div>
       </div>
 
@@ -118,62 +174,69 @@ function SupplierProfile() {
           <div className="rounded-2xl border border-border bg-card p-6 shadow-soft">
             <h3 className="font-display text-sm font-semibold">Categories supplied</h3>
             <div className="mt-3 flex flex-wrap gap-2">
-              {suppliedCategories.map((c) => (
-                <Link
-                  key={c.id}
-                  to="/marketplace"
-                  search={{ category: c.slug, supplier: supplier.id } as never}
-                  className="rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-foreground transition hover:border-brand/40 hover:text-brand"
-                >
-                  {c.name}
-                </Link>
-              ))}
+              {suppliedCategories.length > 0 ? (
+                suppliedCategories.map((c) => (
+                  <Link
+                    key={c.id}
+                    to="/marketplace"
+                    search={{ category: c.slug } as never}
+                    className="rounded-full bg-secondary px-3 py-1 text-xs font-medium hover:bg-brand-soft hover:text-brand"
+                  >
+                    {c.name}
+                  </Link>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground">Categories will appear as products are listed.</p>
+              )}
+            </div>
+          </div>
+          <div className="rounded-2xl border border-border bg-card p-6 shadow-soft">
+            <h3 className="font-display text-sm font-semibold">Buyer reviews</h3>
+            <div className="mt-4 space-y-3">
+              {REVIEWS.map((r) => <ReviewCard key={r.id} review={r} />)}
             </div>
           </div>
         </aside>
 
         <div>
-          <SectionHeading
-            align="left"
-            eyebrow="Catalog"
-            title={`Products from ${supplier.name}`}
-            description={`${products.length} SKUs currently listed`}
-          />
+          <SectionHeading align="left" eyebrow="Catalogue" title={`${products.length} products from this store`} />
           <div className="mt-6">
             {isLoading ? (
               <ProductGridSkeleton count={6} />
             ) : products.length > 0 ? (
-              <ProductGrid products={products.slice(0, 6)} />
+              <ProductGrid products={products} />
             ) : (
-              <p className="text-sm text-muted-foreground">No products listed yet.</p>
+              <div className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
+                No products listed for this supplier yet.
+                <div className="mt-4">
+                  <Button asChild variant="outline" size="sm">
+                    <Link to="/marketplace">Browse marketplace</Link>
+                  </Button>
+                </div>
+              </div>
             )}
           </div>
-          {products.length > 6 && (
-            <div className="mt-6">
-              <Button asChild variant="outline">
-                <Link to="/marketplace" search={{ supplier: supplier.id } as never}>See all {products.length} products</Link>
-              </Button>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="mt-16">
-        <SectionHeading align="left" eyebrow="Feedback" title="Buyer reviews" />
-        <div className="mt-6 grid gap-4 sm:grid-cols-3">
-          {REVIEWS.map((r) => <ReviewCard key={r.id} review={r} />)}
         </div>
       </div>
     </div>
   );
 }
 
-function Stat({ icon: Icon, label, value }: { icon: typeof ShieldCheck; label: string; value: string }) {
+function Stat({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: typeof ShieldCheck;
+  label: string;
+  value: string;
+}) {
   return (
-    <div className="rounded-xl bg-secondary p-4">
-      <Icon className="h-4 w-4 text-brand" />
-      <div className="mt-2 font-display text-xl font-bold">{value}</div>
-      <div className="text-xs text-muted-foreground">{label}</div>
+    <div>
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <Icon className="h-3.5 w-3.5 text-brand" /> {label}
+      </div>
+      <div className="mt-1 font-display text-xl font-bold">{value}</div>
     </div>
   );
 }

@@ -1,11 +1,12 @@
 import { motion } from "framer-motion";
 import { Heart, Minus, Plus, Trash2, Bookmark } from "lucide-react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import type { CartItem } from "@/types/commerce";
 import { inr } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { useRemoveCartItem, useUpdateCartItem } from "@/hooks/useCart";
 import { useToggleWishlist } from "@/hooks/useWishlist";
+import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
 export function CartItemRow({ item }: { item: CartItem }) {
@@ -13,6 +14,8 @@ export function CartItemRow({ item }: { item: CartItem }) {
   const update = useUpdateCartItem();
   const remove = useRemoveCartItem();
   const wish = useToggleWishlist();
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   if (!p?.slug || !p?.id) {
     return (
@@ -26,8 +29,9 @@ export function CartItemRow({ item }: { item: CartItem }) {
   }
 
   const changeQty = (q: number) => {
-    if (q < p.moq) {
-      toast.error(`Minimum order quantity is ${p.moq} ${p.unit}`);
+    const moq = Math.max(1, p.moq);
+    if (q < moq) {
+      remove.mutate(item.id);
       return;
     }
     if (q > p.stockCount) {
@@ -86,7 +90,7 @@ export function CartItemRow({ item }: { item: CartItem }) {
         <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
           <div className="inline-flex items-center rounded-full border border-border bg-background">
             <button
-              onClick={() => changeQty(item.quantity - p.moq)}
+              onClick={() => changeQty(item.quantity - 1)}
               className="grid h-9 w-9 place-items-center rounded-l-full text-muted-foreground hover:bg-secondary"
               aria-label="Decrease"
             >
@@ -94,7 +98,7 @@ export function CartItemRow({ item }: { item: CartItem }) {
             </button>
             <div className="min-w-[3rem] px-3 text-center text-sm font-semibold">{item.quantity}</div>
             <button
-              onClick={() => changeQty(item.quantity + p.moq)}
+              onClick={() => changeQty(item.quantity + 1)}
               className="grid h-9 w-9 place-items-center rounded-r-full text-muted-foreground hover:bg-secondary"
               aria-label="Increase"
             >
@@ -120,6 +124,10 @@ export function CartItemRow({ item }: { item: CartItem }) {
               size="sm"
               variant="ghost"
               onClick={() => {
+                if (!user) {
+                  navigate({ to: "/auth", search: { mode: "signin", redirect: "/cart" } });
+                  return;
+                }
                 wish.mutate({ snapshot: p });
                 remove.mutate(item.id);
               }}

@@ -21,9 +21,12 @@ function NewProductPage() {
           initial={emptyDraft(warehouses[0]?.id ?? "")}
           submitLabel="Publish product"
           onSubmit={(draft) => {
-            create(draft);
-            toast.success("Product created");
-            navigate({ to: "/supplier/products" });
+            void create(draft)
+              .then(() => {
+                toast.success("Product created");
+                navigate({ to: "/supplier/products" });
+              })
+              .catch((e: Error) => toast.error(e.message));
           }}
         />
       </div>

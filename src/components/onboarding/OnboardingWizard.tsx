@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, ArrowRight, Loader2, MapPin, ShieldCheck } from "lucide-react";
@@ -24,29 +24,57 @@ export function OnboardingWizard() {
   const update = useUpdateProfile();
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
-  const [form, setForm] = useState<FormState>(() => ({
-    business_name: profile?.business_name ?? "",
-    owner_name: profile?.owner_name ?? profile?.full_name ?? "",
-    business_type: profile?.business_type ?? "retailer",
-    business_category: profile?.business_category ?? "",
-    gst_number: profile?.gst_number ?? "",
-    pan_number: profile?.pan_number ?? "",
-    years_in_business: profile?.years_in_business ?? null,
-    website: profile?.website ?? "",
-    address: profile?.address ?? "",
-    city: profile?.city ?? "",
-    state: profile?.state ?? "",
-    country: profile?.country ?? "India",
-    pincode: profile?.pincode ?? "",
-    phone: profile?.phone ?? "",
-    alternate_phone: profile?.alternate_phone ?? "",
-    business_email: profile?.business_email ?? profile?.email ?? "",
-    whatsapp: profile?.whatsapp ?? "",
-    logo_url: profile?.logo_url ?? null,
-    shop_image_url: profile?.shop_image_url ?? null,
-    gst_certificate_url: profile?.gst_certificate_url ?? null,
-    pan_document_url: profile?.pan_document_url ?? null,
-  }));
+  const [form, setForm] = useState<FormState>({
+    business_name: "",
+    owner_name: "",
+    business_type: "manufacturer",
+    business_category: "",
+    gst_number: "",
+    pan_number: "",
+    years_in_business: null,
+    website: "",
+    address: "",
+    city: "",
+    state: "",
+    country: "India",
+    pincode: "",
+    phone: "",
+    alternate_phone: "",
+    business_email: "",
+    whatsapp: "",
+    logo_url: null,
+    shop_image_url: null,
+    gst_certificate_url: null,
+    pan_document_url: null,
+  });
+
+  useEffect(() => {
+    if (!profile) return;
+    setForm((f) => ({
+      ...f,
+      business_name: profile.business_name ?? f.business_name,
+      owner_name: profile.owner_name ?? profile.full_name ?? f.owner_name,
+      business_type: profile.business_type ?? f.business_type,
+      business_category: profile.business_category ?? f.business_category,
+      gst_number: profile.gst_number ?? f.gst_number,
+      pan_number: profile.pan_number ?? f.pan_number,
+      years_in_business: profile.years_in_business ?? f.years_in_business,
+      website: profile.website ?? f.website,
+      address: profile.address ?? f.address,
+      city: profile.city ?? f.city,
+      state: profile.state ?? f.state,
+      country: profile.country ?? f.country ?? "India",
+      pincode: profile.pincode ?? f.pincode,
+      phone: profile.phone ?? f.phone,
+      alternate_phone: profile.alternate_phone ?? f.alternate_phone,
+      business_email: profile.business_email ?? profile.email ?? f.business_email,
+      whatsapp: profile.whatsapp ?? f.whatsapp,
+      logo_url: profile.logo_url ?? f.logo_url,
+      shop_image_url: profile.shop_image_url ?? f.shop_image_url,
+      gst_certificate_url: profile.gst_certificate_url ?? f.gst_certificate_url,
+      pan_document_url: profile.pan_document_url ?? f.pan_document_url,
+    }));
+  }, [profile]);
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((f) => ({ ...f, [key]: value }));

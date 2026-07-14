@@ -5,11 +5,6 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async ({ location, context }) => {
-    // Use getSession() — reads from local storage synchronously (no network),
-    // so navigation between authenticated routes is instant. getUser() would
-    // hit the Auth server on every click and TanStack Router would keep the
-    // previous page visible while it waited, causing a visible flicker
-    // ("navigating to the previous section, then the target").
     const { data: sessionData } = await supabase.auth.getSession();
     const user = sessionData.session?.user ?? null;
     if (!user) {
@@ -19,33 +14,53 @@ export const Route = createFileRoute("/_authenticated")({
       });
     }
 
-    // Onboarding gate — cached via the router's QueryClient so it runs once
-    // per session instead of on every intra-app navigation.
-    const onOnboarding = location.pathname.startsWith("/onboarding");
+    // Onboarding is seller-only and lives on public.sellers (not profiles).
+    const path = location.pathname;
+    const onOnboarding = path.startsWith("/onboarding");
+    const skipOnboardingGate =
+      onOnboarding ||
+      path.startsWith("/profile") ||
+      path.startsWith("/wishlist") ||
+      path.startsWith("/settings") ||
+      path.startsWith("/cart") ||
+      path.startsWith("/checkout") ||
+      path.startsWith("/addresses") ||
+      path.startsWith("/orders") ||
+      path.startsWith("/payments");
+
     const done = await context.queryClient.ensureQueryData({
       queryKey: ["onboarding-complete", user.id],
       staleTime: 5 * 60 * 1000,
       queryFn: async () => {
-        const { data: profile, error } = await supabase
-          .from("profiles")
-          .select("onboarding_completed")
-          .eq("id", user.id)
-          .maybeSingle();
-        if (error) {
-          console.warn("[onboarding-complete]", error.message);
-          return true; // don't block the app shell on a transient profile read error
+        const [seller, buyer] = await Promise.all([
+          supabase.from("sellers").select("*").eq("id", user.id).maybeSingle(),
+          supabase.from("buyers").select("id").eq("id", user.id).maybeSingle(),
+        ]);
+
+        if (seller.error) {
+          console.warn("[onboarding-complete]", seller.error.message);
+          return true;
         }
-        return !!profile?.onboarding_completed;
+
+        // Buyers never need the seller onboarding wizard.
+        if (buyer.data && !seller.data) return true;
+        // Not a seller (admin / unknown) — don't trap on onboarding.
+        if (!seller.data) return true;
+
+        const row = seller.data as { onboarding_completed?: boolean };
+        // Missing column (pre-migration) → don't block the app shell
+        if (!("onboarding_completed" in row)) return true;
+        return !!row.onboarding_completed;
       },
     });
 
-    if (!done && !onOnboarding) {
+    if (!done && !skipOnboardingGate) {
       throw redirect({ to: "/onboarding" });
     }
     if (done && onOnboarding) {
       const { resolvePostLoginPath } = await import("@/lib/postLoginRedirect");
-      const path = await resolvePostLoginPath(user.id);
-      throw redirect({ to: path });
+      const next = await resolvePostLoginPath(user.id);
+      throw redirect({ to: next });
     }
 
     return { user };
@@ -55,7 +70,7 @@ export const Route = createFileRoute("/_authenticated")({
 
 function AuthenticatedShell() {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
-  if (pathname.startsWith("/onboarding")) {
+  if (pathname.startsWith("/onboarding") || pathname.startsWith("/checkout")) {
     return <Outlet />;
   }
   return (

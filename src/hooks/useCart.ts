@@ -1,10 +1,19 @@
+import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import type { CartItem, ProductSnapshot } from "@/types/commerce";
+import {
+  clearGuestCart,
+  readGuestCart,
+  removeGuestLine,
+  updateGuestLine,
+  upsertGuestLine,
+} from "@/lib/guestCart";
+import { openCartSheet } from "@/hooks/useCartSheet";
 import { toast } from "sonner";
 
-const KEY = ["cart"] as const;
+export const CART_KEY = ["cart"] as const;
 
 /** Normalize DB jsonb into a safe ProductSnapshot (guards missing fields). */
 export function normalizeSnapshot(raw: unknown, productId?: string): ProductSnapshot | null {
@@ -50,25 +59,114 @@ function normalizeCartRow(row: Record<string, unknown>): CartItem | null {
   };
 }
 
+async function fetchUserCart(userId: string): Promise<CartItem[]> {
+  const { data, error } = await supabase
+    .from("cart_items")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return (data ?? [])
+    .map((row) => normalizeCartRow(row as unknown as Record<string, unknown>))
+    .filter((row): row is CartItem => row !== null);
+}
+
+async function mergeGuestCartIntoUser(userId: string) {
+  const guest = readGuestCart();
+  if (!guest.length) return;
+
+  for (const line of guest) {
+    const safe = normalizeSnapshot(line.product_snapshot, line.product_id);
+    if (!safe) continue;
+
+    const { data: existing } = await supabase
+      .from("cart_items")
+      .select("id, quantity")
+      .eq("user_id", userId)
+      .eq("product_id", safe.id)
+      .maybeSingle();
+
+    if (existing) {
+      const { error } = await supabase
+        .from("cart_items")
+        .update({
+          quantity: existing.quantity + line.quantity,
+          saved_for_later: false,
+          product_snapshot: safe as never,
+        })
+        .eq("id", existing.id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase.from("cart_items").insert({
+        user_id: userId,
+        product_id: safe.id,
+        product_snapshot: safe as never,
+        quantity: line.quantity,
+        saved_for_later: line.saved_for_later,
+      });
+      if (error) throw error;
+    }
+  }
+
+  clearGuestCart();
+}
+
 export function useCart() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+  const qc = useQueryClient();
+
+  // Merge guest cart into the buyer account once after login
+  useEffect(() => {
+    if (!user || loading) return;
+    const guest = readGuestCart();
+    if (!guest.length) return;
+    let cancelled = false;
+    mergeGuestCartIntoUser(user.id)
+      .then(() => {
+        if (!cancelled) qc.invalidateQueries({ queryKey: CART_KEY });
+      })
+      .catch((e) => {
+        console.warn("[merge-guest-cart]", e);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, loading, qc]);
+
+  // Keep guest cart query in sync with localStorage events
+  useEffect(() => {
+    if (user) return;
+    const onChange = () => qc.invalidateQueries({ queryKey: [...CART_KEY, "guest"] });
+    window.addEventListener("vs-guest-cart", onChange);
+    window.addEventListener("storage", onChange);
+    return () => {
+      window.removeEventListener("vs-guest-cart", onChange);
+      window.removeEventListener("storage", onChange);
+    };
+  }, [user, qc]);
+
   return useQuery({
-    queryKey: [...KEY, user?.id ?? "anon"],
-    enabled: !!user,
+    queryKey: [...CART_KEY, user?.id ?? "guest"],
+    enabled: !loading,
     staleTime: 15_000,
     retry: 1,
     queryFn: async (): Promise<CartItem[]> => {
-      const { data, error } = await supabase
-        .from("cart_items")
-        .select("*")
-        .eq("user_id", user!.id)
-        .order("created_at", { ascending: true });
-      if (error) throw error;
-      return (data ?? [])
-        .map((row) => normalizeCartRow(row as unknown as Record<string, unknown>))
-        .filter((row): row is CartItem => row !== null);
+      if (user) return fetchUserCart(user.id);
+      return readGuestCart() as CartItem[];
     },
   });
+}
+
+/** Number of distinct products in the active cart (not sum of quantities). */
+export function useCartCount() {
+  const { data: items = [] } = useCart();
+  return items.filter((i) => !i.saved_for_later).length;
+}
+
+export function useCartLine(productId: string | undefined) {
+  const { data: items = [] } = useCart();
+  if (!productId) return undefined;
+  return items.find((i) => i.product_id === productId && !i.saved_for_later);
 }
 
 export function useAddToCart() {
@@ -78,14 +176,21 @@ export function useAddToCart() {
     mutationFn: async ({
       snapshot,
       quantity,
+      openSheet = true,
     }: {
       snapshot: ProductSnapshot;
       quantity?: number;
+      openSheet?: boolean;
     }) => {
-      if (!user) throw new Error("Please sign in to add to cart");
       const safe = normalizeSnapshot(snapshot);
       if (!safe) throw new Error("Invalid product");
       const qty = Math.max(quantity ?? safe.moq, safe.moq);
+
+      if (!user) {
+        upsertGuestLine(safe, qty);
+        return { openSheet };
+      }
+
       const { data: existing } = await supabase
         .from("cart_items")
         .select("id, quantity")
@@ -107,10 +212,12 @@ export function useAddToCart() {
         });
         if (error) throw error;
       }
+      return { openSheet };
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: KEY });
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: CART_KEY });
       toast.success("Added to cart");
+      if (res?.openSheet !== false) openCartSheet();
     },
     onError: (e: Error) => toast.error(e.message || "Could not add to cart"),
   });
@@ -118,6 +225,7 @@ export function useAddToCart() {
 
 export function useUpdateCartItem() {
   const qc = useQueryClient();
+  const { user } = useAuth();
   return useMutation({
     mutationFn: async ({
       id,
@@ -128,25 +236,34 @@ export function useUpdateCartItem() {
       quantity?: number;
       saved_for_later?: boolean;
     }) => {
+      if (!user) {
+        updateGuestLine(id, { quantity, saved_for_later });
+        return;
+      }
       const patch: { quantity?: number; saved_for_later?: boolean } = {};
       if (quantity !== undefined) patch.quantity = quantity;
       if (saved_for_later !== undefined) patch.saved_for_later = saved_for_later;
       const { error } = await supabase.from("cart_items").update(patch).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: CART_KEY }),
     onError: (e: Error) => toast.error(e.message || "Could not update cart"),
   });
 }
 
 export function useRemoveCartItem() {
   const qc = useQueryClient();
+  const { user } = useAuth();
   return useMutation({
     mutationFn: async (id: string) => {
+      if (!user) {
+        removeGuestLine(id);
+        return;
+      }
       const { error } = await supabase.from("cart_items").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: CART_KEY }),
     onError: (e: Error) => toast.error(e.message || "Could not remove item"),
   });
 }
@@ -156,10 +273,131 @@ export function useClearCart() {
   const { user } = useAuth();
   return useMutation({
     mutationFn: async () => {
-      if (!user) return;
+      if (!user) {
+        clearGuestCart();
+        return;
+      }
       const { error } = await supabase.from("cart_items").delete().eq("user_id", user.id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: CART_KEY }),
+  });
+}
+
+export function useSetCartQuantity() {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  const add = useAddToCart();
+  const update = useUpdateCartItem();
+  const remove = useRemoveCartItem();
+
+  return {
+    isPending: add.isPending || update.isPending || remove.isPending,
+    setQuantity: async ({
+      productId,
+      snapshot,
+      quantity,
+      lineId,
+      moq,
+    }: {
+      productId: string;
+      snapshot: ProductSnapshot;
+      quantity: number;
+      lineId?: string;
+      moq: number;
+    }) => {
+      if (quantity <= 0) {
+        if (lineId) await remove.mutateAsync(lineId);
+        return;
+      }
+      const q = Math.max(quantity, moq);
+      if (!lineId) {
+        await add.mutateAsync({ snapshot, quantity: q, openSheet: false });
+        return;
+      }
+      // If line already exists, set absolute quantity (not add)
+      if (!user) {
+        updateGuestLine(lineId, { quantity: q, saved_for_later: false });
+        qc.invalidateQueries({ queryKey: CART_KEY });
+        return;
+      }
+      const { error } = await supabase
+        .from("cart_items")
+        .update({ quantity: q, saved_for_later: false })
+        .eq("id", lineId);
+      if (error) throw error;
+      qc.invalidateQueries({ queryKey: CART_KEY });
+    },
+  };
+}
+
+type RepeatLine = {
+  product_snapshot: ProductSnapshot;
+  quantity: number;
+};
+
+/** Re-add every line from a past order into the cart (ready to checkout again). */
+export function useRepeatOrder() {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async (items: RepeatLine[]) => {
+      if (!items?.length) throw new Error("This order has no items to repeat");
+
+      let added = 0;
+      for (const item of items) {
+        const safe = normalizeSnapshot(item.product_snapshot);
+        if (!safe) continue;
+        const qty = Math.max(1, Number(item.quantity) || safe.moq, safe.moq);
+
+        if (!user) {
+          upsertGuestLine(safe, qty);
+          added += 1;
+          continue;
+        }
+
+        const { data: existing } = await supabase
+          .from("cart_items")
+          .select("id, quantity")
+          .eq("user_id", user.id)
+          .eq("product_id", safe.id)
+          .maybeSingle();
+
+        if (existing) {
+          const { error } = await supabase
+            .from("cart_items")
+            .update({
+              quantity: existing.quantity + qty,
+              saved_for_later: false,
+              product_snapshot: safe as never,
+            })
+            .eq("id", existing.id);
+          if (error) throw error;
+        } else {
+          const { error } = await supabase.from("cart_items").insert({
+            user_id: user.id,
+            product_id: safe.id,
+            product_snapshot: safe as never,
+            quantity: qty,
+          });
+          if (error) throw error;
+        }
+        added += 1;
+      }
+
+      if (added === 0) throw new Error("Could not add items from this order");
+      return { added };
+    },
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: CART_KEY });
+      toast.success(
+        res.added === 1
+          ? "1 item added to cart — ready to order again"
+          : `${res.added} items added to cart — ready to order again`,
+      );
+      openCartSheet();
+    },
+    onError: (e: Error) => toast.error(e.message || "Could not repeat order"),
   });
 }

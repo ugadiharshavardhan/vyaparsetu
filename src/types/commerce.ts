@@ -56,6 +56,9 @@ export type ShippingAddress = {
   country: string;
   gst_number: string | null;
   is_default: boolean;
+  /** Leaflet map pin (optional) */
+  latitude?: number | null;
+  longitude?: number | null;
 };
 
 export type Coupon = {

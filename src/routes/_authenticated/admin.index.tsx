@@ -15,9 +15,10 @@ import { Pill } from "@/components/supplier/Pill";
 import { Button } from "@/components/ui/button";
 import { compactInr, inr } from "@/lib/format";
 import {
-  adminOrders, adminProducts, adminTickets, adminUsers, auditLogs,
+  adminOrders, adminTickets, adminUsers, auditLogs,
   refundQueue, revenueDaily, verificationQueue,
 } from "@/data/admin";
+import { useProducts } from "@/hooks/useCatalog";
 
 export const Route = createFileRoute("/_authenticated/admin/")({
   head: () => ({ meta: [{ title: "Admin Overview — VyaparSetu" }] }),
@@ -25,6 +26,7 @@ export const Route = createFileRoute("/_authenticated/admin/")({
 });
 
 function AdminOverview() {
+  const { data: catalogProducts = [] } = useProducts();
   const totalUsers = adminUsers.length;
   const activeUsers = adminUsers.filter((u) => u.status === "active").length;
   const retailers = adminUsers.filter((u) => u.role === "retailer").length;
@@ -33,8 +35,8 @@ function AdminOverview() {
   const distributors = adminUsers.filter((u) => u.role === "distributor").length;
   const verified = adminUsers.filter((u) => u.gstVerified).length;
   const pendingVer = verificationQueue.filter((v) => v.status === "pending").length;
-  const totalProducts = adminProducts.length;
-  const pendingProd = adminProducts.filter((p) => p.status === "pending").length;
+  const totalProducts = catalogProducts.length;
+  const pendingProd = catalogProducts.filter((p) => !p.inStock).length;
   const today = new Date().toDateString();
   const ordersToday = adminOrders.filter((o) => new Date(o.createdAt).toDateString() === today).length;
   const monthlyRev = adminOrders.reduce((s, o) => s + o.amount, 0);

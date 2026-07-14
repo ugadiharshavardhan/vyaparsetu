@@ -7,6 +7,7 @@ import { Logo } from "@/components/common/Logo";
 import { NAV_LINKS } from "@/constants/site";
 import { SearchDialog } from "@/components/search/SearchDialog";
 import { UserMenu } from "@/components/layout/UserMenu";
+import { CartButton } from "@/components/cart/CartButton";
 
 
 export function Header() {
@@ -61,6 +62,8 @@ export function Header() {
           >
             <Search className="h-4 w-4" />
           </button>
+
+          <CartButton className="h-10 w-10 border border-border bg-card shadow-soft" />
 
           <div className="hidden md:block">
             <UserMenu />

@@ -121,7 +121,7 @@ function AdjustDialog({
   onAdjust,
 }: {
   product: SupplierProduct;
-  onAdjust: (p: SupplierProduct, qty: number, note: string, type?: "restock" | "adjustment") => void;
+  onAdjust: (p: SupplierProduct, qty: number, note: string, type?: "restock" | "adjustment") => void | Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
   const [qty, setQty] = useState(0);
@@ -147,10 +147,13 @@ function AdjustDialog({
           <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
           <Button onClick={() => {
             if (qty === 0) { toast.error("Enter a non-zero quantity"); return; }
-            onAdjust(product, qty, note || "Manual adjustment", qty > 0 ? "restock" : "adjustment");
-            toast.success("Stock updated");
-            setOpen(false);
-            setQty(0); setNote("");
+            void Promise.resolve(onAdjust(product, qty, note || "Manual adjustment", qty > 0 ? "restock" : "adjustment"))
+              .then(() => {
+                toast.success("Stock updated");
+                setOpen(false);
+                setQty(0); setNote("");
+              })
+              .catch((e: Error) => toast.error(e.message));
           }}>Apply</Button>
         </DialogFooter>
       </DialogContent>

@@ -26,8 +26,9 @@ function PricingPage() {
   const save = (p: SupplierProduct) => {
     const d = drafts[p.id];
     if (!d) return;
-    updateProduct(p.id, { wholesalePrice: d.wp || p.wholesalePrice, mrp: d.mrp || p.mrp });
-    toast.success("Pricing updated");
+    void updateProduct(p.id, { wholesalePrice: d.wp || p.wholesalePrice, mrp: d.mrp || p.mrp })
+      .then(() => toast.success("Pricing updated"))
+      .catch((e: Error) => toast.error(e.message));
   };
 
   return (

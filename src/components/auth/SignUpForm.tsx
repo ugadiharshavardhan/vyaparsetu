@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { setSessionMode } from "@/lib/sessionMode";
+import { ensureBuyerAccount, ensureSellerAccount } from "@/lib/accountMembership";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,11 +25,20 @@ const passwordSchema = {
   confirmPassword: z.string().min(1, "Confirm your password"),
 };
 
+const phoneRegex = /^[+]?\d[\d\s-]{7,14}\d$/;
+
 const buyerSchema = z
   .object({
     fullName: z.string().trim().min(2, "Name is required").max(120),
     businessName: z.string().trim().min(2, "Business name is required").max(120),
     email: z.string().trim().email("Please enter a valid email").max(255),
+    phone: z.string().trim().regex(phoneRegex, "Enter a valid mobile number"),
+    whatsapp: z
+      .string()
+      .trim()
+      .optional()
+      .refine((v) => !v || phoneRegex.test(v), "Enter a valid WhatsApp number"),
+    address: z.string().trim().min(5, "Business address is required").max(500),
     password: passwordSchema.password,
     confirmPassword: passwordSchema.confirmPassword,
     acceptTerms: z.literal(true, {
@@ -45,10 +55,7 @@ const sellerSchema = z
     businessName: z.string().trim().min(2, "Business name is required").max(120),
     fullName: z.string().trim().min(2, "Owner name is required").max(120),
     email: z.string().trim().email("Please enter a valid email").max(255),
-    phone: z
-      .string()
-      .trim()
-      .regex(/^[+]?\d[\d\s-]{7,14}\d$/, "Enter a valid mobile number"),
+    phone: z.string().trim().regex(phoneRegex, "Enter a valid mobile number"),
     gstNumber: z
       .string()
       .trim()
@@ -108,6 +115,9 @@ function BuyerSignUp({ onBack }: { onBack?: () => void }) {
       fullName: "",
       businessName: "",
       email: "",
+      phone: "",
+      whatsapp: "",
+      address: "",
       password: "",
       confirmPassword: "",
     },
@@ -115,6 +125,9 @@ function BuyerSignUp({ onBack }: { onBack?: () => void }) {
 
   const submit = async (values: BuyerFormValues) => {
     const email = values.email.trim().toLowerCase();
+    const phone = values.phone.trim();
+    const whatsapp = (values.whatsapp ?? "").trim() || phone;
+    const address = values.address.trim();
     const { data, error } = await supabase.auth.signUp({
       email,
       password: values.password,
@@ -122,7 +135,11 @@ function BuyerSignUp({ onBack }: { onBack?: () => void }) {
         emailRedirectTo: `${window.location.origin}/marketplace`,
         data: {
           full_name: values.fullName,
+          owner_name: values.fullName,
           business_name: values.businessName,
+          phone,
+          whatsapp,
+          address,
           account_type: "buyer",
           business_role: "buyer",
           business_type: roleToBusinessType("buyer"),
@@ -132,6 +149,22 @@ function BuyerSignUp({ onBack }: { onBack?: () => void }) {
     if (error) {
       showSignUpError(error.message);
       return;
+    }
+    const userId = data.user?.id;
+    if (userId) {
+      try {
+        await ensureBuyerAccount({
+          id: userId,
+          email,
+          full_name: values.fullName.trim(),
+          business_name: values.businessName.trim(),
+          phone,
+          whatsapp,
+          address,
+        });
+      } catch (e) {
+        console.warn("[ensure-buyer]", e);
+      }
     }
     // If email confirmation is off / auto-confirmed, a session is returned.
     if (data.session) {
@@ -187,6 +220,52 @@ function BuyerSignUp({ onBack }: { onBack?: () => void }) {
           />
           {form.formState.errors.email && (
             <p className="mt-1 text-xs text-destructive">{form.formState.errors.email.message}</p>
+          )}
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <Label htmlFor="buyer-phone">Phone number</Label>
+            <Input
+              id="buyer-phone"
+              type="tel"
+              placeholder="+91 98765 43210"
+              className="mt-1.5 h-11"
+              autoComplete="tel"
+              {...form.register("phone")}
+            />
+            {form.formState.errors.phone && (
+              <p className="mt-1 text-xs text-destructive">{form.formState.errors.phone.message}</p>
+            )}
+          </div>
+          <div>
+            <Label htmlFor="buyer-whatsapp">
+              WhatsApp <span className="text-muted-foreground">(optional)</span>
+            </Label>
+            <Input
+              id="buyer-whatsapp"
+              type="tel"
+              placeholder="Same as phone if empty"
+              className="mt-1.5 h-11"
+              {...form.register("whatsapp")}
+            />
+            {form.formState.errors.whatsapp && (
+              <p className="mt-1 text-xs text-destructive">{form.formState.errors.whatsapp.message}</p>
+            )}
+          </div>
+        </div>
+
+        <div>
+          <Label htmlFor="buyer-address">Business address</Label>
+          <Input
+            id="buyer-address"
+            placeholder="Shop / street, area, city, pincode"
+            className="mt-1.5 h-11"
+            autoComplete="street-address"
+            {...form.register("address")}
+          />
+          {form.formState.errors.address && (
+            <p className="mt-1 text-xs text-destructive">{form.formState.errors.address.message}</p>
           )}
         </div>
 
@@ -252,6 +331,22 @@ function SellerSignUp({ onBack }: { onBack?: () => void }) {
     if (error) {
       showSignUpError(error.message);
       return;
+    }
+    const userId = data.user?.id;
+    if (userId) {
+      try {
+        await ensureSellerAccount({
+          id: userId,
+          email,
+          full_name: values.fullName.trim(),
+          business_name: values.businessName.trim(),
+          phone: values.phone.trim(),
+          gst_number: values.gstNumber?.trim() || undefined,
+          address: values.address?.trim() || undefined,
+        });
+      } catch (e) {
+        console.warn("[ensure-seller]", e);
+      }
     }
     if (data.session) {
       setSessionMode("seller");

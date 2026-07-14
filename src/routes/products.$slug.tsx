@@ -1,9 +1,10 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
-  Boxes, ChevronRight, Heart, MapPin, MessageCircle, PackageCheck,
-  ShieldCheck, ShoppingCart, Sparkles, Truck, Zap,
+  ChevronRight, MapPin, MessageCircle, Minus, PackageCheck, Plus,
+  ShieldCheck, Sparkles, Truck,
 } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { mapDbProduct, type DbProduct } from "@/lib/catalogMap";
 import { getRelatedFromList, useProducts } from "@/hooks/useCatalog";
@@ -24,6 +25,10 @@ import {
   Accordion, AccordionContent, AccordionItem, AccordionTrigger,
 } from "@/components/ui/accordion";
 import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
+import { useCartLine, useRemoveCartItem } from "@/hooks/useCart";
+import { openCartSheet } from "@/hooks/useCartSheet";
+import { AddToCartControl } from "@/components/cart/AddToCartControl";
+import { SaveProductButton } from "@/components/product/SaveProductButton";
 
 export const Route = createFileRoute("/products/$slug")({
   loader: async ({ params }) => {
@@ -80,7 +85,23 @@ function ProductPage() {
   const { ids, push } = useRecentlyViewed();
   const recentlyViewed = allProducts.filter((p) => ids.includes(p.id) && p.id !== product.id).slice(0, 4);
 
+  const moq = Math.max(1, product.moq);
+  const [qty, setQty] = useState(moq);
+  const line = useCartLine(product.id);
+  const remove = useRemoveCartItem();
+
   useEffect(() => { push(product.id); }, [product.id, push]);
+  useEffect(() => {
+    if (!line) setQty(moq);
+  }, [product.id, moq, line]);
+
+  const onInquiry = () => {
+    const subject = encodeURIComponent(`Inquiry: ${product.name} (${product.sku ?? product.slug})`);
+    const body = encodeURIComponent(
+      `Hi ${product.supplier.name},\n\nI'm interested in "${product.name}" (MOQ ${product.moq} ${product.unit}).\nPlease share bulk pricing and availability.\n\nThanks`,
+    );
+    window.location.href = `mailto:hello@vyaparsetu.in?subject=${subject}&body=${body}`;
+  };
 
   return (
     <div className="container-page py-8 md:py-12">
@@ -135,7 +156,7 @@ function ProductPage() {
                 <div className="text-muted-foreground">MOQ ({product.unit})</div>
               </div>
               <div className="rounded-xl bg-secondary p-3">
-                <div className="font-semibold text-foreground">2–3 days</div>
+                <div className="font-semibold text-foreground">{product.deliveryEstimate ?? "2–3 days"}</div>
                 <div className="text-muted-foreground">Delivery</div>
               </div>
               <div className="rounded-xl bg-secondary p-3">
@@ -144,18 +165,79 @@ function ProductPage() {
               </div>
             </div>
 
-            <div className="mt-5 flex flex-wrap gap-2">
-              <Button size="lg" disabled className="flex-1 shadow-brand" title="Cart ships in next phase">
-                <ShoppingCart className="mr-1.5 h-4 w-4" /> Add to Cart
-              </Button>
-              <Button size="lg" variant="outline" disabled className="flex-1" title="Checkout ships in next phase">
-                <Zap className="mr-1.5 h-4 w-4" /> Buy Now
-              </Button>
-              <Button size="lg" variant="outline" aria-label="Save">
-                <Heart className="h-4 w-4" />
-              </Button>
+            {/* Before add: optional qty picker. After add: +/- replaces Add to cart. */}
+            {!line && (
+              <div className="mt-5">
+                <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Quantity ({product.unit})
+                </div>
+                <div className="inline-flex items-center rounded-full border border-border bg-background">
+                  <button
+                    type="button"
+                    disabled={!product.inStock || qty <= moq}
+                    onClick={() => setQty((q) => Math.max(moq, q - 1))}
+                    className="grid h-11 w-11 place-items-center text-muted-foreground hover:bg-secondary disabled:opacity-40"
+                    aria-label="Decrease quantity"
+                  >
+                    <Minus className="h-4 w-4" />
+                  </button>
+                  <div className="min-w-[4rem] px-3 text-center text-base font-semibold tabular-nums">{qty}</div>
+                  <button
+                    type="button"
+                    disabled={!product.inStock || qty + 1 > product.stockCount}
+                    onClick={() => {
+                      const next = qty + 1;
+                      if (next > product.stockCount) {
+                        toast.error(`Only ${product.stockCount} in stock`);
+                        return;
+                      }
+                      setQty(next);
+                    }}
+                    className="grid h-11 w-11 place-items-center text-muted-foreground hover:bg-secondary disabled:opacity-40"
+                    aria-label="Increase quantity"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </div>
+                <p className="mt-2 text-[11px] text-muted-foreground">
+                  Minimum order {moq} {product.unit}. Adjust by 1, then add to cart.
+                </p>
+              </div>
+            )}
+
+            <div className="mt-5 flex flex-wrap items-center gap-2">
+              <AddToCartControl
+                product={product}
+                size="lg"
+                initialQuantity={qty}
+                className="min-w-[10rem] flex-1"
+              />
+              <SaveProductButton product={product} variant="button" size="lg" />
             </div>
-            <Button size="lg" variant="ghost" className="mt-2 w-full text-brand">
+            {line && (
+              <div className="mt-3 flex items-center justify-between rounded-xl bg-brand-soft/60 px-3 py-2 text-sm">
+                <span className="font-medium text-brand">
+                  {line.quantity} {product.unit} in your cart · steps of {moq}
+                </span>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    className="text-xs font-semibold text-brand hover:underline"
+                    onClick={() => openCartSheet()}
+                  >
+                    View cart
+                  </button>
+                  <button
+                    type="button"
+                    className="text-xs font-semibold text-destructive hover:underline"
+                    onClick={() => remove.mutate(line.id)}
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            )}
+            <Button size="lg" variant="ghost" className="mt-2 w-full text-brand" onClick={onInquiry}>
               <MessageCircle className="mr-1.5 h-4 w-4" /> Send Inquiry to Supplier
             </Button>
           </div>
@@ -194,9 +276,17 @@ function ProductPage() {
                   <span>{product.supplier.yearsActive}+ yrs on VyaparSetu</span>
                 </div>
               </div>
-              <Button asChild variant="outline" size="sm">
-                <Link to="/suppliers/$id" params={{ id: product.supplier.id }}>View store</Link>
-              </Button>
+              {product.supplier.id ? (
+                <Button asChild variant="outline" size="sm">
+                  <Link to="/suppliers/$id" params={{ id: product.supplier.id }}>
+                    View store
+                  </Link>
+                </Button>
+              ) : (
+                <Button variant="outline" size="sm" disabled>
+                  View store
+                </Button>
+              )}
             </div>
             <div className="mt-4 grid grid-cols-3 gap-3 border-t border-border pt-4 text-xs text-muted-foreground">
               <div className="flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5 text-brand" /> Verified</div>
@@ -284,6 +374,3 @@ function Meta({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
-
-// Silence unused import for Boxes (kept for future use)
-void Boxes;

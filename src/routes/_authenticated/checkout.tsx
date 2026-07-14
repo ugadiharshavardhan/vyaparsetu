@@ -37,7 +37,7 @@ const STEPS = [
 function CheckoutPage() {
   const navigate = useNavigate();
   const { coupon: couponCode } = Route.useSearch();
-  const { data: cart = [] } = useCart();
+  const { data: cart = [], isLoading: cartLoading } = useCart();
   const items = cart.filter((i) => !i.saved_for_later);
   const { data: addresses = [] } = useAddresses();
 
@@ -56,13 +56,21 @@ function CheckoutPage() {
   const validate = useValidateCoupon();
   const place = usePlaceOrder();
 
-  // Preselect default address
+  // Preselect default address; prompt for address when none saved
   useEffect(() => {
     if (!selectedAddress && addresses.length > 0) {
       const def = addresses.find((a) => a.is_default) ?? addresses[0];
       setSelectedAddress(def.id);
     }
   }, [addresses, selectedAddress]);
+
+  const [promptedAddress, setPromptedAddress] = useState(false);
+  useEffect(() => {
+    if (!cartLoading && !promptedAddress && addresses.length === 0 && step === 0) {
+      setAddrOpen(true);
+      setPromptedAddress(true);
+    }
+  }, [cartLoading, promptedAddress, addresses.length, step]);
 
   // Restore coupon from URL
   useEffect(() => {
@@ -73,16 +81,30 @@ function CheckoutPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [couponCode, items.length]);
 
+  if (cartLoading && step < 3) {
+    return (
+      <div className="container-page flex min-h-[40vh] items-center justify-center py-16">
+        <Loader2 className="h-8 w-8 animate-spin text-brand" />
+      </div>
+    );
+  }
+
   if (items.length === 0 && step < 3) {
     return (
-      
-        <div className="container-page py-16 text-center">
-          <h2 className="text-xl font-bold">Your cart is empty</h2>
-          <Button className="mt-4 shadow-brand" onClick={() => navigate({ to: "/marketplace" })}>
+      <div className="container-page py-16 text-center">
+        <h2 className="text-xl font-bold">Your cart is empty</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Add products from the marketplace, then come back to checkout.
+        </p>
+        <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+          <Button className="shadow-brand" onClick={() => navigate({ to: "/marketplace" })}>
             Browse marketplace
           </Button>
+          <Button variant="outline" onClick={() => navigate({ to: "/cart" })}>
+            View cart
+          </Button>
         </div>
-      
+      </div>
     );
   }
 

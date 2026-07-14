@@ -12,18 +12,24 @@ export const Route = createFileRoute("/_authenticated/supplier/products/$id")({
 
 function EditProductPage() {
   const { id } = Route.useParams();
-  const product = useSupplierProduct(id);
+  const { product, isLoading } = useSupplierProduct(id);
   const { updateProduct, remove } = useSupplierProducts();
   const navigate = useNavigate();
 
+  if (isLoading) {
+    return (
+      <div className="container-page py-10">
+        <PageHeader title="Loading product…" description="Fetching from catalog." />
+      </div>
+    );
+  }
+
   if (!product) {
     return (
-      
         <div className="container-page py-10">
           <PageHeader title="Product not found" description="This product may have been deleted." />
           <Button className="mt-6" onClick={() => navigate({ to: "/supplier/products" })}>Back to products</Button>
         </div>
-      
     );
   }
 
@@ -31,7 +37,6 @@ function EditProductPage() {
   void _id; void _c; void _u;
 
   return (
-    
       <div className="container-page space-y-6 py-8">
         <PageHeader
           title={product.name}
@@ -41,9 +46,12 @@ function EditProductPage() {
               variant="outline"
               className="text-destructive"
               onClick={() => {
-                remove(product.id);
-                toast.success("Product deleted");
-                navigate({ to: "/supplier/products" });
+                void remove(product.id)
+                  .then(() => {
+                    toast.success("Product deleted");
+                    navigate({ to: "/supplier/products" });
+                  })
+                  .catch((e: Error) => toast.error(e.message));
               }}
             >
               Delete product
@@ -54,11 +62,11 @@ function EditProductPage() {
           initial={initial}
           submitLabel="Save changes"
           onSubmit={(patch) => {
-            updateProduct(product.id, patch);
-            toast.success("Product updated");
+            void updateProduct(product.id, patch)
+              .then(() => toast.success("Product updated"))
+              .catch((e: Error) => toast.error(e.message));
           }}
         />
       </div>
-    
   );
 }

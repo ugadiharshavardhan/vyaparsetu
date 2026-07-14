@@ -5,6 +5,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Rating } from "@/components/common/Rating";
 import { VerifiedBadge } from "@/components/common/VerifiedBadge";
+import { AddToCartControl } from "@/components/cart/AddToCartControl";
+import { SaveProductButton } from "@/components/product/SaveProductButton";
 import { discountPct, inr } from "@/lib/format";
 
 export function QuickViewDialog({
@@ -43,7 +45,7 @@ export function QuickViewDialog({
                   MOQ {product.moq} {product.unit}
                 </span>
               </div>
-              <p className="text-sm text-muted-foreground">{product.description}</p>
+              <p className="line-clamp-4 text-sm text-muted-foreground">{product.description}</p>
               <div className="rounded-xl border border-border bg-secondary/60 p-3 text-sm">
                 <div className="flex items-center gap-2">
                   <ShieldCheck className="h-4 w-4 text-brand" />
@@ -55,13 +57,14 @@ export function QuickViewDialog({
                   {product.supplier.location}
                 </div>
               </div>
-              <div className="mt-2 flex gap-2">
-                <Button asChild className="flex-1 shadow-brand">
-                  <Link to="/products/$slug" params={{ slug: product.slug }}>View Full Details</Link>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <Button asChild variant="outline" className="flex-1">
+                  <Link to="/products/$slug" params={{ slug: product.slug }} onClick={() => onOpenChange(false)}>
+                    View Full Details
+                  </Link>
                 </Button>
-                <Button variant="outline" className="flex-1" disabled title="Available after sign in">
-                  Add to Cart
-                </Button>
+                <SaveProductButton product={product} variant="button" size="sm" className="flex-1" />
+                <AddToCartControl product={product} size="sm" className="min-w-[7rem] flex-1" />
               </div>
             </div>
           </div>
