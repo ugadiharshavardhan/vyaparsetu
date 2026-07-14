@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { SUPPLIERS } from "@/data/suppliers";
-import { getProductsBySupplier } from "@/data/products";
+import { getBySupplier, useProducts } from "@/hooks/useCatalog";
 import { SectionHeading } from "@/components/common/SectionHeading";
 import { SupplierCard } from "@/components/marketplace/SupplierCard";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,7 @@ export const Route = createFileRoute("/suppliers")({
 
 function SuppliersPage() {
   const [q, setQ] = useState("");
+  const { data: products = [] } = useProducts();
   const filtered = useMemo(() => {
     const t = q.trim().toLowerCase();
     if (!t) return SUPPLIERS;
@@ -52,7 +53,7 @@ function SuppliersPage() {
 
       <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {filtered.map((s) => (
-          <SupplierCard key={s.id} supplier={s} productCount={getProductsBySupplier(s.id).length} />
+          <SupplierCard key={s.id} supplier={s} productCount={getBySupplier(products, s.id).length} />
         ))}
       </div>
     </div>

@@ -2,8 +2,6 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
-export type AuthRole = "retailer" | "wholesaler" | "manufacturer" | "distributor" | "admin";
-
 type AuthContextValue = {
   session: Session | null;
   user: User | null;

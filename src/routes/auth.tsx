@@ -62,9 +62,9 @@ function AuthPage() {
       }
       subtitle={
         isRoleStep
-          ? "Choose your workspace — you can switch anytime."
+          ? "Choose Customer or Seller — each account type is stored separately."
           : mode === "signin"
-            ? "Access your orders, credit line and supplier network."
+            ? "Sign in with the same account type you registered as."
             : "Join 84,000+ Indian businesses trading on VyaparSetu."
       }
     >

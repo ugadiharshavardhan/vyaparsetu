@@ -13,7 +13,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Logo } from "@/components/common/Logo";
-import { useRoles } from "@/hooks/useProfile";
+import { useAccountFlags } from "@/hooks/useAccountFlags";
 import { supabase } from "@/integrations/supabase/client";
 import { useCart } from "@/hooks/useCart";
 import { useWishlist } from "@/hooks/useWishlist";
@@ -24,7 +24,6 @@ import { clearSessionMode } from "@/lib/sessionMode";
 // Settings remain reachable directly by URL (routes preserved, nav hidden).
 const MAIN = [
   { title: "Marketplace", url: "/marketplace", icon: Store },
-  { title: "Categories", url: "/categories", icon: Tag },
   { title: "Suppliers", url: "/suppliers", icon: Users },
   { title: "Cart", url: "/cart", icon: ShoppingCart },
   { title: "Profile", url: "/profile", icon: User },
@@ -49,11 +48,7 @@ const SUPPLIER = [
 ] as const;
 
 const SELLER_EXPLORE = [
-  { title: "Marketplace", url: "/marketplace", icon: Store },
-  { title: "Categories", url: "/categories", icon: Tag },
   { title: "Suppliers", url: "/suppliers", icon: Users },
-  { title: "About", url: "/about", icon: Info },
-  { title: "Contact", url: "/contact", icon: Mail },
 ] as const;
 
 const ADMIN = [
@@ -82,13 +77,11 @@ export function DashboardSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const pathname = useRouterState({ select: (r) => r.location.pathname });
-  const { data: roles } = useRoles();
+  const { data: account } = useAccountFlags();
   const sessionMode = useSessionMode();
-  const isAdmin = roles?.includes("admin");
-  const hasSellerRole = !!roles?.some((r) => r === "wholesaler" || r === "manufacturer" || r === "distributor");
-  // Session mode (chosen at sign-in) wins over DB roles so a user who signed
-  // in as "Customer" sees the buyer sidebar even if they also have seller roles.
-  const isSupplier = sessionMode === "seller" || (sessionMode !== "buyer" && hasSellerRole);
+  const isAdmin = !!account?.isAdmin;
+  // Session mode (chosen at sign-in) wins so a customer sign-in shows buyer nav.
+  const isSupplier = sessionMode === "seller" || (sessionMode !== "buyer" && !!account?.isSeller);
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { data: cart } = useCart();
@@ -143,7 +136,10 @@ export function DashboardSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border">
-        <Link to="/dashboard" className="flex h-12 items-center gap-2 px-2">
+        <Link
+          to="/dashboard"
+          className={`flex h-12 items-center ${collapsed ? "justify-center px-0" : "gap-2 px-2"}`}
+        >
           <Logo compact={collapsed} />
         </Link>
       </SidebarHeader>

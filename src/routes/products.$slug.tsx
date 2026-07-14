@@ -1,10 +1,12 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import {
   Boxes, ChevronRight, Heart, MapPin, MessageCircle, PackageCheck,
   ShieldCheck, ShoppingCart, Sparkles, Truck, Zap,
 } from "lucide-react";
-import { getProductBySlug, getRelatedProducts, PRODUCTS } from "@/data/products";
+import { supabase } from "@/integrations/supabase/client";
+import { mapDbProduct, type DbProduct } from "@/lib/catalogMap";
+import { getRelatedFromList, useProducts } from "@/hooks/useCatalog";
 import { Button } from "@/components/ui/button";
 import { VerifiedBadge } from "@/components/common/VerifiedBadge";
 import { PriceDisplay } from "@/components/common/PriceDisplay";
@@ -24,10 +26,15 @@ import {
 import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
 
 export const Route = createFileRoute("/products/$slug")({
-  loader: ({ params }) => {
-    const product = getProductBySlug(params.slug);
-    if (!product) throw notFound();
-    return { product };
+  loader: async ({ params }) => {
+    const { data, error } = await supabase
+      .from("products")
+      .select("*")
+      .eq("slug", params.slug)
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) throw notFound();
+    return { product: mapDbProduct(data as unknown as DbProduct) };
   },
   head: ({ loaderData }) => ({
     meta: [
@@ -67,10 +74,11 @@ const PRODUCT_FAQS = [
 
 function ProductPage() {
   const { product } = Route.useLoaderData();
+  const { data: allProducts = [] } = useProducts();
   const gallery = product.images ?? [product.image];
-  const related = getRelatedProducts(product);
+  const related = useMemo(() => getRelatedFromList(allProducts, product), [allProducts, product]);
   const { ids, push } = useRecentlyViewed();
-  const recentlyViewed = PRODUCTS.filter((p) => ids.includes(p.id) && p.id !== product.id).slice(0, 4);
+  const recentlyViewed = allProducts.filter((p) => ids.includes(p.id) && p.id !== product.id).slice(0, 4);
 
   useEffect(() => { push(product.id); }, [product.id, push]);
 

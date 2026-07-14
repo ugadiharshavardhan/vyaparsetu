@@ -13,7 +13,8 @@ import { BUSINESS_CATEGORIES } from "@/data/business";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { useProfile, useRoles, useUpdateProfile, type Profile } from "@/hooks/useProfile";
+import { useProfile, useUpdateProfile, type Profile } from "@/hooks/useProfile";
+import { useAccountFlags } from "@/hooks/useAccountFlags";
 
 export const Route = createFileRoute("/_authenticated/profile")({
   head: () => ({ meta: [{ title: "Profile — VyaparSetu" }] }),
@@ -22,7 +23,7 @@ export const Route = createFileRoute("/_authenticated/profile")({
 
 function ProfilePage() {
   const { data: profile, isLoading } = useProfile();
-  const { data: roles } = useRoles();
+  const { data: account } = useAccountFlags();
   const update = useUpdateProfile();
   const [form, setForm] = useState<Partial<Profile>>({});
 
@@ -75,9 +76,9 @@ function ProfilePage() {
                 <p className="text-sm text-muted-foreground">{profile?.owner_name ?? profile?.full_name}</p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <StatusBadge status={profile?.verification_status ?? "pending"} />
-                  {roles?.map((r) => (
-                    <span key={r} className="inline-flex items-center rounded-full bg-brand-soft px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-brand">
-                      {r}
+                  {account?.kinds.map((k) => (
+                    <span key={k} className="inline-flex items-center rounded-full bg-brand-soft px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-brand">
+                      {k}
                     </span>
                   ))}
                 </div>

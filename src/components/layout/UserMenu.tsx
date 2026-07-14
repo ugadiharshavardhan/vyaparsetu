@@ -22,7 +22,8 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { AuthContext, useAuth } from "@/hooks/useAuth";
-import { useProfile, useRoles } from "@/hooks/useProfile";
+import { useProfile } from "@/hooks/useProfile";
+import { useAccountFlags } from "@/hooks/useAccountFlags";
 import { useSessionMode } from "@/hooks/useSessionMode";
 import { clearSessionMode } from "@/lib/sessionMode";
 
@@ -64,7 +65,7 @@ function GuestActions() {
 function ProvidedUserMenu() {
   const { user, isAuthenticated, loading } = useAuth();
   const { data: profile } = useProfile();
-  const { data: roles } = useRoles();
+  const { data: account } = useAccountFlags();
   const sessionMode = useSessionMode();
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -75,9 +76,8 @@ function ProvidedUserMenu() {
     return <GuestActions />;
   }
 
-  const isAdmin = roles?.includes("admin");
-  const hasSellerRole = !!roles?.some((r) => r === "wholesaler" || r === "manufacturer" || r === "distributor");
-  const isSeller = sessionMode === "seller" || (sessionMode !== "buyer" && hasSellerRole);
+  const isAdmin = !!account?.isAdmin;
+  const isSeller = sessionMode === "seller" || (sessionMode !== "buyer" && !!account?.isSeller);
   const handleSignOut = async () => {
     try {
       await qc.cancelQueries();

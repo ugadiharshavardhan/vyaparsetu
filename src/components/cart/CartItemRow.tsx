@@ -14,6 +14,17 @@ export function CartItemRow({ item }: { item: CartItem }) {
   const remove = useRemoveCartItem();
   const wish = useToggleWishlist();
 
+  if (!p?.slug || !p?.id) {
+    return (
+      <div className="flex items-center justify-between rounded-2xl border border-border bg-card p-4 text-sm shadow-soft">
+        <span className="text-muted-foreground">This item could not be loaded.</span>
+        <Button size="sm" variant="ghost" className="text-destructive" onClick={() => remove.mutate(item.id)}>
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
+    );
+  }
+
   const changeQty = (q: number) => {
     if (q < p.moq) {
       toast.error(`Minimum order quantity is ${p.moq} ${p.unit}`);
@@ -26,8 +37,8 @@ export function CartItemRow({ item }: { item: CartItem }) {
     update.mutate({ id: item.id, quantity: q });
   };
 
-  const lineTotal = p.wholesalePrice * item.quantity;
-  const gst = p.gstIncluded ? 0 : (lineTotal * p.gstRate) / 100;
+  const lineTotal = (p.wholesalePrice || 0) * item.quantity;
+  const gst = p.gstIncluded ? 0 : (lineTotal * (p.gstRate || 0)) / 100;
 
   return (
     <motion.div

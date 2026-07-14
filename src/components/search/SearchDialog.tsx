@@ -10,9 +10,8 @@ import {
   CommandList,
   CommandSeparator,
 } from "@/components/ui/command";
-import { PRODUCTS } from "@/data/products";
-import { CATEGORIES } from "@/data/categories";
 import { TRENDING_SEARCHES } from "@/constants/site";
+import { useCategories, useProducts } from "@/hooks/useCatalog";
 
 const RECENT_KEY = "vs.recent-searches";
 
@@ -26,6 +25,8 @@ export function SearchDialog({
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [recent, setRecent] = useState<string[]>([]);
+  const { data: products = [] } = useProducts();
+  const { data: categories = [] } = useCategories();
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -49,13 +50,13 @@ export function SearchDialog({
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return [];
-    return PRODUCTS.filter(
+    return products.filter(
       (p) =>
         p.name.toLowerCase().includes(q) ||
         p.brand.toLowerCase().includes(q) ||
         p.category.includes(q),
     ).slice(0, 6);
-  }, [query]);
+  }, [query, products]);
 
   const pushRecent = (term: string) => {
     const next = [term, ...recent.filter((t) => t !== term)].slice(0, 5);
@@ -131,13 +132,13 @@ export function SearchDialog({
             </CommandGroup>
             <CommandSeparator />
             <CommandGroup heading="Browse categories">
-              {CATEGORIES.slice(0, 6).map((c) => (
+              {categories.slice(0, 6).map((c) => (
                 <CommandItem
                   key={c.id}
                   value={c.name}
                   onSelect={() => {
                     onOpenChange(false);
-                    navigate({ to: "/marketplace", search: { category: c.slug } as never });
+                    navigate({ to: "/categories/$slug", params: { slug: c.slug } });
                   }}
                 >
                   <SearchIcon className="mr-2 h-4 w-4 text-muted-foreground" />

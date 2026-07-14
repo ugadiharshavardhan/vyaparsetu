@@ -4,14 +4,14 @@ import {
   MapPin, MessageCircle, ShieldCheck, TrendingUp,
 } from "lucide-react";
 import { getSupplierById } from "@/data/suppliers";
-import { getProductsBySupplier } from "@/data/products";
-import { CATEGORIES } from "@/data/categories";
+import { getBySupplier, useCategories, useProducts } from "@/hooks/useCatalog";
 import { Button } from "@/components/ui/button";
 import { VerifiedBadge } from "@/components/common/VerifiedBadge";
 import { Rating } from "@/components/common/Rating";
 import { ProductGrid } from "@/components/product/ProductGrid";
 import { SectionHeading } from "@/components/common/SectionHeading";
 import { ReviewCard, type ReviewData } from "@/components/product/ReviewCard";
+import { ProductGridSkeleton } from "@/components/product/ProductCardSkeleton";
 
 export const Route = createFileRoute("/suppliers/$id")({
   loader: ({ params }) => {
@@ -42,10 +42,14 @@ const REVIEWS: ReviewData[] = [
 
 function SupplierProfile() {
   const { supplier } = Route.useLoaderData();
-  const products = getProductsBySupplier(supplier.id);
+  const { data: allProducts = [], isLoading } = useProducts();
+  const { data: categories = [] } = useCategories();
+  const products = getBySupplier(allProducts, supplier.id);
   const suppliedCategories = supplier.categories
-    ? CATEGORIES.filter((c) => supplier.categories?.includes(c.slug))
-    : Array.from(new Set(products.map((p) => p.category))).map((slug) => CATEGORIES.find((c) => c.slug === slug)!).filter(Boolean);
+    ? categories.filter((c) => supplier.categories?.includes(c.slug))
+    : Array.from(new Set(products.map((p) => p.category)))
+        .map((slug) => categories.find((c) => c.slug === slug)!)
+        .filter(Boolean);
 
   return (
     <div className="container-page py-8 md:py-12">
@@ -136,7 +140,9 @@ function SupplierProfile() {
             description={`${products.length} SKUs currently listed`}
           />
           <div className="mt-6">
-            {products.length > 0 ? (
+            {isLoading ? (
+              <ProductGridSkeleton count={6} />
+            ) : products.length > 0 ? (
               <ProductGrid products={products.slice(0, 6)} />
             ) : (
               <p className="text-sm text-muted-foreground">No products listed yet.</p>

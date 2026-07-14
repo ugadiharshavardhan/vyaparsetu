@@ -48,17 +48,18 @@ export function computeTotals(
   address: ShippingAddress | null,
   coupon: Coupon | null,
 ): PriceBreakup {
-  const subtotal = items.reduce((s, i) => s + lineNet(i), 0);
+  const safeItems = items.filter((i) => i?.product_snapshot && typeof i.product_snapshot.wholesalePrice === "number");
+  const subtotal = safeItems.reduce((s, i) => s + lineNet(i), 0);
   const discountTotal = applyCoupon(subtotal, coupon);
   const taxableBase = Math.max(subtotal - discountTotal, 0);
 
   // Weighted GST rate based on line items
-  const gstTotal = items.reduce((s, i) => {
+  const gstTotal = safeItems.reduce((s, i) => {
     const line = lineNet(i);
     const share = subtotal > 0 ? line / subtotal : 0;
     const taxable = taxableBase * share;
     // treat gstIncluded=true snapshots as tax-inclusive prices
-    const rate = i.product_snapshot.gstRate;
+    const rate = i.product_snapshot.gstRate || 0;
     const gst = i.product_snapshot.gstIncluded
       ? taxable - taxable / (1 + rate / 100)
       : (taxable * rate) / 100;
@@ -71,7 +72,7 @@ export function computeTotals(
   const igst = interstate ? gstTotal : 0;
 
   const shippingTotal = estimateShipping(taxableBase);
-  const inclusiveSubtotal = items.some((i) => i.product_snapshot.gstIncluded);
+  const inclusiveSubtotal = safeItems.some((i) => i.product_snapshot.gstIncluded);
   const grandTotal = inclusiveSubtotal
     ? taxableBase + shippingTotal
     : taxableBase + gstTotal + shippingTotal;

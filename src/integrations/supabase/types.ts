@@ -478,24 +478,228 @@ export type Database = {
         }
         Relationships: []
       }
-      user_roles: {
+      buyers: {
         Row: {
-          created_at: string
           id: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
+          email: string | null
+          full_name: string | null
+          business_name: string | null
+          phone: string | null
+          created_at: string
+          updated_at: string
         }
         Insert: {
+          id: string
+          email?: string | null
+          full_name?: string | null
+          business_name?: string | null
+          phone?: string | null
           created_at?: string
-          id?: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
+          updated_at?: string
         }
         Update: {
-          created_at?: string
           id?: string
-          role?: Database["public"]["Enums"]["app_role"]
-          user_id?: string
+          email?: string | null
+          full_name?: string | null
+          business_name?: string | null
+          phone?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      categories: {
+        Row: {
+          id: string
+          slug: string
+          name: string
+          icon: string | null
+          image: string | null
+          product_count: number
+          description: string | null
+          sub_categories: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          slug: string
+          name: string
+          icon?: string | null
+          image?: string | null
+          product_count?: number
+          description?: string | null
+          sub_categories?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          slug?: string
+          name?: string
+          icon?: string | null
+          image?: string | null
+          product_count?: number
+          description?: string | null
+          sub_categories?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      products: {
+        Row: {
+          id: string
+          slug: string
+          name: string
+          brand: string
+          category_slug: string
+          sub_category: string | null
+          sku: string | null
+          image: string
+          images: Json
+          wholesale_price: number
+          mrp: number
+          moq: number
+          unit: string
+          gst_included: boolean
+          gst_rate: number
+          supplier: Json
+          rating: number
+          review_count: number
+          in_stock: boolean
+          stock_count: number
+          featured: boolean
+          description: string | null
+          specifications: Json
+          highlights: Json
+          packaging_details: string | null
+          delivery_days: number | null
+          delivery_estimate: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          slug: string
+          name: string
+          brand: string
+          category_slug: string
+          sub_category?: string | null
+          sku?: string | null
+          image: string
+          images?: Json
+          wholesale_price: number
+          mrp: number
+          moq?: number
+          unit?: string
+          gst_included?: boolean
+          gst_rate?: number
+          supplier?: Json
+          rating?: number
+          review_count?: number
+          in_stock?: boolean
+          stock_count?: number
+          featured?: boolean
+          description?: string | null
+          specifications?: Json
+          highlights?: Json
+          packaging_details?: string | null
+          delivery_days?: number | null
+          delivery_estimate?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          slug?: string
+          name?: string
+          brand?: string
+          category_slug?: string
+          sub_category?: string | null
+          sku?: string | null
+          image?: string
+          images?: Json
+          wholesale_price?: number
+          mrp?: number
+          moq?: number
+          unit?: string
+          gst_included?: boolean
+          gst_rate?: number
+          supplier?: Json
+          rating?: number
+          review_count?: number
+          in_stock?: boolean
+          stock_count?: number
+          featured?: boolean
+          description?: string | null
+          specifications?: Json
+          highlights?: Json
+          packaging_details?: string | null
+          delivery_days?: number | null
+          delivery_estimate?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      sellers: {
+        Row: {
+          id: string
+          email: string | null
+          full_name: string | null
+          business_name: string | null
+          phone: string | null
+          gst_number: string | null
+          address: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          email?: string | null
+          full_name?: string | null
+          business_name?: string | null
+          phone?: string | null
+          gst_number?: string | null
+          address?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          email?: string | null
+          full_name?: string | null
+          business_name?: string | null
+          phone?: string | null
+          gst_number?: string | null
+          address?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      admins: {
+        Row: {
+          id: string
+          email: string | null
+          full_name: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          email?: string | null
+          full_name?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          email?: string | null
+          full_name?: string | null
+          created_at?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -531,6 +735,24 @@ export type Database = {
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_admin: {
+        Args: {
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_buyer: {
+        Args: {
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_seller: {
+        Args: {
           _user_id: string
         }
         Returns: boolean

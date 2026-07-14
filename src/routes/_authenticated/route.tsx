@@ -26,11 +26,15 @@ export const Route = createFileRoute("/_authenticated")({
       queryKey: ["onboarding-complete", user.id],
       staleTime: 5 * 60 * 1000,
       queryFn: async () => {
-        const { data: profile } = await supabase
+        const { data: profile, error } = await supabase
           .from("profiles")
           .select("onboarding_completed")
           .eq("id", user.id)
           .maybeSingle();
+        if (error) {
+          console.warn("[onboarding-complete]", error.message);
+          return true; // don't block the app shell on a transient profile read error
+        }
         return !!profile?.onboarding_completed;
       },
     });

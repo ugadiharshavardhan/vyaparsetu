@@ -1,3 +1,9 @@
+export type SubCategory = {
+  slug: string;
+  name: string;
+  image?: string;
+};
+
 export type Category = {
   id: string;
   slug: string;
@@ -6,7 +12,7 @@ export type Category = {
   image: string;
   productCount: number;
   description: string;
-  subCategories?: string[];
+  subCategories: SubCategory[];
 };
 
 export type Supplier = {
@@ -52,6 +58,10 @@ export type Product = {
   specifications: Record<string, string>;
   highlights?: string[];
   packagingDetails?: string;
+  /** Typical delivery lead time in business days */
+  deliveryDays?: number;
+  /** Human-readable delivery window, e.g. "2–3 days" */
+  deliveryEstimate?: string;
 };
 
 export type Testimonial = {

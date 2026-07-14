@@ -8,9 +8,10 @@ import { SectionCard } from "@/components/dashboard/SectionCard";
 import { StatCardsSkeleton } from "@/components/common/Skeletons";
 import { OrderCard } from "@/components/orders/OrderCard";
 import { EmptyState } from "@/components/common/EmptyState";
+import { CategoryGrid } from "@/components/marketplace/CategoryGrid";
 import { useProfile } from "@/hooks/useProfile";
 import { useOrders } from "@/hooks/useOrders";
-import { PRODUCTS } from "@/data/products";
+import { useProducts } from "@/hooks/useCatalog";
 import { inr } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -21,6 +22,7 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 function DashboardPage() {
   const { data: profile, isLoading: profileLoading } = useProfile();
   const { data: orders = [], isLoading: ordersLoading } = useOrders();
+  const { data: products = [] } = useProducts();
 
   const totalOrders = orders.length;
   const pending = orders.filter((o) =>
@@ -34,7 +36,7 @@ function DashboardPage() {
   const monthlySpend = thisMonth.reduce((s, o) => s + Number(o.grand_total ?? 0), 0);
   const savings = orders.reduce((s, o) => s + Number(o.discount_total ?? 0), 0);
   const recent = orders.slice(0, 3);
-  const recommended = PRODUCTS.slice(0, 4);
+  const recommended = products.slice(0, 4);
 
   return (
     <div className="container-page py-8">
@@ -69,6 +71,13 @@ function DashboardPage() {
         <QuickAction to="/marketplace" icon={Store} label="Browse marketplace" desc="Discover verified suppliers" />
         <QuickAction to="/orders" icon={RefreshCw} label="Reorder products" desc="Repeat past orders in one tap" />
         <QuickAction to="/orders" icon={PackageSearch} label="View orders" desc="Track deliveries live" />
+      </div>
+
+      <div className="mt-10">
+        <CategoryGrid
+          title="Shop by category"
+          description="Wholesale business categories for your restock — Food & FMCG, Healthcare, Electronics and more."
+        />
       </div>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[1.6fr_1fr]">

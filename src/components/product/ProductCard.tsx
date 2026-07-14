@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { Eye, Heart, MapPin, ShieldCheck, ShoppingCart } from "lucide-react";
+import { Eye, Heart, MapPin, Package, ShieldCheck, ShoppingCart, Truck } from "lucide-react";
 import type { Product } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Rating } from "@/components/common/Rating";
@@ -11,6 +11,31 @@ import { useToggleWishlist, useWishlist } from "@/hooks/useWishlist";
 import { toSnapshot } from "@/lib/commerce";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
+
+const PRODUCT_FALLBACK =
+  "https://images.unsplash.com/photo-1604719312566-8912e9227c6a?auto=format&fit=crop&w=800&q=70";
+
+function ProductImage({
+  src,
+  alt,
+  className,
+}: {
+  src?: string | null;
+  alt: string;
+  className?: string;
+}) {
+  const [failed, setFailed] = useState(false);
+  return (
+    <img
+      src={!src || failed ? PRODUCT_FALLBACK : src}
+      alt={alt}
+      loading="lazy"
+      onError={() => setFailed(true)}
+      className={className}
+    />
+  );
+}
 
 type Props = {
   product: Product;
@@ -48,10 +73,9 @@ export function ProductCard({ product, onQuickView }: Props) {
         className="absolute inset-0 z-10"
       />
       <div className="relative aspect-[4/3] overflow-hidden bg-secondary">
-        <img
+        <ProductImage
           src={product.image}
           alt={product.name}
-          loading="lazy"
           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
         <div className="absolute left-3 top-3 flex flex-col gap-1.5">
@@ -62,7 +86,7 @@ export function ProductCard({ product, onQuickView }: Props) {
           )}
           {product.gstIncluded && (
             <span className="rounded-full bg-white/90 px-2 py-0.5 text-[11px] font-semibold text-foreground shadow-soft backdrop-blur">
-              GST Incl.
+              GST {product.gstRate}%
             </span>
           )}
         </div>
@@ -125,9 +149,23 @@ export function ProductCard({ product, onQuickView }: Props) {
           <span className="truncate font-medium text-foreground">{product.supplier.name}</span>
           {product.supplier.verified && <VerifiedBadge />}
         </div>
-        <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
-          <MapPin className="h-3 w-3" />
-          {product.supplier.location}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+          <span className="inline-flex items-center gap-1">
+            <MapPin className="h-3 w-3" />
+            {product.supplier.location}
+          </span>
+          {product.inStock && (
+            <span className="inline-flex items-center gap-1">
+              <Package className="h-3 w-3" />
+              {product.stockCount.toLocaleString("en-IN")} in stock
+            </span>
+          )}
+          {product.deliveryEstimate && (
+            <span className="inline-flex items-center gap-1">
+              <Truck className="h-3 w-3" />
+              {product.deliveryEstimate}
+            </span>
+          )}
         </div>
 
         <div className="relative z-20 mt-3 flex items-center gap-2">

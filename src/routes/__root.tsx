@@ -43,36 +43,35 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   const router = useRouter();
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
+    console.error("[route-error]", error);
   }, [error]);
 
   return (
-    <SiteLayout>
-      <div className="container-page grid min-h-[60vh] place-items-center py-24 text-center">
-        <div className="max-w-md">
-          <h1 className="font-display text-2xl font-semibold">Something went wrong</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            An unexpected error occurred. You can retry or head back home.
-          </p>
-          <div className="mt-6 flex justify-center gap-2">
-            <button
-              onClick={() => {
-                router.invalidate();
-                reset();
-              }}
-              className="inline-flex items-center justify-center rounded-full bg-brand px-5 py-2.5 text-sm font-medium text-white shadow-brand"
-            >
-              Try again
-            </button>
-            <Link
-              to="/"
-              className="inline-flex items-center justify-center rounded-full border border-border bg-card px-5 py-2.5 text-sm font-medium text-foreground"
-            >
-              Go home
-            </Link>
-          </div>
+    <div className="container-page grid min-h-[60vh] place-items-center py-24 text-center">
+      <div className="max-w-md">
+        <h1 className="font-display text-2xl font-semibold">Something went wrong</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {error?.message || "An unexpected error occurred. You can retry or head back home."}
+        </p>
+        <div className="mt-6 flex justify-center gap-2">
+          <button
+            onClick={() => {
+              router.invalidate();
+              reset();
+            }}
+            className="inline-flex items-center justify-center rounded-full bg-brand px-5 py-2.5 text-sm font-medium text-white shadow-brand"
+          >
+            Try again
+          </button>
+          <Link
+            to="/"
+            className="inline-flex items-center justify-center rounded-full border border-border bg-card px-5 py-2.5 text-sm font-medium text-foreground"
+          >
+            Go home
+          </Link>
         </div>
       </div>
-    </SiteLayout>
+    </div>
   );
 }
 
@@ -164,9 +163,18 @@ function RootComponent() {
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
-      if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
-      router.invalidate();
-      if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
+      // Avoid router.invalidate() on SIGNED_IN — it races the post-login navigation
+      // and remounts the tree while layout is switching to the dashboard shell.
+      if (event === "SIGNED_OUT") {
+        queryClient.clear();
+        void router.invalidate();
+        return;
+      }
+      if (event === "USER_UPDATED") {
+        void queryClient.invalidateQueries({ queryKey: ["profile"] });
+        void queryClient.invalidateQueries({ queryKey: ["account-flags"] });
+        void queryClient.invalidateQueries({ queryKey: ["onboarding-complete"] });
+      }
     });
     return () => sub.subscription.unsubscribe();
   }, [router, queryClient]);

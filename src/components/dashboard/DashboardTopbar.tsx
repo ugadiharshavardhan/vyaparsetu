@@ -1,54 +1,21 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { Bell, Search } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList,
-  BreadcrumbPage, BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 import {
   Popover, PopoverContent, PopoverTrigger,
 } from "@/components/ui/popover";
 import { UserMenu } from "@/components/layout/UserMenu";
 import { DEMO_NOTIFICATIONS } from "@/data/dashboard";
 
-const LABELS: Record<string, string> = {
-  dashboard: "Dashboard", profile: "Profile", settings: "Settings",
-  orders: "Orders", cart: "Cart", wishlist: "Wishlist", payments: "Payments",
-  marketplace: "Marketplace", suppliers: "Suppliers", admin: "Admin", supplier: "Seller",
-  notifications: "Notifications", help: "Help", onboarding: "Onboarding",
-};
 
 export function DashboardTopbar() {
-  const pathname = useRouterState({ select: (r) => r.location.pathname });
-  const segments = pathname.split("/").filter(Boolean);
   const unread = DEMO_NOTIFICATIONS.filter((n) => n.unread).length;
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border bg-card/80 px-3 backdrop-blur-md sm:px-4">
       <SidebarTrigger />
-      <Breadcrumb className="hidden md:block">
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link to="/dashboard">Home</Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          {segments.map((seg, i) => {
-            const isLast = i === segments.length - 1;
-            const label = LABELS[seg] ?? seg;
-            return (
-              <span key={seg} className="flex items-center gap-2">
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  {isLast ? <BreadcrumbPage>{label}</BreadcrumbPage> : <span className="text-muted-foreground">{label}</span>}
-                </BreadcrumbItem>
-              </span>
-            );
-          })}
-        </BreadcrumbList>
-      </Breadcrumb>
 
       <div className="ml-auto flex items-center gap-2">
         <div className="relative hidden lg:block">
