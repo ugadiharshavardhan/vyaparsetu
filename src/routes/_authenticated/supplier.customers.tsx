@@ -1,47 +1,136 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { Mail, MessageSquare, Phone } from "lucide-react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
+import { Mail, MessageSquare, Phone, Search, Users, ExternalLink, Download } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/common/PageHeader";
+import { SectionCard } from "@/components/dashboard/SectionCard";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { DataTable } from "@/components/supplier/DataTable";
+import { Pill } from "@/components/supplier/Pill";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useSupplierCustomers } from "@/hooks/useSupplier";
 import type { SupplierCustomer } from "@/types/supplier";
 import { inr } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/supplier/customers")({
-  head: () => ({ meta: [{ title: "Customers — Supplier" }] }),
-  component: CustomersPage,
+  head: () => ({ meta: [{ title: "Buyers — Seller" }] }),
+  component: BuyersPage,
 });
 
-function CustomersPage() {
+function BuyersPage() {
   const { customers } = useSupplierCustomers();
+  const navigate = useNavigate();
+  const [q, setQ] = useState("");
+
+  const filtered = customers.filter((c) => {
+    if (q && !`${c.name} ${c.business} ${c.city} ${c.gstNumber}`.toLowerCase().includes(q.toLowerCase())) return false;
+    return true;
+  });
+
   return (
-    
-      <div className="container-page space-y-6 py-8">
-        <PageHeader title="Customers" description="Nurture repeat buyers and monitor spending patterns." />
+    <div className="container-page space-y-8 py-8">
+      <PageHeader 
+        title="Buyers" 
+        description="Manage your retailer network, monitor purchasing behaviour, and communicate directly." 
+        action={
+          <div className="flex gap-2">
+             <Button variant="outline" onClick={() => toast.info("Exporting buyers list")}><Download className="mr-1.5 h-4 w-4" /> Export</Button>
+          </div>
+        }
+      />
+
+      <SectionCard className="p-0 overflow-visible">
+        <div className="p-4 border-b border-border flex items-center bg-muted/10">
+          <div className="relative w-full max-w-sm">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input className="pl-9 bg-background" placeholder="Search by name, business, city or GST..." value={q} onChange={(e) => setQ(e.target.value)} />
+          </div>
+        </div>
+
         <DataTable<SupplierCustomer>
-          rows={customers}
+          rows={filtered}
+          pageSize={10}
           columns={[
-            { key: "cust", header: "Buyer", cell: (c) => <div><div className="font-semibold">{c.name}</div><div className="text-xs text-muted-foreground">{c.business} • {c.city}</div></div> },
-            { key: "orders", header: "Orders", cell: (c) => <span className="font-semibold">{c.orders}</span> },
-            { key: "spent", header: "Total spent", cell: (c) => <span className="font-semibold text-brand">{inr(c.spent)}</span> },
-            { key: "last", header: "Last order", cell: (c) => new Date(c.lastOrderAt).toLocaleDateString() },
-            { key: "fav", header: "Favorite product", cell: (c) => c.favoriteProduct },
+            { 
+              key: "business", 
+              header: "Buyer Business", 
+              cell: (c) => (
+                <div className="flex items-center gap-3">
+                   <div className="h-9 w-9 rounded-full bg-brand-soft text-brand flex items-center justify-center font-bold text-sm shrink-0">
+                    {c.business.charAt(0)}
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="font-semibold">{c.business}</span>
+                    <span className="text-xs text-muted-foreground">{c.name}</span>
+                  </div>
+                </div>
+              ) 
+            },
+            { 
+              key: "location", 
+              header: "Location", 
+              cell: (c) => (
+                <div className="flex flex-col">
+                  <span className="font-medium">{c.city}</span>
+                  <span className="text-xs text-muted-foreground truncate max-w-[150px]">{c.address || "No address provided"}</span>
+                </div>
+              )
+            },
+            { 
+              key: "gst", 
+              header: "GST Number", 
+              cell: (c) => <span className="font-mono text-sm">{c.gstNumber || "Unregistered"}</span> 
+            },
+            { 
+              key: "orders", 
+              header: "Total Orders", 
+              cell: (c) => <span className="font-semibold">{c.orders}</span> 
+            },
+            { 
+              key: "spent", 
+              header: "Lifetime Value", 
+              cell: (c) => <span className="font-semibold text-brand">{inr(c.spent)}</span> 
+            },
+            { 
+              key: "last", 
+              header: "Last Order", 
+              cell: (c) => <span className="text-sm">{new Date(c.lastOrderAt).toLocaleDateString()}</span> 
+            },
+            { 
+              key: "status", 
+              header: "Status", 
+              cell: (c) => <Pill tone={c.status === "inactive" ? "muted" : "success"}>{c.status === "inactive" ? "Inactive" : "Active"}</Pill> 
+            },
             {
               key: "actions",
               header: "",
               className: "text-right",
-              cell: () => (
-                <div className="flex justify-end gap-1.5">
-                  <Button size="icon" variant="outline" onClick={() => toast.info("Messaging coming soon")}><MessageSquare className="h-3.5 w-3.5" /></Button>
-                  <Button size="icon" variant="outline" onClick={() => toast.info("Email flow coming soon")}><Mail className="h-3.5 w-3.5" /></Button>
-                  <Button size="icon" variant="outline" onClick={() => toast.info("Phone flow coming soon")}><Phone className="h-3.5 w-3.5" /></Button>
+              cell: (c) => (
+                <div className="flex items-center justify-end gap-1">
+                  <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); navigate({ to: "/supplier/customers/$id", params: { id: c.id } }); }}>View</Button>
+                  <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); toast.info("Messaging coming soon"); }}><MessageSquare className="h-4 w-4 text-muted-foreground" /></Button>
+                  <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); toast.info("Phone flow coming soon"); }}><Phone className="h-4 w-4 text-muted-foreground" /></Button>
                 </div>
               ),
             },
           ]}
+          onRowClick={(c) => navigate({ to: "/supplier/customers/$id", params: { id: c.id } })}
+          empty={
+            <div className="space-y-4 py-12 text-center">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-muted/50">
+                <Users className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <div>
+                <div className="text-lg font-semibold text-foreground">No buyers found</div>
+                <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">You don't have any buyers matching your search.</p>
+              </div>
+            </div>
+          }
         />
-      </div>
-    
+      </SectionCard>
+    </div>
   );
 }

@@ -2,7 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   BarChart3, Bell, Boxes, FileText, Heart, Info, LayoutDashboard, LifeBuoy,
   LineChart, LogOut, Mail, Megaphone, Package, PackageOpen, ReceiptText,
-  Settings, ShieldCheck, ShoppingCart, Store, Tag, User, Users, Warehouse,
+  Settings, ShieldCheck, ShoppingCart, Store, Tag, User, Users, Warehouse, FileQuestion
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
@@ -43,12 +43,16 @@ const EXPLORE = [
 // Promotions, Reviews, Business profile, Documents, Notifications, Analytics,
 // Support routes remain reachable directly by URL (nav hidden).
 const SUPPLIER = [
-  { title: "Dashboard", url: "/supplier", icon: LayoutDashboard },
+  { title: "Dashboard", url: "/seller/dashboard", icon: LayoutDashboard },
   { title: "Products", url: "/supplier/products", icon: PackageOpen },
   { title: "Orders", url: "/supplier/orders", icon: ReceiptText },
+  { title: "Buyers", url: "/supplier/customers", icon: Users },
+  { title: "Quotations", url: "/supplier/rfqs", icon: FileQuestion },
   { title: "Inventory", url: "/supplier/inventory", icon: Boxes },
   { title: "Dispatch", url: "/supplier/dispatch", icon: Warehouse },
   { title: "Payments", url: "/supplier/payments", icon: ReceiptText },
+  { title: "Analytics", url: "/supplier/analytics", icon: BarChart3 },
+  { title: "Reports", url: "/supplier/reports", icon: FileText },
   { title: "Settings", url: "/supplier/settings", icon: Settings },
 ] as const;
 
@@ -99,7 +103,7 @@ export function DashboardSidebar() {
     return 0;
   };
 
-  const isActive = (url: string) => pathname === url || (url !== "/dashboard" && pathname.startsWith(url));
+  const isActive = (url: string) => pathname === url || (url !== "/buyer/dashboard" && url !== "/seller/dashboard" && pathname.startsWith(url));
 
   const signOut = async () => {
     try {
@@ -141,7 +145,7 @@ export function DashboardSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border">
         <Link
-          to="/dashboard"
+          to={isSupplier ? "/seller/dashboard" : "/buyer/dashboard"}
           className={`flex h-12 items-center ${collapsed ? "justify-center px-0" : "gap-2 px-2"}`}
         >
           <Logo compact={collapsed} />

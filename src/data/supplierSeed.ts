@@ -6,6 +6,7 @@ import type {
   SupplierProduct,
   SupplierReview,
   Warehouse,
+  SupplierRFQ,
 } from "@/types/supplier";
 
 const now = new Date();
@@ -67,8 +68,11 @@ export const seedProducts: SupplierProduct[] = [
     gstRate: 5,
     description: "Premium whole wheat atta ground fresh from carefully selected grains.",
     highlights: ["100% Whole Wheat", "No Maida", "High Fibre", "Freshly milled"],
-    specifications: { Weight: "10 kg", Type: "Whole Wheat", Shelf: "6 months" },
+    specifications: { Type: "Whole Wheat", Shelf: "6 months" },
     countryOfOrigin: "India",
+    manufacturerName: "ITC Limited",
+    weight: "10 kg",
+    dimensions: "30x20x15 cm",
     images: [img("photo-1509440159596-0249088772ff"), img("photo-1568254183919-78a4f43a2877")],
     thumbnailIndex: 0,
     moq: 10,
@@ -87,6 +91,7 @@ export const seedProducts: SupplierProduct[] = [
     featured: true,
     visible: true,
     status: "published",
+    reorderLevel: 200,
     createdAt: iso(90),
     updatedAt: iso(2),
   },
@@ -101,8 +106,11 @@ export const seedProducts: SupplierProduct[] = [
     gstRate: 0,
     description: "Premium quality iodized salt trusted across Indian households.",
     highlights: ["Iodized", "Free flow", "Trusted brand"],
-    specifications: { Weight: "1 kg", Grade: "Edible" },
+    specifications: { Grade: "Edible" },
     countryOfOrigin: "India",
+    manufacturerName: "Tata Consumer Products",
+    weight: "1 kg",
+    dimensions: "10x5x15 cm",
     images: [img("photo-1615486511484-92e172cc4fe0")],
     thumbnailIndex: 0,
     moq: 24,
@@ -134,8 +142,11 @@ export const seedProducts: SupplierProduct[] = [
     gstRate: 18,
     description: "India's favorite glucose biscuits — bulk pack for retail shelves.",
     highlights: ["Original recipe", "Bulk pack", "Family favourite"],
-    specifications: { Weight: "800 g", Pieces: "56" },
+    specifications: { Pieces: "56" },
     countryOfOrigin: "India",
+    manufacturerName: "Parle Products",
+    weight: "800 g",
+    dimensions: "15x15x10 cm",
     images: [img("photo-1558961363-fa8fdf82db35")],
     thumbnailIndex: 0,
     moq: 20,
@@ -167,8 +178,11 @@ export const seedProducts: SupplierProduct[] = [
     gstRate: 18,
     description: "Classic tea-time Marie biscuits in a light and crispy pack.",
     highlights: ["Light & crispy", "Tea-time favourite"],
-    specifications: { Weight: "250 g" },
+    specifications: {},
     countryOfOrigin: "India",
+    manufacturerName: "Britannia Industries",
+    weight: "250 g",
+    dimensions: "5x5x20 cm",
     images: [img("photo-1548365328-9f547fb09530")],
     thumbnailIndex: 0,
     moq: 30,
@@ -253,11 +267,21 @@ export const seedReviews: SupplierReview[] = [
 ];
 
 export const seedCustomers: SupplierCustomer[] = [
-  { id: "c1", name: "Rakesh Sharma", business: "Sharma Kirana Store", city: "Mumbai", orders: 24, spent: 184500, lastOrderAt: iso(1), favoriteProduct: "Aashirvaad Atta 10kg" },
-  { id: "c2", name: "Meena Traders", business: "Meena Wholesale", city: "Pune", orders: 18, spent: 96200, lastOrderAt: iso(3), favoriteProduct: "Parle-G 800g" },
-  { id: "c3", name: "Suresh Kirana", business: "Suresh & Sons", city: "Ahmedabad", orders: 12, spent: 54100, lastOrderAt: iso(7), favoriteProduct: "Tata Salt 1kg" },
-  { id: "c4", name: "New Bazaar", business: "New Bazaar Retail", city: "Delhi", orders: 9, spent: 41200, lastOrderAt: iso(10), favoriteProduct: "Britannia Marie Gold" },
-  { id: "c5", name: "Kalyan Foods", business: "Kalyan Distribution", city: "Chennai", orders: 7, spent: 38800, lastOrderAt: iso(14), favoriteProduct: "Aashirvaad Atta 10kg" },
+  { id: "c1", name: "Lakshmi Narayanan", business: "Sri Lakshmi Kirana", city: "Mumbai", orders: 42, spent: 485000, lastOrderAt: iso(1), favoriteProduct: "Aashirvaad Shudh Chakki Atta 10kg", gstNumber: "27AADCS1234B1Z5", address: "12, Andheri East, Mumbai", ownerName: "Lakshmi Narayanan", phone: "+91 98201 12345", email: "lakshmi.kirana@example.com", status: "active" },
+  { id: "c2", name: "Sai Kumar", business: "Sai Super Market", city: "Pune", orders: 28, spent: 396200, lastOrderAt: iso(3), favoriteProduct: "Parle-G Glucose Biscuits", gstNumber: "27BBDCS5678B1Z6", address: "44, Shivaji Nagar, Pune", ownerName: "Sai Kumar", phone: "+91 98202 23456", email: "sai.supermarket@example.com", status: "active" },
+  { id: "c3", name: "Balaji Rao", business: "Balaji Traders", city: "Ahmedabad", orders: 35, spent: 254100, lastOrderAt: iso(7), favoriteProduct: "Fortune Sunlite Refined Sunflower Oil", gstNumber: "24CCDCS9012B1Z7", address: "MG Road, Ahmedabad", ownerName: "Balaji Rao", phone: "+91 98203 34567", email: "balaji.traders@example.com", status: "active" },
+  { id: "c4", name: "Vijaya Reddy", business: "Vijaya Mart", city: "Hyderabad", orders: 19, spent: 141200, lastOrderAt: iso(10), favoriteProduct: "Britannia Good Day Cashew Cookies", gstNumber: "36DDDCS3456B1Z8", address: "Ameerpet, Hyderabad", ownerName: "Vijaya Reddy", phone: "+91 98204 45678", email: "contact@vijayamart.in", status: "active" },
+  { id: "c5", name: "Ramesh Gupta", business: "Ramesh Wholesale", city: "Delhi", orders: 57, spent: 838800, lastOrderAt: iso(2), favoriteProduct: "India Gate Classic Basmati Rice 5kg", gstNumber: "07EEECS7890B1Z9", address: "Chandni Chowk, Delhi", ownerName: "Ramesh Gupta", phone: "+91 98205 56789", email: "ramesh.wholesale@example.com", status: "active" },
+  { id: "c6", name: "Suresh Menon", business: "Fresh Choice Stores", city: "Bengaluru", orders: 12, spent: 78500, lastOrderAt: iso(14), favoriteProduct: "Tata Salt Iodized 1kg", gstNumber: "29FFFCS1234B1Z0", address: "Indiranagar, Bengaluru", ownerName: "Suresh Menon", phone: "+91 98206 67890", email: "fresh.choice@example.com", status: "inactive" },
+  { id: "c7", name: "Amit Agarwal", business: "City Hyper Mart", city: "Kolkata", orders: 84, spent: 1250000, lastOrderAt: iso(1), favoriteProduct: "Surf Excel Easy Wash", gstNumber: "19GGGCS5678B1Z1", address: "Park Street, Kolkata", ownerName: "Amit Agarwal", phone: "+91 98207 78901", email: "admin@cityhypermart.in", status: "active" },
+];
+
+export const seedRfqs: SupplierRFQ[] = [
+  { id: "rfq1", rfqNumber: "RFQ-1021", retailerId: "c1", retailerName: "Sri Lakshmi Kirana", products: "Aashirvaad Shudh Chakki Atta 10kg", qty: 200, targetPrice: 350, status: "new", expiryDate: iso(-7), createdAt: iso(0) },
+  { id: "rfq2", rfqNumber: "RFQ-1020", retailerId: "c2", retailerName: "Sai Super Market", products: "Parle-G Glucose Biscuits", qty: 500, targetPrice: 90, status: "pending_response", expiryDate: iso(-3), createdAt: iso(1) },
+  { id: "rfq3", rfqNumber: "RFQ-1019", retailerId: "c4", retailerName: "Vijaya Mart", products: "Tata Salt Iodized 1kg", qty: 1000, targetPrice: 18, status: "quoted", expiryDate: iso(-10), createdAt: iso(2), sellerResponse: "Can offer ₹19/unit for 1000 units. Free shipping.", deliveryTimeline: "3 days" },
+  { id: "rfq4", rfqNumber: "RFQ-1018", retailerId: "c5", retailerName: "Ramesh Wholesale", products: "Britannia Good Day", qty: 300, targetPrice: 50, status: "accepted", expiryDate: iso(2), createdAt: iso(5), sellerResponse: "Agreed at ₹52/unit.", deliveryTimeline: "5 days" },
+  { id: "rfq5", rfqNumber: "RFQ-1017", retailerId: "c3", retailerName: "Balaji Traders", products: "Aashirvaad Shudh Chakki Atta 10kg", qty: 50, targetPrice: 320, status: "rejected", expiryDate: iso(5), createdAt: iso(7), sellerResponse: "Target price too low for requested quantity." },
 ];
 
 export const revenueSeries = [

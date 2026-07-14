@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   Activity, AlertTriangle, Bell, Boxes, Building2, CheckCircle2, Clock,
   Package, ReceiptText, ShieldCheck, ShoppingBag, TrendingUp, Users, Wallet,
+  Sparkles, TrendingUp as TrendingIcon, Box,
 } from "lucide-react";
 import {
   Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer,
@@ -111,6 +112,41 @@ function AdminOverview() {
             <HealthRow label="Storage" tone="success" hint="63% capacity" />
           </div>
         </SectionCard>
+      </div>
+
+      {/* AI Business Insights */}
+      <div>
+        <div className="mb-4 flex items-center gap-2">
+          <Sparkles className="h-5 w-5 text-brand" />
+          <h2 className="text-xl font-bold font-display">AI Business Insights</h2>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="rounded-2xl border border-brand/20 bg-brand-soft/20 p-5 shadow-soft">
+            <div className="mb-3 flex items-center gap-2 text-brand">
+              <TrendingIcon className="h-5 w-5" />
+              <h3 className="font-semibold">Marketplace Growth</h3>
+            </div>
+            <p className="text-sm text-foreground/80 mb-4">
+              Platform GMV is up 18% week-over-week, primarily driven by <strong>Food & FMCG</strong> bulk orders from Tier 2 cities.
+            </p>
+            <Button size="sm" variant="outline" className="border-brand/40 text-brand hover:bg-brand hover:text-white" asChild>
+              <Link to="/admin/analytics">View Analytics</Link>
+            </Button>
+          </div>
+
+          <div className="rounded-2xl border border-info/20 bg-info/10 p-5 shadow-soft">
+            <div className="mb-3 flex items-center gap-2 text-info">
+              <Box className="h-5 w-5" />
+              <h3 className="font-semibold">Top Categories</h3>
+            </div>
+            <p className="text-sm text-foreground/80 mb-4">
+              <strong>Electronics</strong> category has the highest cart abandonment rate (22%) due to high minimum order quantities.
+            </p>
+            <Button size="sm" variant="outline" className="border-info/40 text-info hover:bg-info hover:text-white" asChild>
+              <Link to="/admin/reports">Generate Report</Link>
+            </Button>
+          </div>
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">

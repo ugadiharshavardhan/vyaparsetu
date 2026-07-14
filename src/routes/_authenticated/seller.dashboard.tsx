@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   Boxes, ClipboardCheck, Download, Package, PackageCheck,
-  ShoppingBag, Sparkles, TrendingUp, Truck, Wallet, ArrowUpRight,
+  ShoppingBag, Sparkles, TrendingUp, Truck, Wallet, ArrowUpRight, Box, BarChart3,
 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -13,7 +13,7 @@ import { useSupplierProducts, useSupplierOrders } from "@/hooks/useSupplier";
 import { revenueSeries } from "@/data/supplierSeed";
 import { compactInr, inr } from "@/lib/format";
 
-export const Route = createFileRoute("/_authenticated/supplier/")({
+export const Route = createFileRoute("/_authenticated/seller/dashboard")({
   head: () => ({ meta: [{ title: "Seller Workspace — VyaparSetu" }] }),
   component: SupplierDashboard,
 });
@@ -93,6 +93,41 @@ function SupplierDashboard() {
           <SectionCard title="Inventory overview" description="Stock health across catalog">
             <InventoryOverview products={products} />
           </SectionCard>
+        </div>
+
+        {/* AI Business Insights */}
+        <div>
+          <div className="mb-4 flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-brand" />
+            <h2 className="text-xl font-bold font-display">AI Business Insights</h2>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="rounded-2xl border border-success/20 bg-success/10 p-5 shadow-soft">
+              <div className="mb-3 flex items-center gap-2 text-success">
+                <BarChart3 className="h-5 w-5" />
+                <h3 className="font-semibold">Fast Moving Products</h3>
+              </div>
+              <p className="text-sm text-foreground/80 mb-4">
+                <strong>Parle-G Glucose Biscuits</strong> are selling 40% faster this week. Ensure you have enough inventory to fulfill upcoming RFQs.
+              </p>
+              <Button size="sm" variant="outline" className="border-success/40 text-[hsl(var(--success))] hover:bg-success hover:text-white" asChild>
+                <Link to="/supplier/inventory">View Stock</Link>
+              </Button>
+            </div>
+
+            <div className="rounded-2xl border border-warning/20 bg-warning/10 p-5 shadow-soft">
+              <div className="mb-3 flex items-center gap-2 text-[hsl(var(--warning))]">
+                <Box className="h-5 w-5" />
+                <h3 className="font-semibold">Low Stock Warning</h3>
+              </div>
+              <p className="text-sm text-foreground/80 mb-4">
+                You have 3 items running low on stock (below 25 units). Replenish <strong>Tata Salt 1kg</strong> to avoid missing bulk orders.
+              </p>
+              <Button size="sm" variant="outline" className="border-warning/40 text-[hsl(var(--warning))] hover:bg-warning hover:text-white" asChild>
+                <Link to="/supplier/inventory">Restock Now</Link>
+              </Button>
+            </div>
+          </div>
         </div>
 
         <SectionCard title="Quick actions">

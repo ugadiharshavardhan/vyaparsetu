@@ -1,3 +1,134 @@
+# VyaparSetu — AI Assistant Knowledge Base
+
+## Project Identity
+- **Project Name:** VyaparSetu
+- **Purpose:** Production-grade B2B ordering platform connecting Indian retailers with verified manufacturers, distributors, and wholesalers.
+- **Problem being solved:** Streamlining wholesale B2B commerce with a unified marketplace.
+- **Target users:** Indian retailers (buyers), manufacturers/distributors/wholesalers (sellers), and marketplace administrators.
+- **Current project maturity:** Active development/production-ready. Connected to Lovable.dev.
+
+## High-Level Overview
+- **Overall architecture:** SSR-enabled React frontend deployed on edge (via Lovable Cloud), interacting with a Supabase PostgreSQL backend directly via server functions (`createServerFn` from TanStack) and client-side data fetching (TanStack Query).
+- **System design:** File-based routing with a clear separation of public and authenticated trees. Heavy reliance on Supabase Row-Level Security (RLS) for data authorization.
+- **Major modules:**
+  - Marketplace (public catalog, product details, categories).
+  - Auth & Onboarding (registration, role selection, document upload).
+  - Buyer Portal (cart, checkout, order history, wishlist).
+  - Supplier Portal (dashboard, inventory, product CRUD, orders).
+  - Admin Portal (user verification, CMS, approvals, reports).
+- **Data flow:** Frontend calls TanStack `createServerFn` or hits Supabase directly via auto-generated clients. Supabase handles Auth and RLS.
+
+## Technology Stack
+- **Frontend technologies:** TanStack Start v1, React 19, Vite 7
+- **Backend technologies:** Lovable Cloud (Supabase PostgreSQL, Auth, Storage, RLS)
+- **Database:** PostgreSQL (via Supabase)
+- **Authentication:** Supabase Auth (Email/Password, Google OAuth)
+- **State management:** TanStack Query for server state
+- **UI libraries:** Tailwind v4, shadcn/ui, Radix primitives, framer-motion, lucide-react
+- **Build tools:** Vite 7, Bun
+- **Package manager:** Bun
+- **Deployment setup:** Lovable Cloud auto-deploy
+- **Development tools:** TypeScript (strict), Zod, ESLint, Prettier
+
+## Repository Structure
+- `src/routes/`: File-based routing (TanStack Router). Public routes, `_authenticated/` for protected routes, and `api/` for server endpoints.
+- `src/components/`: Reusable React components grouped by domain (admin, auth, cart, common, dashboard, layout, marketplace, supplier, ui).
+- `src/hooks/`: Custom React hooks (`useAuth`, `useCart`, etc.).
+- `src/lib/`: Commerce logic (GST, coupons), utilities, error handling.
+- `src/integrations/supabase/`: Supabase client configuration and types.
+- `src/data/`: Mock catalogs for marketplace and supplier seed.
+- `supabase/migrations/`: SQL migration files defining database schema, RLS policies, and triggers.
+- `public/`: Static assets (favicon, manifest).
+
+## Application Flow
+1. **Public Browsing:** Users can browse categories and products on the marketplace.
+2. **Auth:** User signs up or logs in.
+3. **Onboarding:** Completes profile, selects account type (retailer vs. manufacturer/wholesaler/distributor), uploads GST/business documents.
+4. **Buyer Journey:** Browses catalog -> Adds to cart (respecting MOQ) -> Applies coupons -> 4-step checkout (address, payment, etc.) -> Order tracking.
+5. **Supplier Journey:** Accesses `supplier.*` routes -> manages inventory -> updates product pricing -> handles incoming orders.
+6. **Admin Journey:** Accesses `admin.*` routes -> verifies users -> manages platform configurations.
+
+## Authentication & Authorization
+- **Login flow:** Handled by `@lovable.dev/cloud-auth-js` and Supabase.
+- **Session management:** Token-based, attached automatically in server middleware.
+- **Protected routes:** Routes under `src/routes/_authenticated/` require valid sessions.
+- **User roles & Permission model:** Roles are implicit via membership in specific tables (`public.buyers`, `public.sellers`, `public.admins`). Policies use helper functions like `is_admin()`, `is_buyer()`, `is_seller()` for row-level security.
+
+## Features
+
+### Completed (Inferred)
+- **Authentication:** Email/password, OAuth, verification.
+- **Marketplace:** Catalog browsing, categories, product details.
+- **Cart & Checkout:** B2B cart with MOQ, GST, coupons.
+- **Buyer & Supplier dashboards:** Order management, product creation, inventory.
+- **Admin portal:** Basic user and system management.
+
+### Planned / Roadmap
+- Live payment gateway (Razorpay / Stripe)
+- Transactional email templates
+- Advanced analytics with real-time data
+- Multi-warehouse fulfilment routing
+- Buyer credit / BNPL
+- Native mobile apps via Capacitor
+
+## Database (Supabase PostgreSQL)
+- **Tables & Models:**
+  - `profiles`: Core user details (business_type, phone, gst_number).
+  - `buyers`, `sellers`, `admins`: Role-specific tables linked to `auth.users(id)`.
+  - `categories`: Marketplace categories (`slug`, `name`, `sub_categories` JSON).
+  - `products`: Catalog items (`slug`, `wholesale_price`, `moq`, `gst_rate`, `category_slug`).
+  - `cart_items`: Per-user cart lines with `product_snapshot`.
+  - `wishlist_items`, `shipping_addresses`, `orders`, `order_items`, `payment_records`, `invoices`, `coupons`.
+- **Validation & Constraints:** Row-Level Security (RLS) is heavily used. Check constraints (e.g., `quantity > 0` on `cart_items`).
+- **Indexes:** Created for slugs, featured flags, and category mapping.
+
+## APIs
+- The application uses TanStack `createServerFn` for server logic and direct Supabase client calls rather than traditional REST APIs. Server routes exist in `src/routes/api/` (likely for webhooks or public endpoints).
+- Authentication required for most mutations, enforced by Supabase RLS and `requireSupabaseAuth` middleware.
+
+## Frontend
+- **Pages:** Handled in `src/routes/`.
+- **Layouts:** `src/routes/__root.tsx` provides global layout and providers.
+- **Routing:** TanStack Router (file-based).
+- **Reusable UI:** shadcn/ui components in `src/components/ui/`.
+- **State Management:** TanStack Query for server state.
+
+## Backend
+- **Middleware:** Server functions use `requireSupabaseAuth` via `functionMiddleware` in `src/start.ts`.
+- **Error handling:** Custom error capturing in `src/server.ts` to normalize h3 swallowed SSR errors.
+- **Models:** Defined in SQL migrations rather than ORM models.
+
+## Environment Variables
+- `VITE_SUPABASE_URL`: Required for client Supabase connection.
+- `VITE_SUPABASE_PUBLISHABLE_KEY`: Required for client Supabase auth.
+- `VITE_SUPABASE_PROJECT_ID`: Required for Lovable.
+- `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `LOVABLE_API_KEY`: Server-only secrets managed by Lovable Cloud.
+
+## External Services
+- **Authentication:** Google OAuth (via Supabase).
+- **Storage/DB:** Supabase.
+- **Future:** Razorpay/Stripe for payments.
+
+## Coding Standards
+- **Naming conventions:** Kebab-case or dot-notation for route files (e.g., `admin.settings.tsx`). PascalCase for React components.
+- **Folder conventions:** Feature-based organization inside `src/components/` and `src/routes/`.
+- **Styling conventions:** Tailwind CSS (v4) utility classes. shadcn/ui patterns.
+
+## Business Rules
+- **Permissions:** Admin has full read/write via `is_admin()`. Sellers manage their own products. Buyers can only read public catalog and manage their own cart/orders.
+- **Pricing Logic:** Products have `wholesale_price` and `mrp`. GST is explicitly tracked (`gst_included`, `gst_rate`).
+- **Ordering:** Minimum Order Quantity (MOQ) applies to B2B cart.
+
+## Reusable Components
+- `src/components/ui/`: Contains all shadcn primitive components (buttons, dialogs, inputs, tabs).
+- `src/components/common/`: Shared marketplace features like `EmptyState`, `OfflineIndicator`.
+
+## Technical Debt & Known Issues
+- Ensure `user_roles` legacy table references are completely replaced by `buyers`/`sellers`/`admins` logic.
+- Potential SSR error handling edge cases (partially mitigated in `server.ts`).
+
+## AI Development Guidelines
+
 <!-- LOVABLE:BEGIN -->
 > [!IMPORTANT]
 > This project is connected to [Lovable](https://lovable.dev). Avoid rewriting
@@ -8,3 +139,376 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- **Framework Rules:** Do not introduce alternative routers or data fetching libraries; stick to TanStack Router and Query.
+- **Styling:** Use Tailwind CSS v4 and existing shadcn components. Avoid writing raw CSS unless necessary.
+- **Database:** Always modify the database via SQL files in `supabase/migrations/` rather than modifying the UI directly. Ensure RLS policies are strict.
+- **Auth:** Rely on Supabase Auth. Do not implement custom password hashing or JWT validation manually.
+- **Continuous Project Memory:** Whenever you make any change to the codebase, you MUST update this file (AGENTS.md) before finishing your response. See the rules in the "Development History" section.
+## Future Recommendations
+1. Integrate the planned payment gateway (Razorpay/Stripe).
+2. Complete the transactional email setup.
+3. Build the backend jobs for multi-warehouse routing.
+
+## Changelog Summary
+- **Baseline:** Project initialized with TanStack Start, Supabase, and Tailwind v4. Complex B2B features (cart with MOQ, supplier portal, admin dashboard) are fully scaffolded and routed. RLS policies updated to support `buyers`, `sellers`, and `admins` tables.
+
+# Current Project State
+
+- **Current Phase:** Initial AI Memory Setup
+- **Current Branch:** N/A
+- **Current Module:** N/A
+- **Overall Progress:** Project is heavily scaffolded with B2B marketplace features.
+- **Last Updated:** 2026-07-14
+
+# Development History
+
+## 2026-07-14 — Baseline Setup
+### Objective
+Create initial comprehensive project documentation in AGENTS.md.
+### Changes
+- Analyzed the repository structure, code, and database logic.
+- Created `AGENTS.md` as the continuous project memory.
+- Added Continuous Project Memory guidelines.
+
+## 2026-07-14 — RBAC Foundation
+
+### Feature/Task Name
+Scalable Role-Based Authentication (RBAC) foundation for Buyer and Seller.
+
+### Why the change was made
+To separate buyer and seller workflows natively at the router level, preventing accidental or unauthorized access to different portal sides, and establishing a robust security posture for upcoming features.
+
+### Files Created
+- `src/lib/rbac.ts`
+- `src/routes/unauthorized.tsx`
+- `src/routes/_authenticated/buyer.tsx`
+- `src/routes/_authenticated/seller.tsx`
+
+### Files Modified
+- `src/components/auth/RoleSelect.tsx`
+- `src/components/auth/SignInForm.tsx`
+- `src/components/onboarding/OnboardingWizard.tsx`
+- `src/lib/postLoginRedirect.ts`
+- `src/components/layout/SiteLayout.tsx`
+- `src/components/dashboard/DashboardSidebar.tsx`
+- `src/components/layout/UserMenu.tsx`
+- `AGENTS.md`
+
+### Files Deleted
+- None (Renamed `dashboard.tsx` -> `buyer.dashboard.tsx`, `supplier.index.tsx` -> `seller.dashboard.tsx`)
+
+### Database Changes
+- None (Leveraged existing `buyers`, `sellers`, `admins` tables).
+
+### API Changes
+- None
+
+### UI Changes
+- Updated the Registration flow role-selection cards with new descriptions and icons.
+- Added a full-page `unauthorized` component.
+
+### Configuration / Env Changes
+- None
+
+### Breaking Changes
+- Dashboard paths explicitly require `/buyer/dashboard` and `/seller/dashboard`.
+
+### Dependencies
+- None
+
+### Design Decisions Made
+- Used TanStack Router `beforeLoad` on layout files (`buyer.tsx`, `seller.tsx`) instead of cluttering every page with role checks.
+- Kept the centralized role query logic in `src/lib/rbac.ts`.
+
+### Assumptions Taken
+- It's safe to rename the root dashboards and update navigation links.
+
+### Known Limitations Introduced
+- Currently, only the primary dashboards are guarded by prefixes. The rest of the `supplier.*.tsx` routes would theoretically need to move to the `seller.*.tsx` prefix to be protected under the layout.
+
+### Next Recommended Tasks
+- Migrate all `supplier.*.tsx` routes to `seller.*.tsx` to fully encompass them under the new seller route guard.
+
+## 2026-07-14 — Seller Product Management Phase
+### Objective
+Transform the Product Management module into an enterprise-grade system mimicking professional workspaces like Shopify and Amazon Seller Central.
+### Changes
+- Replaced the product listing page's tab design with Metric Summary Cards (Total, Active, Draft, Out of Stock, Low Stock).
+- Upgraded the data table to support bulk selection, bulk actions, and pagination.
+- Expanded table columns to include precise metrics: Product Image, SKU, Brand, Category, MOQ, Unit Price, GST, Stock, Status, and Last Updated.
+- Re-architected `ProductForm` into a multi-step wizard (Basic Info, Pricing, Inventory & Shipping, Images, Review & Publish).
+- Added missing fields to the schema and forms: `Weight`, `Dimensions`, `Manufacturer Name`.
+- Added Brand and Stock filtering alongside a new Sort By mechanism.
+- Handled empty states with beautiful placeholder illustrations and actionable prompts.
+### Files Created
+- None
+### Files Modified
+- `src/types/supplier.ts`
+- `src/data/supplierSeed.ts`
+- `src/components/supplier/DataTable.tsx`
+- `src/components/supplier/ProductForm.tsx`
+- `src/routes/_authenticated/supplier.products.index.tsx`
+- `AGENTS.md`
+### Files Deleted
+- None
+### Database Changes
+- None (Mock data structures upgraded with `weight`, `dimensions`, `manufacturerName`, and `updatedAt`).
+### API Changes
+- None
+### UI Changes
+- Complete layout overhaul of `/supplier/products` leveraging the new `DataTable` checkboxes and metrics cards.
+- Replacement of long scrolling product edit forms with Wizard steps in `ProductForm.tsx`.
+### Configuration / Env Changes
+- None
+### Breaking Changes
+- None (Backwards compatible layout update).
+### Dependencies
+- None
+### Design Decisions Made
+- Chose a step-based wizard for the `ProductForm` to eliminate "form fatigue" standard in complex B2B applications.
+- Created `SummaryCard` explicitly as a top-level component in `supplier.products.index.tsx` rather than extracting it globally to reduce premature abstractions.
+- Pushed filtering logic strictly to the frontend for now, since this phase doesn't implement the true Supabase backend integration yet.
+### Assumptions Taken
+- It's safe to process bulk actions client-side by looping over existing state functions for the mock UI phase.
+### Known Limitations Introduced
+- Sorting by "bestselling" is partially mocked based on lowest stock rather than true lifetime order counts.
+### Next Recommended Tasks
+- Fully connect the upgraded Product schemas and views to actual Supabase database schemas and TanStack Query mutations.
+
+## 2026-07-14 — Seller Order Management Phase
+### Objective
+Transform the Orders module into a professional B2B Order Management System and introduce Buyers and RFQs logic.
+### Changes
+- Updated `SupplierOrder` schema to handle a full lifecycle (`packing`, `ready`, `shipped`, `delivered`, etc.) and `expectedDelivery`.
+- Updated `SupplierCustomer` schema to add enterprise fields (`gstNumber`, `address`, `ownerName`, `phone`, `email`).
+- Created `SupplierRFQ` schema and mock data logic inside `useSupplierRfqs`.
+- Overhauled `/supplier/orders` with Top Summary Cards, bulk actions, and deep filtering.
+- Created `/supplier/orders/$id` for a dedicated Order Details view, featuring an interactive visual timeline and Retailer Info sidebar.
+- Overhauled `/supplier/customers` into a proper Buyers directory with GST and lifetime value metrics.
+- Created `/supplier/customers/$id` for a dedicated Buyer Profile view (Insights, Order History, contact methods).
+- Created `/supplier/rfqs` for Quotations listing.
+- Created `/supplier/rfqs/$id` for Quote Details, enabling the seller to respond, negotiate, or reject bulk requests.
+- Added `Buyers` and `Quotations` links to the `DashboardSidebar` for Seller workspace.
+### Files Created
+- `src/routes/_authenticated/supplier.orders.$id.tsx`
+- `src/routes/_authenticated/supplier.customers.$id.tsx`
+- `src/routes/_authenticated/supplier.rfqs.tsx`
+- `src/routes/_authenticated/supplier.rfqs.$id.tsx`
+### Files Modified
+- `src/types/supplier.ts`
+- `src/data/supplierSeed.ts`
+- `src/hooks/useSupplier.ts`
+- `src/routes/_authenticated/supplier.orders.tsx`
+- `src/routes/_authenticated/supplier.customers.tsx`
+- `src/components/dashboard/DashboardSidebar.tsx`
+- `AGENTS.md`
+### Files Deleted
+- None
+### Database Changes
+- None (Mock types and seed data updated with extended schemas).
+### API Changes
+- None
+### UI Changes
+- Complete layout overhaul of orders and customers pages. Introduced dedicated Details/Profile pages for Orders, Customers, and RFQs, replacing basic slide-outs.
+### Configuration / Env Changes
+- None
+### Breaking Changes
+- None (Routing preserved for `/supplier/orders` and `/supplier/customers`).
+### Dependencies
+- None
+### Design Decisions Made
+- Reused `DataTable` to ensure consistent enterprise aesthetic.
+- Stored mock statuses directly into `useSupplier` memory for real-time UI interactions across the session.
+- Maintained existing route paths (`/supplier/customers`) but visually renamed the feature to "Buyers" in the UI to match domain language.
+### Assumptions Taken
+- It's safe to run bulk updates locally.
+### Known Limitations Introduced
+- RFQ negotiation is purely client-side state for now.
+### Next Recommended Tasks
+- Fully implement real backend integration for Orders, Buyers, and RFQs via Supabase.
+
+## 2026-07-14 — Inventory & Dispatch Management Phase
+### Objective
+Transform the Inventory and Dispatch modules into professional, enterprise-grade systems mimicking top-tier B2B seller tools.
+### Changes
+- Updated `SupplierProduct` to include `reorderLevel` for low stock alerts.
+- Updated `StockMovement` to track `damaged` stock.
+- Updated `SupplierOrder` to support extensive logistics fields (`porterName`, `porterContact`, `pickupTime`, `vehicleDetails`).
+- Overhauled `supplier.inventory.tsx`: Built out metric summary cards (Total Inventory, Inventory Value, etc.). Replaced the basic table with an advanced Data Table displaying reorder levels. Created a dedicated Low Stock Alerts tab. Designed an integrated Warehouse Management tab. Enhanced Stock Movement timeline UI.
+- Overhauled `supplier.dispatch.tsx`: Re-architected as a Logistics workspace. Replaced the generic table with specialized logistics columns. Created a Logistics Workflow Dialog allowing sellers to Assign Porters and track detailed shipment timelines visually.
+### Files Created
+- None
+### Files Modified
+- `src/types/supplier.ts`
+- `src/data/supplierSeed.ts`
+- `src/hooks/useSupplier.ts`
+- `src/routes/_authenticated/supplier.inventory.tsx`
+- `src/routes/_authenticated/supplier.dispatch.tsx`
+- `AGENTS.md`
+### Files Deleted
+- None
+### Database Changes
+- None (Mock models updated with logistics fields).
+### API Changes
+- Expanded `updateStatus` in `useSupplierOrders` to accept an optional logistics payload.
+### UI Changes
+- Deep layout and functionality upgrades for Inventory and Dispatch using `Tabs`, `SectionCard`, and `DataTable`. Complete removal of basic layouts in favor of data-dense, actionable dashboards.
+### Configuration / Env Changes
+- None
+### Breaking Changes
+- None (Backwards compatible logic).
+### Dependencies
+- None
+### Design Decisions Made
+- Used Tabs within the existing routes rather than creating multiple new sub-routes to keep the Seller workflow clean and centralized.
+- Designed Porter Assignment as an interactive dialog rather than forcing a full page redirect.
+### Assumptions Taken
+- It's safe to use client-side state for mock porter assignments.
+### Known Limitations Introduced
+- "Batch Print" and "Scan Parcel" are currently UI-only placeholders.
+### Next Recommended Tasks
+- Integrate these advanced workflows with the Supabase database.
+
+## 2026-07-14 — Bug Fix: Missing TrendingUp Import
+### Objective
+Fix the "TrendingUp is not defined" error when accessing the Seller Product Management page.
+### Changes
+- Added missing `TrendingUp` import from `lucide-react` in `supplier.products.index.tsx`.
+### Files Modified
+- `src/routes/_authenticated/supplier.products.index.tsx`
+- `AGENTS.md`
+# #   2 0 2 6 - 0 7 - 1 4   � �    P r o d u c t i o n   M a r k e t p l a c e   T r a n s f o r m a t i o n   P h a s e  
+  
+ # # #   F e a t u r e / T a s k   N a m e  
+ P r o d u c t i o n   M a r k e t p l a c e   T r a n s f o r m a t i o n   ( A n a l y t i c s ,   P a y m e n t s ,   R e p o r t s ,   D a t a )  
+  
+ # # #   W h y   t h e   c h a n g e   w a s   m a d e  
+ T o   t r a n s f o r m   V y a p a r S e t u   f r o m   a   d e m o n s t r a t i o n   s t a t e   i n t o   a   h i g h l y   r e a l i s t i c   p r o d u c t i o n   B 2 B   p l a t f o r m ,   f o c u s i n g   o n   A n a l y t i c s ,   P a y m e n t s ,   R e p o r t s ,   a n d   a   m a s s i v e l y   e x p a n d e d   r e a l i s t i c   p r o d u c t   c a t a l o g .  
+  
+ # # #   F i l e s   C r e a t e d  
+ -   ` s c r a t c h / g e n e r a t e _ c a t a l o g . j s `   ( S c r i p t   t o   g e n e r a t e   r e a l i s t i c   p r o d u c t s )  
+ -   ` s r c / r o u t e s / _ a u t h e n t i c a t e d / s u p p l i e r . r e p o r t s . t s x `   ( N e w   R e p o r t s   m o d u l e )  
+  
+ # # #   F i l e s   M o d i f i e d  
+ -   ` s r c / d a t a / p r o d u c t s . t s `   ( R e p l a c e d   p l a c e h o l d e r   d a t a   w i t h   2 0 0 +   g e n e r a t e d   r e a l i s t i c   p r o d u c t s )  
+ -   ` s r c / d a t a / s u p p l i e r S e e d . t s `   ( E x p a n d e d   m o c k   b u y e r   d a t a   a n d   u p d a t e d   n a m e s )  
+ -   ` s r c / h o o k s / u s e S u p p l i e r . t s `   ( U p d a t e d   s e e d   o r d e r s   t o   u s e   r e a l i s t i c   c u s t o m e r   n a m e s )  
+ -   ` s r c / r o u t e s / _ a u t h e n t i c a t e d / s u p p l i e r . a n a l y t i c s . t s x `   ( C o m p l e t e   o v e r h a u l   o f   c h a r t s   a n d   m e t r i c s )  
+ -   ` s r c / r o u t e s / _ a u t h e n t i c a t e d / s u p p l i e r . p a y m e n t s . t s x `   ( C o m p l e t e   o v e r h a u l   w i t h   r e a l i s t i c   m e t r i c s   a n d   t r a n s a c t i o n   t a b l e )  
+ -   ` s r c / c o m p o n e n t s / d a s h b o a r d / D a s h b o a r d S i d e b a r . t s x `   ( A d d e d   A n a l y t i c s   a n d   R e p o r t s   l i n k s   t o   t h e   S e l l e r   s i d e b a r )  
+ -   ` A G E N T S . m d `   ( A d d e d   t h i s   c h a n g e l o g )  
+  
+ # # #   F i l e s   D e l e t e d  
+ -   N o n e  
+  
+ # # #   D a t a b a s e   C h a n g e s  
+ -   N o n e   ( M o c k   d a t a   l a y e r   w a s   e x p a n d e d   m a s s i v e l y ) .  
+  
+ # # #   A P I   C h a n g e s  
+ -   N o n e  
+  
+ # # #   U I   C h a n g e s  
+ -   * * P a y m e n t s : * *   I n t r o d u c e d   a   n e w   p r o f e s s i o n a l   s u m m a r y   c a r d   l a y o u t   a n d   a   d e t a i l e d   t r a n s a c t i o n   t a b l e   w i t h   e x p o r t   a c t i o n s .  
+ -   * * A n a l y t i c s : * *   R e p l a c e d   b a s i c   c h a r t s   w i t h   a d v a n c e d   R e c h a r t s   c o m p o n e n t s   ( A r e a C h a r t   f o r   g r o w t h ,   B a r C h a r t   f o r   m o n t h l y   r e v e n u e ,   P i e C h a r t   f o r   c a t e g o r y   s h a r e ) .  
+ -   * * R e p o r t s : * *   C r e a t e d   a   n e w   R e p o r t s   p a g e   w i t h   e x p o r t   b u t t o n s   f o r   S a l e s ,   I n v e n t o r y ,   G S T ,   R e v e n u e ,   a n d   O r d e r s .  
+ -   * * D a s h b o a r d   S i d e b a r : * *   A d d e d   A n a l y t i c s   a n d   R e p o r t s   t o   t h e   S e l l e r   n a v i g a t i o n   m e n u .  
+  
+ # # #   C o n f i g u r a t i o n   /   E n v   C h a n g e s  
+ -   N o n e  
+  
+ # # #   B r e a k i n g   C h a n g e s  
+ -   N o n e  
+  
+ # # #   D e p e n d e n c i e s  
+ -   N o n e   ( U s e d   e x i s t i n g   ` r e c h a r t s `   a n d   ` l u c i d e - r e a c t ` ) .  
+  
+ # # #   D e s i g n   D e c i s i o n s   M a d e  
+ -   W r o t e   a   N o d e   s c r i p t   ( ` g e n e r a t e _ c a t a l o g . j s ` )   t o   p r o c e d u r a l l y   c o n s t r u c t   t h e   p r o d u c t   c a t a l o g   d a t a   i n s t e a d   o f   t y p i n g   m a n u a l l y ,   g u a r a n t e e i n g   r e a l i s t i c   m o c k   d a t a   a n d   p r o p e r   U n s p l a s h   i m a g e r y   a t   s c a l e .  
+ -   A u d i t e d   ` P r o d u c t C a r d . t s x `   a n d   d e t e r m i n e d   i t s   e x i s t i n g   U I   f u l l y   m e t   t h e   n e w   r e q u i r e m e n t s   ( o f f e r i n g   F r a m e r   M o t i o n   a n i m a t i o n s ,   %   O F F   t a g s ,   G S T   t a g s ,   e t c . ) ,   s a v i n g   t i m e   b y   r e u s i n g   t h e   c o m p o n e n t   a s - i s .  
+  
+ # # #   A s s u m p t i o n s   T a k e n  
+ -   I t ' s   s a f e   t o   o v e r w r i t e   ` p r o d u c t s . t s `   s i n c e   t h e   o l d   d a t a   w a s   m o s t l y   p l a c e h o l d e r s ,   a n d   t h e   n e w   d a t a   i n c l u d e s   a l l   r e q u e s t e d   c a t e g o r i e s   a n d   m a n u f a c t u r e r s .  
+  
+ # # #   K n o w n   L i m i t a t i o n s   I n t r o d u c e d  
+ -   " E x p o r t "   f u n c t i o n a l i t y   o n   P a y m e n t s   a n d   R e p o r t s   i s   c u r r e n t l y   U I - o n l y   ( d i s p l a y s   a   t o a s t )   u n t i l   t h e   a c t u a l   b a c k e n d   P D F / C S V   g e n e r a t i o n   l o g i c   i s   w i r e d   u p .  
+  
+ # # #   N e x t   R e c o m m e n d e d   T a s k s  
+ -   F u l l y   c o n n e c t   P a y m e n t s ,   A n a l y t i c s ,   a n d   R e p o r t s   t o   a   l i v e   S u p a b a s e   b a c k e n d .  
+ -   B u i l d   o u t   t h e   a c t u a l   P D F   a n d   C S V   e x p o r t   g e n e r a t i o n   l o g i c .  
+ ## 2026-07-14 — Final UI Polish, Business Intelligence & UX Enhancements
+
+### Feature/Task Name
+Final UX Polish (Notifications, AI Insights, Messages, Search)
+
+### Why the change was made
+To achieve Udaan/Shopify level of production polish, providing contextual Business Intelligence, advanced search workflows, and seamless buyer-seller communication channels.
+
+### Files Created
+- `src/components/layout/NotificationsMenu.tsx` (Global dropdown for alerts)
+- `src/routes/_authenticated/messages.tsx` (B2B negotiation chat interface)
+- `scratch/agents_update_2.md`
+
+### Files Modified
+- `src/components/layout/Header.tsx` (Integrated NotificationsMenu)
+- `src/components/search/SearchDialog.tsx` (Added robust Categorized Search for Brands, Categories, and Products)
+- `src/routes/_authenticated/buyer.dashboard.tsx` (Added AI Restock & Trending Insights)
+- `src/routes/_authenticated/seller.dashboard.tsx` (Added AI Fast Moving & Low Stock Insights)
+- `src/routes/_authenticated/admin.index.tsx` (Added AI GMV Growth Insights)
+- `src/routes/products.$slug.tsx` (Upgraded Reviews tab with Rating header and "Write Review" button)
+
+### Files Deleted
+- None
+
+### Database Changes
+- None (Mock AI Insights layer added on frontend).
+
+### API Changes
+- None
+
+### UI Changes
+- **Notifications**: Users can now click the Bell icon globally to see a real-time summary of alerts with blue unread dots.
+- **Messages**: A brand-new `/messages` layout supports split-view conversation lists and chat windows with product references.
+- **AI Insights**: Injecting smart UI cards across all three dashboards (Buyer, Seller, Admin) pointing users to immediate business actions (e.g., restocking soon).
+- **Search**: `Cmd+K` now groups results cleanly by Categories, Brands, and Products.
+- **Reviews**: Product details now show a massive 4.5 overall rating badge with a clear CTA to write reviews.
+
+### Configuration / Env Changes
+- None
+
+### Breaking Changes
+- None
+
+### Dependencies
+- None
+
+### Design Decisions Made
+- For AI Insights, we chose **not** to build backend inference models (as requested), but rather display highly contextual UI cards using `lucide-react` icons and the existing `bg-brand-soft/20` theme tokens to make the platform *feel* intelligent and responsive.
+- Used the `CommandGroup` feature of shadcn/ui to split search results, drastically improving scanability for B2B users.
+
+### Assumptions Taken
+- Mock data in `/messages` is sufficient for the final presentation phase to demonstrate the intended B2B negotiation flow.
+
+### Known Limitations Introduced
+- The "Write a Review" and "Send Message" buttons currently show toast notifications rather than writing to the database.
+
+### Next Recommended Tasks
+- Fully wire up the Postgres database for real-time WebSockets messaging.
+## 2026-07-14 — Phase 5: Production Database Migration Planning
+
+### Objective
+Transition VyaparSetu from a mock-data prototype to a real-time, production-ready B2B marketplace using Supabase.
+
+### Changes
+- Audited all existing mock data stores (`src/data/`, `src/hooks/useSupplier.ts`).
+- Created a comprehensive `production_schema.sql` migration containing schemas for `orders`, `order_items`, `inventory_movements`, `payments`, `notifications`, `messages`, and `reviews`.
+- Created robust Row Level Security (RLS) policies to isolate Buyer and Seller data.
+- Enabled Supabase Realtime subscriptions in the schema via publication adjustments.
+- Manually injected the new table definitions into `src/integrations/supabase/types.ts` to ensure type safety.
+- Created `implementation_plan.md` to map out the frontend React Query migration strategy.
+
+### Next Recommended Tasks
+- **Execute SQL**: The user must run `scratch/production_schema.sql` in their Supabase dashboard.
+- **Migrate Orders Module**: Refactor `useSupplierOrders` to use `@tanstack/react-query` and `@supabase/supabase-js`.
+- **Migrate Inventory Module**: Move stock adjustments to rely on `inventory_movements` rather than client-side `localStorage`.
+- **Real-time Wiring**: Add `supabase.channel('public:orders').on('postgres_changes', ...)` to the Seller Dashboard.

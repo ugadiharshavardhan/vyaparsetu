@@ -8,6 +8,7 @@ import { NAV_LINKS } from "@/constants/site";
 import { SearchDialog } from "@/components/search/SearchDialog";
 import { UserMenu } from "@/components/layout/UserMenu";
 import { CartButton } from "@/components/cart/CartButton";
+import { NotificationsMenu } from "@/components/layout/NotificationsMenu";
 
 
 export function Header() {
@@ -65,7 +66,8 @@ export function Header() {
 
           <CartButton className="h-10 w-10 border border-border bg-card shadow-soft" />
 
-          <div className="hidden md:block">
+          <div className="hidden md:flex md:items-center md:gap-2">
+            <NotificationsMenu />
             <UserMenu />
           </div>
 

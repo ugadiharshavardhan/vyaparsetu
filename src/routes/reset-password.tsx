@@ -62,7 +62,7 @@ function ResetPasswordPage() {
       return;
     }
     setDone(true);
-    setTimeout(() => navigate({ to: "/dashboard" }), 1500);
+    setTimeout(() => navigate({ to: "/auth" }), 1500);
   };
 
   return (
@@ -77,7 +77,7 @@ function ResetPasswordPage() {
             <CheckCircle2 className="h-7 w-7" />
           </div>
           <h3 className="mt-4 font-display text-xl font-semibold">Password updated</h3>
-          <p className="mt-2 text-sm text-muted-foreground">Redirecting you to your dashboard…</p>
+          <p className="mt-2 text-sm text-muted-foreground">Redirecting...</p>
         </div>
       ) : !ready ? (
         <div className="flex items-center gap-3 rounded-2xl border border-dashed border-border p-6 text-sm text-muted-foreground">

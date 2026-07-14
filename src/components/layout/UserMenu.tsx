@@ -116,22 +116,15 @@ function ProvidedUserMenu() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {isSeller && (
-          <DropdownMenuItem
-            className="cursor-pointer"
-            onSelect={() => navigate({ to: "/supplier" })}
-          >
+        <DropdownMenuItem asChild>
+          <Link to={isSeller ? "/seller/dashboard" : "/buyer/dashboard"} className="cursor-pointer">
             <LayoutDashboard className="mr-2 h-4 w-4" /> Dashboard
-          </DropdownMenuItem>
-        )}
-        <DropdownMenuItem
-          className="cursor-pointer"
-          onSelect={(e) => {
-            e.preventDefault();
-            void navigate({ to: "/profile" });
-          }}
-        >
-          <UserIcon className="mr-2 h-4 w-4" /> Profile
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/profile" className="cursor-pointer">
+            <UserIcon className="mr-2 h-4 w-4" /> Profile
+          </Link>
         </DropdownMenuItem>
         <DropdownMenuItem
           className="cursor-pointer"

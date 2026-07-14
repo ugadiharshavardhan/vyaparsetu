@@ -1,109 +1,106 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Wallet, TrendingUp, Clock, Download, Landmark, Receipt } from "lucide-react";
+import { Wallet, TrendingUp, Clock, Download, Landmark, Receipt, FileText, CheckCircle2, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
-import {
-  Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis,
-} from "recharts";
 import { PageHeader } from "@/components/common/PageHeader";
 import { SectionCard } from "@/components/dashboard/SectionCard";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/supplier/DataTable";
 import { Pill } from "@/components/supplier/Pill";
-import { useSupplierOrders } from "@/hooks/useSupplier";
-import { revenueSeries } from "@/data/supplierSeed";
+import { useSupplierOrders, type SupplierOrder } from "@/hooks/useSupplier";
 import { compactInr, inr } from "@/lib/format";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 export const Route = createFileRoute("/_authenticated/supplier/payments")({
   head: () => ({ meta: [{ title: "Payments — Seller" }] }),
   component: PaymentsPage,
 });
 
-type Payout = {
-  id: string;
-  reference: string;
-  cycle: string;
-  orders: number;
-  gross: number;
-  fees: number;
-  net: number;
-  status: "paid" | "processing" | "scheduled";
-  paidAt: string;
-};
-
 function PaymentsPage() {
   const { orders } = useSupplierOrders();
-  const gross = orders.filter((o) => o.status !== "cancelled").reduce((s, o) => s + o.amount, 0);
-  const pending = orders.filter((o) => o.paymentStatus === "pending").reduce((s, o) => s + o.amount, 0);
-  const settled = gross - pending;
-  const nextPayout = Math.round(settled * 0.18);
+  
+  // Real calculations based on new requirements
+  const validOrders = orders.filter((o) => o.status !== "cancelled");
+  const totalRevenue = validOrders.reduce((s, o) => s + o.amount, 0) + 1250000; // adding mock base for realism
+  const pendingPayments = validOrders.filter(o => o.paymentStatus === "pending").reduce((s, o) => s + o.amount, 0) + 45000;
+  const releasedPayments = totalRevenue - pendingPayments;
+  
+  // Mock GST calculation (assume average 12% GST on total revenue)
+  const gstCollected = totalRevenue * 0.12;
+  const nextSettlement = pendingPayments * 0.8; // some portion is scheduled next
 
-  const payouts: Payout[] = [
-    { id: "po1", reference: "VS-PYT-2411", cycle: "12 Nov – 18 Nov", orders: 42, gross: 184200, fees: 3684, net: 180516, status: "paid", paidAt: "2026-06-24" },
-    { id: "po2", reference: "VS-PYT-2410", cycle: "05 Nov – 11 Nov", orders: 36, gross: 154800, fees: 3096, net: 151704, status: "paid", paidAt: "2026-06-17" },
-    { id: "po3", reference: "VS-PYT-2409", cycle: "29 Oct – 04 Nov", orders: 48, gross: 208400, fees: 4168, net: 204232, status: "processing", paidAt: "2026-06-10" },
-    { id: "po4", reference: "VS-PYT-2412", cycle: "19 Nov – 25 Nov", orders: 28, gross: 122400, fees: 2448, net: 119952, status: "scheduled", paidAt: "2026-07-02" },
-  ];
+  // Enrich order data for the transaction table
+  const transactions = orders.map(o => {
+    // Generate mock payment data for the table
+    const gstAmt = o.amount * 0.12;
+    const isSettled = o.paymentStatus === "paid";
+    
+    return {
+      id: o.id,
+      orderNumber: o.orderNumber,
+      customer: o.customer,
+      amount: o.amount,
+      gst: gstAmt,
+      method: "NEFT / RTGS",
+      status: isSettled ? "Settled" : "Pending",
+      settlementDate: isSettled ? new Date(new Date(o.createdAt).getTime() + 86400000 * 2).toISOString() : "—"
+    };
+  });
 
   return (
-    
-      <div className="container-page space-y-6 py-8">
-        <PageHeader
-          title="Payments"
-          description="Track settlements, payouts and GST invoices from a single ledger."
-          action={
-            <div className="flex flex-wrap gap-2">
-              <Button variant="outline" onClick={() => toast.success("Statement downloaded")}><Download className="mr-1.5 h-4 w-4" /> Statement</Button>
-              <Button onClick={() => toast.success("GST report queued")}><Receipt className="mr-1.5 h-4 w-4" /> GST report</Button>
-            </div>
-          }
-        />
-
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard label="Available balance" value={inr(nextPayout)} hint="Next payout" icon={Wallet} tone="brand" />
-          <StatCard label="In processing" value={inr(pending)} hint="Awaiting clearance" icon={Clock} tone="warning" delay={0.05} />
-          <StatCard label="Settled (all-time)" value={compactInr(settled + 2140000)} hint="Received" icon={Landmark} tone="success" delay={0.1} />
-          <StatCard label="Lifetime revenue" value={compactInr(gross + 2140000)} hint="Gross" icon={TrendingUp} tone="info" delay={0.15} />
-        </div>
-
-        <SectionCard title="Payout trend" description="Net settlements over the last 12 months">
-          <div className="h-64">
-            <ResponsiveContainer>
-              <AreaChart data={revenueSeries}>
-                <defs>
-                  <linearGradient id="payg" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="hsl(var(--brand))" stopOpacity={0.4} />
-                    <stop offset="100%" stopColor="hsl(var(--brand))" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" />
-                <XAxis dataKey="month" tickLine={false} axisLine={false} className="text-xs" />
-                <YAxis tickLine={false} axisLine={false} className="text-xs" tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-                <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid hsl(var(--border))" }} formatter={(v: number) => inr(v)} />
-                <Area type="monotone" dataKey="revenue" stroke="hsl(var(--brand))" strokeWidth={2} fill="url(#payg)" />
-              </AreaChart>
-            </ResponsiveContainer>
+    <div className="container-page space-y-6 py-8">
+      <PageHeader
+        title="Payments & Settlements"
+        description="Track your revenue, pending payments, and download tax invoices."
+        action={
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => toast.success("Ledger exported")}><Download className="mr-1.5 h-4 w-4" /> Export Ledger</Button>
+            <Button className="shadow-brand" onClick={() => toast.success("Settlement request sent")}><Landmark className="mr-1.5 h-4 w-4" /> Request Settlement</Button>
           </div>
-        </SectionCard>
+        }
+      />
 
-        <SectionCard title="Payout history" description="7-day settlement cycle">
-          <DataTable<Payout>
-            rows={payouts}
-            columns={[
-              { key: "ref", header: "Reference", cell: (p) => <span className="font-semibold">{p.reference}</span> },
-              { key: "cycle", header: "Cycle", cell: (p) => <span className="text-sm">{p.cycle}</span> },
-              { key: "orders", header: "Orders", cell: (p) => <span className="text-sm">{p.orders}</span> },
-              { key: "gross", header: "Gross", cell: (p) => <span className="text-sm">{inr(p.gross)}</span> },
-              { key: "fees", header: "Fees", cell: (p) => <span className="text-sm text-muted-foreground">−{inr(p.fees)}</span> },
-              { key: "net", header: "Net payout", cell: (p) => <span className="font-semibold">{inr(p.net)}</span> },
-              { key: "status", header: "Status", cell: (p) => (
-                <Pill tone={p.status === "paid" ? "success" : p.status === "processing" ? "warning" : "info"}>{p.status}</Pill>
-              )},
-              { key: "date", header: "Date", cell: (p) => <span className="text-sm text-muted-foreground">{new Date(p.paidAt).toLocaleDateString("en-IN")}</span> },
-            ]}
-          />
-        </SectionCard>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <StatCard label="Total Revenue" value={compactInr(totalRevenue)} hint="Lifetime" icon={TrendingUp} tone="brand" />
+        <StatCard label="Pending Payments" value={inr(pendingPayments)} hint="Awaiting settlement" icon={Clock} tone="warning" delay={0.05} />
+        <StatCard label="Released Payments" value={compactInr(releasedPayments)} hint="Bank transfer" icon={CheckCircle2} tone="success" delay={0.1} />
+        <StatCard label="GST Collected" value={compactInr(gstCollected)} hint="Output tax" icon={Receipt} tone="info" delay={0.15} />
+        <StatCard label="Next Settlement" value={inr(nextSettlement)} hint="Expected tomorrow" icon={Wallet} tone="default" delay={0.2} />
       </div>
-    
+
+      <SectionCard title="Transaction History" description="All recent orders and their settlement status" className="p-0 overflow-visible mt-6">
+        <DataTable
+          rows={transactions}
+          pageSize={15}
+          columns={[
+            { key: "orderId", header: "Order ID", cell: (t) => <span className="font-semibold">{t.orderNumber}</span> },
+            { key: "retailer", header: "Retailer", cell: (t) => <span className="font-medium">{t.customer}</span> },
+            { key: "amount", header: "Amount", cell: (t) => <span className="font-bold">{inr(t.amount)}</span> },
+            { key: "gst", header: "GST", cell: (t) => <span className="text-sm text-muted-foreground">{inr(t.gst)}</span> },
+            { key: "method", header: "Payment Method", cell: (t) => <span className="text-sm">{t.method}</span> },
+            { key: "status", header: "Status", cell: (t) => (
+              <Pill tone={t.status === "Settled" ? "success" : "warning"}>{t.status}</Pill>
+            )},
+            { key: "settlementDate", header: "Settlement Date", cell: (t) => (
+              <span className="text-sm text-muted-foreground">{t.settlementDate !== "—" ? new Date(t.settlementDate).toLocaleDateString() : "—"}</span>
+            )},
+            { key: "actions", header: "", className: "text-right", cell: (t) => (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm">
+                    Actions <ChevronDown className="ml-1 h-3.5 w-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => toast.success("Invoice downloaded")}><FileText className="mr-2 h-4 w-4" /> Download Invoice</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => toast.success("GST Invoice downloaded")}><Receipt className="mr-2 h-4 w-4" /> Download GST Invoice</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => toast.success("Exported to CSV")}><Download className="mr-2 h-4 w-4" /> Export</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )},
+          ]}
+        />
+      </SectionCard>
+    </div>
   );
 }
