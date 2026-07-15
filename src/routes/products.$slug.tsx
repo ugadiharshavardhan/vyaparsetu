@@ -1,8 +1,8 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
   ChevronRight, Loader2, MapPin, MessageCircle, Minus, PackageCheck, Plus,
-  ShieldCheck, Sparkles, Truck,
+  ShieldCheck, Sparkles, Truck, Percent, HelpCircle, Star, Heart, Share2, ShieldAlert
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -79,6 +79,7 @@ const PRODUCT_FAQS = [
 ];
 
 function ProductPage() {
+  const navigate = useNavigate();
   const { product } = Route.useLoaderData();
   const { data: sameCategory = [], isLoading: relatedLoading } = useRelatedProducts(product, 8);
   const { data: cartItems = [] } = useCart();
@@ -126,271 +127,465 @@ function ProductPage() {
     window.location.href = `mailto:hello@vyaparsetu.in?subject=${subject}&body=${body}`;
   };
 
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: product.name,
+        text: product.description,
+        url: window.location.href,
+      }).catch(console.error);
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      toast.success("Product link copied to clipboard!");
+    }
+  };
+
+  // Dynamic B2B wholesale pricing calculations
+  const tier1Price = product.wholesalePrice;
+  const tier2Price = Math.round(product.wholesalePrice * 0.97 * 100) / 100;
+  const tier3Price = Math.round(product.wholesalePrice * 0.95 * 100) / 100;
+
+  // Tabs visibility checks
+  const hasDesc = !!product.description && product.description.trim() !== "";
+  const hasSpecs = !!product.specifications && Object.keys(product.specifications).length > 0;
+  const hasPack = !!product.packagingDetails && product.packagingDetails.trim() !== "";
+
+  const tabs = [
+    ...(hasDesc ? [{ value: "desc", label: "Description" }] : []),
+    ...(hasSpecs ? [{ value: "spec", label: "Specifications" }] : []),
+    ...(hasPack ? [{ value: "pack", label: "Packaging & Shipping" }] : []),
+    { value: "reviews", label: `Reviews (${REVIEWS.length})` },
+    { value: "faq", label: "FAQs" }
+  ];
+
   return (
-    <div className="container-page py-8 md:py-12">
-      <nav className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
-        <Link to="/" className="hover:text-brand">Home</Link>
-        <ChevronRight className="h-3 w-3" />
-        <Link to="/marketplace" className="hover:text-brand">Marketplace</Link>
-        <ChevronRight className="h-3 w-3" />
-        <Link to="/marketplace" search={{ category: product.category } as never} className="capitalize hover:text-brand">
-          {product.category}
+    <div className="container-page py-6 md:py-10">
+      {/* Breadcrumb Navigation */}
+      <nav className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground font-medium py-2">
+        <Link to="/" className="hover:text-brand transition-colors">Home</Link>
+        <ChevronRight className="h-3 w-3 text-muted-foreground/60" />
+        <Link to="/marketplace" className="hover:text-brand transition-colors">Marketplace</Link>
+        <ChevronRight className="h-3 w-3 text-muted-foreground/60" />
+        <Link to="/marketplace" search={{ category: product.category } as never} className="capitalize hover:text-brand transition-colors">
+          {product.category?.replace(/-/g, " ")}
         </Link>
         {product.subCategory && (
           <>
-            <ChevronRight className="h-3 w-3" />
-            <span>{product.subCategory}</span>
+            <ChevronRight className="h-3 w-3 text-muted-foreground/60" />
+            <span className="capitalize text-muted-foreground">{product.subCategory?.replace(/-/g, " ")}</span>
           </>
         )}
-        <ChevronRight className="h-3 w-3" />
-        <span className="line-clamp-1 text-foreground">{product.name}</span>
+        <ChevronRight className="h-3 w-3 text-muted-foreground/60" />
+        <span className="line-clamp-1 text-foreground font-semibold">{product.name}</span>
       </nav>
 
-      <div className="mt-6 grid gap-10 lg:grid-cols-[1.2fr_1fr]">
-        <ProductGallery images={gallery} alt={product.name} />
+      {/* Main Grid: Left Gallery/Tabs vs Right Sticky Purchase Card */}
+      <div className="mt-6 grid gap-8 lg:grid-cols-[1.3fr_1fr] items-start">
+        {/* Left Column: Gallery, Highlights, Details Tabs */}
+        <div className="flex flex-col gap-6">
+          <ProductGallery images={gallery} alt={product.name} />
 
-        <div className="flex min-w-0 flex-col">
-          <p className="text-xs uppercase tracking-wider text-muted-foreground">
-            {product.brand} · SKU {product.sku}
-          </p>
-          <h1 className="mt-2 font-display text-3xl font-bold tracking-tight text-foreground">
-            {product.name}
-          </h1>
-          <div className="mt-3 flex flex-wrap items-center gap-3">
-            <RatingBadge value={product.rating} count={product.reviewCount} />
-            <StockBadge inStock={product.inStock} stock={product.stockCount} />
-          </div>
-
-          <div className="mt-6 rounded-2xl border border-border bg-card p-5 shadow-soft">
-            <PriceDisplay
-              price={product.wholesalePrice}
-              mrp={product.mrp}
-              gstIncluded={product.gstIncluded}
-              gstRate={product.gstRate}
-              size="lg"
-            />
-            <p className="mt-2 text-xs text-muted-foreground">
-              Wholesale price per {product.unit}. Volume pricing unlocks at {product.moq * 3}+ units.
-            </p>
-
-            <div className="mt-5 grid grid-cols-3 gap-3 text-center text-xs">
-              <div className="rounded-xl bg-secondary p-3">
-                <div className="font-semibold text-foreground">{product.moq}</div>
-                <div className="text-muted-foreground">MOQ ({product.unit})</div>
-              </div>
-              <div className="rounded-xl bg-secondary p-3">
-                <div className="font-semibold text-foreground">{product.deliveryEstimate ?? "2–3 days"}</div>
-                <div className="text-muted-foreground">Delivery</div>
-              </div>
-              <div className="rounded-xl bg-secondary p-3">
-                <div className="font-semibold text-foreground">Yes</div>
-                <div className="text-muted-foreground">GST invoice</div>
-              </div>
-            </div>
-
-            {/* Before add: optional qty picker. After add: +/- replaces Add to cart. */}
-            {!line && (
-              <div className="mt-5">
-                <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Quantity ({product.unit})
-                </div>
-                <div className="inline-flex items-center rounded-full border border-border bg-background">
-                  <button
-                    type="button"
-                    disabled={!product.inStock || qty <= moq}
-                    onClick={() => setQty((q) => Math.max(moq, q - 1))}
-                    className="grid h-11 w-11 place-items-center text-muted-foreground hover:bg-secondary disabled:opacity-40"
-                    aria-label="Decrease quantity"
-                  >
-                    <Minus className="h-4 w-4" />
-                  </button>
-                  <div className="min-w-[4rem] px-3 text-center text-base font-semibold tabular-nums">{qty}</div>
-                  <button
-                    type="button"
-                    disabled={!product.inStock || qty + 1 > product.stockCount}
-                    onClick={() => {
-                      const next = qty + 1;
-                      if (next > product.stockCount) {
-                        toast.error(`Only ${product.stockCount} in stock`);
-                        return;
-                      }
-                      setQty(next);
-                    }}
-                    className="grid h-11 w-11 place-items-center text-muted-foreground hover:bg-secondary disabled:opacity-40"
-                    aria-label="Increase quantity"
-                  >
-                    <Plus className="h-4 w-4" />
-                  </button>
-                </div>
-                <p className="mt-2 text-[11px] text-muted-foreground">
-                  Minimum order {moq} {product.unit}. Adjust by 1, then add to cart.
-                </p>
-              </div>
-            )}
-
-            <div className="mt-5 flex flex-wrap items-center gap-2">
-              <AddToCartControl
-                product={product}
-                size="lg"
-                initialQuantity={qty}
-                className="min-w-[10rem] flex-1"
-              />
-              <SaveProductButton product={product} variant="button" size="lg" />
-            </div>
-            {line && (
-              <div className="mt-3 flex items-center justify-between rounded-xl bg-brand-soft/60 px-3 py-2 text-sm">
-                <span className="font-medium text-brand">
-                  {line.quantity} {product.unit} in your cart · steps of {moq}
-                </span>
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    className="text-xs font-semibold text-brand hover:underline"
-                    onClick={() => openCartSheet()}
-                  >
-                    View cart
-                  </button>
-                  <button
-                    type="button"
-                    className="text-xs font-semibold text-destructive hover:underline"
-                    onClick={() => remove.mutate(line.id)}
-                  >
-                    Remove
-                  </button>
-                </div>
-              </div>
-            )}
-            <Button size="lg" variant="ghost" className="mt-2 w-full text-brand" onClick={onInquiry}>
-              <MessageCircle className="mr-1.5 h-4 w-4" /> Send Inquiry to Supplier
-            </Button>
-          </div>
-
+          {/* Highlights Section */}
           {product.highlights && product.highlights.length > 0 && (
-            <div className="mt-5 rounded-2xl border border-border bg-card p-5 shadow-soft">
-              <h3 className="flex items-center gap-2 font-display text-sm font-semibold">
-                <Sparkles className="h-4 w-4 text-brand" /> Product highlights
+            <div className="rounded-3xl border border-border bg-card p-6 shadow-soft transition-all hover:shadow-elevated duration-300">
+              <h3 className="flex items-center gap-2 font-display text-sm font-semibold text-foreground">
+                <Sparkles className="h-4 w-4 text-brand animate-pulse" /> Key Product Highlights
               </h3>
-              <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 text-sm text-muted-foreground">
                 {product.highlights.map((h: string, i: number) => (
-                  <li key={i} className="flex gap-2">
-                    <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-brand" />
-                    <span>{h}</span>
-                  </li>
+                  <div key={i} className="flex items-start gap-2.5">
+                    <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-brand" />
+                    <span className="leading-snug">{h}</span>
+                  </div>
                 ))}
-              </ul>
+              </div>
             </div>
           )}
 
-          <div className="mt-5 rounded-2xl border border-border bg-card p-5 shadow-soft">
-            <div className="flex items-start gap-3">
-              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl gradient-brand font-semibold text-white">
+          {/* Information & Details Tabs */}
+          {tabs.length > 0 && (
+            <div className="rounded-3xl border border-border bg-card p-6 shadow-soft transition-all hover:shadow-elevated duration-300">
+              <Tabs defaultValue={tabs[0]?.value || "desc"} className="w-full">
+                <TabsList className="w-full flex justify-start border-b border-border bg-transparent p-0 rounded-none h-auto gap-6 overflow-x-auto pb-px">
+                  {tabs.map((tab) => (
+                    <TabsTrigger
+                      key={tab.value}
+                      value={tab.value}
+                      className="px-1 py-3 text-sm font-semibold rounded-none border-b-2 !border-transparent data-[state=active]:!border-brand data-[state=active]:text-brand data-[state=active]:bg-transparent hover:text-brand/85 transition-all p-0 h-auto bg-transparent shadow-none cursor-pointer"
+                    >
+                      {tab.label}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+                
+                {hasDesc && (
+                  <TabsContent value="desc" className="mt-6 text-sm leading-relaxed text-muted-foreground focus-visible:outline-none">
+                    <div className="prose prose-sm dark:prose-invert max-w-none text-justify whitespace-pre-line">
+                      {product.description}
+                    </div>
+                  </TabsContent>
+                )}
+                
+                {hasSpecs && (
+                  <TabsContent value="spec" className="mt-6 focus-visible:outline-none">
+                    <div className="overflow-hidden rounded-xl border border-border">
+                      <SpecificationTable specs={product.specifications} />
+                    </div>
+                  </TabsContent>
+                )}
+                
+                {hasPack && (
+                  <TabsContent value="pack" className="mt-6 focus-visible:outline-none">
+                    <div className="flex flex-col gap-5">
+                      <div className="flex items-center gap-2">
+                        <PackageCheck className="h-5 w-5 text-brand" />
+                        <h4 className="font-display font-semibold text-foreground text-sm">Packaging Specifications</h4>
+                      </div>
+                      <p className="text-sm leading-relaxed text-muted-foreground bg-secondary/35 rounded-xl p-4 border border-border/50">
+                        {product.packagingDetails}
+                      </p>
+                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                        <Meta label="Unit of Measure" value={product.unit} />
+                        <Meta label="Minimum Order" value={`${product.moq} ${product.unit}`} />
+                        <Meta label="Stock Level" value={product.stockCount.toLocaleString("en-IN")} />
+                        <Meta label="HSN Code" value={product.specifications.HSN ?? "—"} />
+                      </div>
+                    </div>
+                  </TabsContent>
+                )}
+                
+                <TabsContent value="reviews" className="mt-6 focus-visible:outline-none">
+                  <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border bg-secondary/20 p-5">
+                    <div className="flex items-center gap-4">
+                      <div className="text-4xl font-display font-bold text-foreground">{product.rating.toFixed(1)}</div>
+                      <div>
+                        <RatingBadge value={product.rating} />
+                        <div className="text-xs text-muted-foreground mt-1">Based on {product.reviewCount} verified B2B transactions</div>
+                      </div>
+                    </div>
+                    <Button onClick={() => toast.success("Review form coming soon")} className="shadow-brand bg-brand text-brand-foreground hover:bg-brand/90 font-medium text-xs px-4">
+                      Write a Review
+                    </Button>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    {REVIEWS.map((r) => <ReviewCard key={r.id} review={r} />)}
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="faq" className="mt-6 focus-visible:outline-none">
+                  <Accordion type="single" collapsible className="border border-border rounded-2xl overflow-hidden divide-y divide-border">
+                    {PRODUCT_FAQS.map((f) => (
+                      <AccordionItem key={f.q} value={f.q} className="border-0 px-4">
+                        <AccordionTrigger className="text-sm font-semibold hover:text-brand hover:no-underline py-4">{f.q}</AccordionTrigger>
+                        <AccordionContent className="text-sm leading-relaxed text-muted-foreground pb-4">{f.a}</AccordionContent>
+                      </AccordionItem>
+                    ))}
+                  </Accordion>
+                </TabsContent>
+              </Tabs>
+            </div>
+          )}
+        </div>
+
+        {/* Right Column: Sticky Purchase Panel & Supplier Info */}
+        <div className="lg:sticky lg:top-8 flex flex-col gap-6">
+          <div className="rounded-3xl border border-border bg-card p-6 shadow-soft hover:shadow-elevated transition-all duration-300">
+            {/* Header Metadata */}
+            <div className="flex items-center justify-between gap-2 text-xs uppercase tracking-wider text-muted-foreground font-semibold">
+              <span>{product.brand}</span>
+              {product.sku && <span>SKU: {product.sku}</span>}
+            </div>
+
+            {/* Product Title */}
+            <h1 className="mt-2.5 font-display text-2xl font-bold tracking-tight text-foreground leading-tight">
+              {product.name}
+            </h1>
+
+            {/* Ratings & Stock Status Row */}
+            <div className="mt-3.5 flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
+              <RatingBadge value={product.rating} count={product.reviewCount} />
+              <StockBadge inStock={product.inStock} stock={product.stockCount} />
+            </div>
+
+            {/* Premium Price Block */}
+            <div className="mt-5 space-y-1">
+              <div className="text-xs uppercase font-bold text-muted-foreground tracking-wider">Wholesale Price</div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl font-extrabold tracking-tight text-foreground">
+                  ₹{product.wholesalePrice.toLocaleString("en-IN")}
+                </span>
+                <span className="text-sm font-medium text-muted-foreground">
+                  / {product.unit}
+                </span>
+                {product.mrp && product.mrp > product.wholesalePrice && (
+                  <>
+                    <span className="text-sm line-through text-muted-foreground/70">
+                      ₹{product.mrp.toLocaleString("en-IN")}
+                    </span>
+                    <span className="rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-2 py-0.5 text-[10px] font-bold">
+                      Save {Math.round(((product.mrp - product.wholesalePrice) / product.mrp) * 100)}%
+                    </span>
+                  </>
+                )}
+              </div>
+              <p className="text-[11px] text-muted-foreground font-medium">
+                {product.gstIncluded ? "GST Included" : `+${product.gstRate}% GST`} (HSN: {product.specifications.HSN ?? "—"})
+              </p>
+            </div>
+
+            {/* B2B Wholesale Pricing Tiers Table */}
+            {product.moq > 0 && (
+              <div className="mt-4 rounded-xl bg-secondary/35 p-3.5 border border-border/80">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2.5">Bulk Pricing Tiers</div>
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  <div className="rounded-lg bg-card p-2 border border-border/60 flex flex-col items-center justify-center text-center">
+                    <span className="text-muted-foreground font-semibold text-[10px]">{moq}-{moq * 3 - 1} {product.unit}</span>
+                    <span className="font-bold text-foreground mt-1">₹{tier1Price}</span>
+                    <span className="text-[9px] text-muted-foreground mt-0.5 font-medium">Base Price</span>
+                  </div>
+                  <div className="rounded-lg bg-card p-2 border border-border/60 flex flex-col items-center justify-center text-center">
+                    <span className="text-muted-foreground font-semibold text-[10px]">{moq * 3}-{moq * 10 - 1} {product.unit}</span>
+                    <span className="font-bold text-brand mt-1">₹{tier2Price}</span>
+                    <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">3% OFF</span>
+                  </div>
+                  <div className="rounded-lg bg-card p-2 border border-border/60 flex flex-col items-center justify-center text-center">
+                    <span className="text-muted-foreground font-semibold text-[10px]">{moq * 10}+ {product.unit}</span>
+                    <span className="font-bold text-brand mt-1">₹{tier3Price}</span>
+                    <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">5% OFF</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Product Information Cards Grid */}
+            <div className="mt-5 grid grid-cols-2 gap-2.5">
+              <div className="rounded-xl border border-border bg-secondary/10 p-2.5 flex items-center gap-2.5">
+                <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-brand-soft text-brand">
+                  <PackageCheck className="h-4 w-4" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground truncate">MOQ</div>
+                  <div className="text-xs font-semibold text-foreground truncate">{product.moq} {product.unit}</div>
+                </div>
+              </div>
+              
+              <div className="rounded-xl border border-border bg-secondary/10 p-2.5 flex items-center gap-2.5">
+                <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-brand-soft text-brand">
+                  <ShieldCheck className="h-4 w-4" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground truncate">Inventory</div>
+                  <div className="text-xs font-semibold text-foreground truncate">
+                    {product.inStock ? `${product.stockCount} Units` : "Out of stock"}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="rounded-xl border border-border bg-secondary/10 p-2.5 flex items-center gap-2.5">
+                <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-brand-soft text-brand">
+                  <Truck className="h-4 w-4" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground truncate">Shipping</div>
+                  <div className="text-xs font-semibold text-foreground truncate">{product.deliveryEstimate ?? "2–3 Days"}</div>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-border bg-secondary/10 p-2.5 flex items-center gap-2.5">
+                <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-brand-soft text-brand">
+                  <Percent className="h-4 w-4" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground truncate">Taxation</div>
+                  <div className="text-xs font-semibold text-foreground truncate">{product.gstRate}% GST</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Quantity Picker & Add To Cart Operations */}
+            {!line && (
+              <div className="mt-5 border-t border-border pt-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Select Quantity</div>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">Increments of 1 {product.unit}</p>
+                  </div>
+                  <div className="inline-flex items-center rounded-full border border-border bg-background shadow-sm h-10">
+                    <button
+                      type="button"
+                      disabled={!product.inStock || qty <= moq}
+                      onClick={() => setQty((q) => Math.max(moq, q - 1))}
+                      className="grid h-10 w-10 place-items-center text-muted-foreground hover:bg-secondary disabled:opacity-40 rounded-l-full cursor-pointer transition-colors"
+                      aria-label="Decrease quantity"
+                    >
+                      <Minus className="h-3.5 w-3.5" />
+                    </button>
+                    <input
+                      type="number"
+                      value={qty}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value);
+                        if (isNaN(val)) return;
+                        if (val > product.stockCount) {
+                          toast.error(`Only ${product.stockCount} units available in stock`);
+                          setQty(product.stockCount);
+                        } else {
+                          setQty(Math.max(moq, val));
+                        }
+                      }}
+                      className="w-12 text-center text-sm font-semibold focus:outline-none bg-transparent border-0 focus:ring-0 p-0"
+                    />
+                    <button
+                      type="button"
+                      disabled={!product.inStock || qty + 1 > product.stockCount}
+                      onClick={() => {
+                        const next = qty + 1;
+                        if (next > product.stockCount) {
+                          toast.error(`Only ${product.stockCount} units available in stock`);
+                          return;
+                        }
+                        setQty(next);
+                      }}
+                      className="grid h-10 w-10 place-items-center text-muted-foreground hover:bg-secondary disabled:opacity-40 rounded-r-full cursor-pointer transition-colors"
+                      aria-label="Increase quantity"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Action Buttons Row */}
+            <div className="mt-5 flex flex-col gap-3">
+              <div className="flex items-center gap-2">
+                <AddToCartControl
+                  product={product}
+                  size="lg"
+                  initialQuantity={qty}
+                  className="flex-1 shadow-brand text-sm font-bold h-12"
+                />
+                <SaveProductButton product={product} variant="button" size="lg" className="h-12 border border-border" />
+                <Button
+                  onClick={handleShare}
+                  variant="outline"
+                  size="lg"
+                  className="h-12 px-3.5 border border-border text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                  aria-label="Share product"
+                >
+                  <Share2 className="h-5 w-5" />
+                </Button>
+              </div>
+
+              {line && (
+                <div className="rounded-xl bg-brand-soft/50 p-3 text-xs border border-brand/20">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-brand">
+                      {line.quantity} {product.unit} in your cart · (MOQ: {moq})
+                    </span>
+                    <div className="flex items-center gap-3 font-semibold">
+                      <button
+                        type="button"
+                        className="text-brand hover:underline cursor-pointer"
+                        onClick={() => openCartSheet()}
+                      >
+                        View Cart
+                      </button>
+                      <span className="text-muted-foreground/50">|</span>
+                      <button
+                        type="button"
+                        className="text-destructive hover:underline cursor-pointer"
+                        onClick={() => remove.mutate(line.id)}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              <Button
+                size="lg"
+                className="w-full text-sm font-bold py-3 h-12 bg-amber-500 hover:bg-amber-600 text-white shadow-soft transition-all duration-200 cursor-pointer"
+                disabled={!product.inStock}
+                onClick={() => {
+                  if (qty > product.stockCount) {
+                    toast.error(`Only ${product.stockCount} units available in stock`);
+                    return;
+                  }
+                  navigate({
+                    to: "/checkout",
+                    search: {
+                      buyNowProductId: product.id,
+                      buyNowQuantity: qty,
+                    } as any,
+                  });
+                }}
+              >
+                Buy Now
+              </Button>
+            </div>
+          </div>
+
+          {/* Premium Verified Supplier Card */}
+          <div className="rounded-3xl border border-border bg-card p-6 shadow-soft hover:shadow-elevated transition-all duration-300">
+            <div className="flex items-start gap-4">
+              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-brand to-emerald-600 font-display font-semibold text-white text-lg shadow-sm">
                 {product.supplier.name[0]}
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <div className="truncate font-semibold text-foreground">{product.supplier.name}</div>
+                  <div className="font-bold text-foreground text-sm truncate leading-snug">{product.supplier.name}</div>
                   {product.supplier.verified && <VerifiedBadge />}
                 </div>
-                <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                  <MapPin className="h-3 w-3" /> {product.supplier.location}
+                <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground font-medium">
+                  <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5 shrink-0 text-muted-foreground/75" /> {product.supplier.location}</span>
                   <span>·</span>
-                  <span>★ {product.supplier.rating.toFixed(1)}</span>
+                  <span className="text-amber-500 flex items-center gap-0.5 font-bold">★ {product.supplier.rating.toFixed(1)}</span>
                   <span>·</span>
-                  <span>{product.supplier.yearsActive}+ yrs on VyaparSetu</span>
+                  <span>{product.supplier.yearsActive}+ Yrs</span>
                 </div>
               </div>
+            </div>
+
+            <div className="mt-5 grid grid-cols-2 gap-3 border-t border-border pt-4 text-xs text-muted-foreground font-medium">
+              <div className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-brand shrink-0" /> Verified Supplier</div>
+              <div className="flex items-center gap-2"><Truck className="h-4 w-4 text-brand shrink-0" /> Ships Pan-India</div>
+              <div className="flex items-center gap-2"><MessageCircle className="h-4 w-4 text-brand shrink-0" /> Replies within 2h</div>
+              <div className="flex items-center gap-2"><PackageCheck className="h-4 w-4 text-brand shrink-0" /> High Fulfillment</div>
+            </div>
+
+            <div className="mt-5 flex gap-2.5">
               {product.supplier.id ? (
-                <Button asChild variant="outline" size="sm">
+                <Button asChild variant="outline" size="sm" className="flex-1 text-xs h-9 border-border hover:bg-secondary transition-colors cursor-pointer">
                   <Link to="/suppliers/$id" params={{ id: product.supplier.id }}>
-                    View store
+                    View Store
                   </Link>
                 </Button>
               ) : (
-                <Button variant="outline" size="sm" disabled>
-                  View store
+                <Button variant="outline" size="sm" className="flex-1 text-xs h-9" disabled>
+                  View Store
                 </Button>
               )}
-            </div>
-            <div className="mt-4 grid grid-cols-3 gap-3 border-t border-border pt-4 text-xs text-muted-foreground">
-              <div className="flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5 text-brand" /> Verified</div>
-              <div className="flex items-center gap-1.5"><Truck className="h-3.5 w-3.5 text-brand" /> Ships pan-India</div>
-              <div className="flex items-center gap-1.5"><MessageCircle className="h-3.5 w-3.5 text-brand" /> Replies in 2h</div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 text-xs h-9 text-brand border-brand/20 hover:bg-brand-soft/20 hover:border-brand/40 transition-all cursor-pointer font-semibold"
+                onClick={onInquiry}
+              >
+                Send Inquiry
+              </Button>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="mt-14">
-        <Tabs defaultValue="desc">
-          <TabsList>
-            <TabsTrigger value="desc">Description</TabsTrigger>
-            <TabsTrigger value="spec">Specifications</TabsTrigger>
-            <TabsTrigger value="pack">Packaging</TabsTrigger>
-            <TabsTrigger value="reviews">Reviews ({REVIEWS.length})</TabsTrigger>
-            <TabsTrigger value="faq">FAQs</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="desc" className="mt-6 max-w-3xl text-sm leading-relaxed text-muted-foreground">
-            {product.description}
-          </TabsContent>
-
-          <TabsContent value="spec" className="mt-6 max-w-3xl">
-            <SpecificationTable specs={product.specifications} />
-          </TabsContent>
-
-          <TabsContent value="pack" className="mt-6 max-w-3xl">
-            <div className="rounded-2xl border border-border bg-card p-6 shadow-soft">
-              <h3 className="flex items-center gap-2 font-display text-base font-semibold">
-                <PackageCheck className="h-4 w-4 text-brand" /> Packaging details
-              </h3>
-              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                {product.packagingDetails}
-              </p>
-              <div className="mt-4 grid grid-cols-2 gap-3 border-t border-border pt-4 text-xs sm:grid-cols-4">
-                <Meta label="Unit" value={product.unit} />
-                <Meta label="MOQ" value={`${product.moq} ${product.unit}`} />
-                <Meta label="Stock" value={product.stockCount.toLocaleString("en-IN")} />
-                <Meta label="HSN" value={product.specifications.HSN ?? "—"} />
-              </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="reviews" className="mt-6 max-w-5xl">
-            <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border bg-card p-6 shadow-soft">
-              <div className="flex items-center gap-4">
-                <div className="text-4xl font-display font-bold text-foreground">{product.rating.toFixed(1)}</div>
-                <div>
-                  <RatingBadge value={product.rating} />
-                  <div className="text-xs text-muted-foreground mt-1">Based on {product.reviewCount} verified ratings</div>
-                </div>
-              </div>
-              <Button onClick={() => toast.success("Review form coming soon")} className="shadow-brand">
-                Write a Review
-              </Button>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-3">
-              {REVIEWS.map((r) => <ReviewCard key={r.id} review={r} />)}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="faq" className="mt-6 max-w-3xl">
-            <Accordion type="single" collapsible className="rounded-2xl border border-border bg-card px-5 shadow-soft">
-              {PRODUCT_FAQS.map((f) => (
-                <AccordionItem key={f.q} value={f.q}>
-                  <AccordionTrigger>{f.q}</AccordionTrigger>
-                  <AccordionContent>{f.a}</AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
-          </TabsContent>
-        </Tabs>
-      </div>
-
+      {/* Related Products Grid */}
       {(relatedLoading || related.length > 0) && (
-        <div className="mt-16">
+        <div className="mt-16 border-t border-border pt-12">
           <SectionHeading
             align="left"
-            eyebrow={cartActive.length > 0 ? "Based on your cart" : "Same category"}
+            eyebrow={cartActive.length > 0 ? "BASED ON YOUR CART" : "SAME CATEGORY"}
             title="You might also like"
             description={
               cartActive.length > 0
@@ -400,8 +595,8 @@ function ProductPage() {
           />
           <div className="mt-8">
             {relatedLoading ? (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin text-brand" /> Loading related products…
+              <div className="flex items-center gap-2 text-sm text-muted-foreground py-10 justify-center">
+                <Loader2 className="h-5 w-5 animate-spin text-brand" /> Loading related products…
               </div>
             ) : (
               <ProductGrid products={related} />
@@ -410,13 +605,14 @@ function ProductPage() {
         </div>
       )}
 
+      {/* Recently Viewed Products Grid */}
       {(recentLoading || recentlyViewed.length > 0) && (
-        <div className="mt-16">
-          <SectionHeading align="left" eyebrow="Just browsed" title="Recently viewed" />
+        <div className="mt-16 border-t border-border pt-12">
+          <SectionHeading align="left" eyebrow="JUST BROWSED" title="Recently viewed" />
           <div className="mt-8">
             {recentLoading ? (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin text-brand" /> Loading recently viewed…
+              <div className="flex items-center gap-2 text-sm text-muted-foreground py-10 justify-center">
+                <Loader2 className="h-5 w-5 animate-spin text-brand" /> Loading recently viewed…
               </div>
             ) : (
               <ProductGrid products={recentlyViewed} />
@@ -430,9 +626,9 @@ function ProductPage() {
 
 function Meta({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg bg-secondary p-3">
-      <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</div>
-      <div className="mt-0.5 text-sm font-semibold text-foreground">{value}</div>
+    <div className="rounded-xl bg-secondary/50 border border-border/40 p-3">
+      <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className="mt-0.5 text-xs font-bold text-foreground truncate">{value}</div>
     </div>
   );
 }

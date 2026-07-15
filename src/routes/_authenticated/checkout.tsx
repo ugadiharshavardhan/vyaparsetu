@@ -14,12 +14,17 @@ import { useAddresses } from "@/hooks/useAddresses";
 import { useCart } from "@/hooks/useCart";
 import { usePlaceOrder } from "@/hooks/useOrders";
 import { useValidateCoupon } from "@/hooks/useCoupon";
+import { useProductsByIds } from "@/hooks/useCatalog";
 import { computeTotals, DELIVERY_PARTNERS, estimatedDeliveryDate } from "@/lib/commerce";
 import { inr } from "@/lib/format";
 import type { Coupon, PaymentMethod, ShippingAddress } from "@/types/commerce";
 import { toast } from "sonner";
 
-const search = z.object({ coupon: z.string().optional() });
+const search = z.object({
+  coupon: z.string().optional(),
+  buyNowProductId: z.string().optional(),
+  buyNowQuantity: z.number().optional(),
+});
 
 export const Route = createFileRoute("/_authenticated/checkout")({
   head: () => ({ meta: [{ title: "Checkout — VyaparSetu" }] }),
@@ -36,9 +41,38 @@ const STEPS = [
 
 function CheckoutPage() {
   const navigate = useNavigate();
-  const { coupon: couponCode } = Route.useSearch();
+  const { coupon: couponCode, buyNowProductId, buyNowQuantity } = Route.useSearch();
   const { data: cart = [], isLoading: cartLoading } = useCart();
-  const items = cart.filter((i) => !i.saved_for_later);
+  const { data: buyNowProducts = [], isLoading: buyNowLoading } = useProductsByIds(
+    buyNowProductId ? [buyNowProductId] : undefined
+  );
+
+  const buyNowProduct = buyNowProducts?.[0] ?? null;
+
+  const items = useMemo(() => {
+    if (buyNowProductId && buyNowProduct) {
+      return [
+        {
+          id: "buynow",
+          product_id: buyNowProduct.id,
+          quantity: buyNowQuantity ?? 1,
+          product_snapshot: {
+            id: buyNowProduct.id,
+            image: buyNowProduct.image,
+            name: buyNowProduct.name,
+            wholesalePrice: buyNowProduct.wholesalePrice,
+            gstRate: buyNowProduct.gstRate,
+            unit: buyNowProduct.unit,
+            gstIncluded: buyNowProduct.gstIncluded,
+          },
+        },
+      ] as any[];
+    }
+    return cart.filter((i) => !i.saved_for_later);
+  }, [buyNowProductId, buyNowProduct, buyNowQuantity, cart]);
+
+  const isLoading = cartLoading || (!!buyNowProductId && buyNowLoading);
+
   const { data: addresses = [] } = useAddresses();
 
   const [step, setStep] = useState(0);
@@ -66,11 +100,11 @@ function CheckoutPage() {
 
   const [promptedAddress, setPromptedAddress] = useState(false);
   useEffect(() => {
-    if (!cartLoading && !promptedAddress && addresses.length === 0 && step === 0) {
+    if (!isLoading && !promptedAddress && addresses.length === 0 && step === 0) {
       setAddrOpen(true);
       setPromptedAddress(true);
     }
-  }, [cartLoading, promptedAddress, addresses.length, step]);
+  }, [isLoading, promptedAddress, addresses.length, step]);
 
   // Restore coupon from URL
   useEffect(() => {
@@ -81,7 +115,7 @@ function CheckoutPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [couponCode, items.length]);
 
-  if (cartLoading && step < 3) {
+  if (isLoading && step < 3) {
     return (
       <div className="container-page flex min-h-[40vh] items-center justify-center py-16">
         <Loader2 className="h-8 w-8 animate-spin text-brand" />
@@ -126,7 +160,7 @@ function CheckoutPage() {
     // Simulated payment gateway
     setTimeout(() => {
       place.mutate(
-        { items, address, coupon, payment_method: payment },
+        { items, address, coupon, payment_method: payment, isBuyNow: !!buyNowProductId },
         {
           onSuccess: (order) => {
             setPlacedOrderId(order.id);

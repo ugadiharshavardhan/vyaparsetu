@@ -61,13 +61,14 @@ export type PlaceOrderInput = {
   address: ShippingAddress;
   coupon: Coupon | null;
   payment_method: PaymentMethod;
+  isBuyNow?: boolean;
 };
 
 export function usePlaceOrder() {
   const qc = useQueryClient();
   const { user } = useAuth();
   return useMutation({
-    mutationFn: async ({ items, address, coupon, payment_method }: PlaceOrderInput) => {
+    mutationFn: async ({ items, address, coupon, payment_method, isBuyNow }: PlaceOrderInput) => {
       if (!user) throw new Error("Please sign in");
       if (!items.length) throw new Error("Cart is empty");
 
@@ -155,7 +156,9 @@ export function usePlaceOrder() {
       });
 
       // Clear the cart
-      await supabase.from("cart_items").delete().eq("user_id", user.id).eq("saved_for_later", false);
+      if (!isBuyNow) {
+        await supabase.from("cart_items").delete().eq("user_id", user.id).eq("saved_for_later", false);
+      }
 
       return order;
     },
