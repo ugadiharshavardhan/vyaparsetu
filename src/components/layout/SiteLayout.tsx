@@ -5,6 +5,7 @@ import { Header } from "./Header";
 import { Footer } from "./Footer";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { CartSheet } from "@/components/cart/CartSheet";
+import { LoadingOverlay } from "@/components/common/LoadingSpinner";
 import { AuthContext } from "@/hooks/useAuth";
 
 // Routes that always use the dashboard shell (sidebar + topbar). We hide the
@@ -23,6 +24,9 @@ const SHARED_PREFIXES = ["/marketplace", "/suppliers", "/products", "/categories
 
 export function SiteLayout({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
+  const isNavigating = useRouterState({
+    select: (r) => Boolean(r.isLoading),
+  });
   // Read AuthContext directly so this layout still works when rendered by the
   // root route's error/notFound boundaries (which mount outside AuthProvider).
   const auth = useContext(AuthContext);
@@ -31,12 +35,18 @@ export function SiteLayout({ children }: { children: ReactNode }) {
   const isApp = APP_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
   const isShared = SHARED_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
 
+  const chrome = (
+    <>
+      <LoadingOverlay show={isNavigating} label="Loading page…" />
+      <CartSheet />
+    </>
+  );
 
   if (isApp) {
     return (
       <div className="min-h-screen bg-background text-foreground">
         {children}
-        <CartSheet />
+        {chrome}
       </div>
     );
   }
@@ -45,7 +55,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
     return (
       <DashboardLayout>
         {children}
-        <CartSheet />
+        {chrome}
       </DashboardLayout>
     );
   }
@@ -55,7 +65,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
       <Header />
       <main className="flex-1">{children}</main>
       <Footer />
-      <CartSheet />
+      {chrome}
     </div>
   );
 }

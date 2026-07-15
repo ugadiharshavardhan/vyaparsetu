@@ -5,13 +5,15 @@ import { z } from "zod";
 import { ArrowLeft, CheckCircle2, Eye, EyeOff, Factory, ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
-import { supabase } from "@/integrations/supabase/client";
+import { useSearch } from "@tanstack/react-router";
 import { setSessionMode } from "@/lib/sessionMode";
-import { ensureBuyerAccount, ensureSellerAccount } from "@/lib/accountMembership";
+import { establishSessionAfterSignup, registerWithOtp } from "@/lib/otp";
+import { peekPendingCartAdd } from "@/lib/pendingCart";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { EmailOtpForm } from "@/components/auth/EmailOtpForm";
 import type { BusinessRole } from "./RoleSelect";
 
 const passwordSchema = {
@@ -79,9 +81,6 @@ const sellerSchema = z
 type BuyerFormValues = z.infer<typeof buyerSchema>;
 type SellerFormValues = z.infer<typeof sellerSchema>;
 
-const roleToBusinessType = (role: BusinessRole) =>
-  role === "seller" ? "manufacturer" : "retailer";
-
 function showSignUpError(message: string) {
   const msg = message.toLowerCase();
   if (msg.includes("already") || msg.includes("registered")) {
@@ -108,7 +107,11 @@ export function SignUpForm({
 
 function BuyerSignUp({ onBack }: { onBack?: () => void }) {
   const [show, setShow] = useState(false);
-  const [success, setSuccess] = useState<string | null>(null);
+  const [pendingVerify, setPendingVerify] = useState<{
+    email: string;
+    password: string;
+    userId: string;
+  } | null>(null);
   const form = useForm<BuyerFormValues>({
     resolver: zodResolver(buyerSchema),
     defaultValues: {
@@ -128,55 +131,41 @@ function BuyerSignUp({ onBack }: { onBack?: () => void }) {
     const phone = values.phone.trim();
     const whatsapp = (values.whatsapp ?? "").trim() || phone;
     const address = values.address.trim();
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password: values.password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/marketplace`,
-        data: {
-          full_name: values.fullName,
-          owner_name: values.fullName,
-          business_name: values.businessName,
-          phone,
-          whatsapp,
-          address,
-          account_type: "buyer",
-          business_role: "buyer",
-          business_type: roleToBusinessType("buyer"),
-        },
-      },
-    });
-    if (error) {
-      showSignUpError(error.message);
-      return;
-    }
-    const userId = data.user?.id;
-    if (userId) {
-      try {
-        await ensureBuyerAccount({
-          id: userId,
-          email,
+    try {
+      const result = await registerWithOtp({
+        email,
+        password: values.password,
+        role: "buyer",
+        profile: {
           full_name: values.fullName.trim(),
           business_name: values.businessName.trim(),
           phone,
           whatsapp,
           address,
-        });
-      } catch (e) {
-        console.warn("[ensure-buyer]", e);
+        },
+      });
+      if (!result.userId) {
+        toast.error("Could not start email verification. Please try again.");
+        return;
       }
+      setPendingVerify({ email, password: values.password, userId: result.userId });
+      toast.success("We sent a 6-digit code to your email");
+    } catch (e) {
+      showSignUpError(e instanceof Error ? e.message : "Could not create account");
     }
-    // If email confirmation is off / auto-confirmed, a session is returned.
-    if (data.session) {
-      setSessionMode("buyer");
-      toast.success("Account created — you're signed in!");
-      window.location.assign("/marketplace");
-      return;
-    }
-    setSuccess(email);
   };
 
-  if (success) return <SuccessCard email={success} role="buyer" />;
+  if (pendingVerify) {
+    return (
+      <SignupOtpStep
+        email={pendingVerify.email}
+        password={pendingVerify.password}
+        userId={pendingVerify.userId}
+        role="buyer"
+        onBack={() => setPendingVerify(null)}
+      />
+    );
+  }
 
   return (
     <div className="space-y-5">
@@ -293,7 +282,11 @@ function BuyerSignUp({ onBack }: { onBack?: () => void }) {
 
 function SellerSignUp({ onBack }: { onBack?: () => void }) {
   const [show, setShow] = useState(false);
-  const [success, setSuccess] = useState<string | null>(null);
+  const [pendingVerify, setPendingVerify] = useState<{
+    email: string;
+    password: string;
+    userId: string;
+  } | null>(null);
   const form = useForm<SellerFormValues>({
     resolver: zodResolver(sellerSchema),
     defaultValues: {
@@ -310,54 +303,41 @@ function SellerSignUp({ onBack }: { onBack?: () => void }) {
 
   const submit = async (values: SellerFormValues) => {
     const email = values.email.trim().toLowerCase();
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password: values.password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/supplier`,
-        data: {
-          full_name: values.fullName,
-          owner_name: values.fullName,
-          business_name: values.businessName,
-          phone: values.phone,
-          account_type: "seller",
-          business_role: "seller",
-          business_type: roleToBusinessType("seller"),
-          gst_number: values.gstNumber ?? "",
-          address: values.address ?? "",
-        },
-      },
-    });
-    if (error) {
-      showSignUpError(error.message);
-      return;
-    }
-    const userId = data.user?.id;
-    if (userId) {
-      try {
-        await ensureSellerAccount({
-          id: userId,
-          email,
+    try {
+      const result = await registerWithOtp({
+        email,
+        password: values.password,
+        role: "seller",
+        profile: {
           full_name: values.fullName.trim(),
           business_name: values.businessName.trim(),
           phone: values.phone.trim(),
           gst_number: values.gstNumber?.trim() || undefined,
           address: values.address?.trim() || undefined,
-        });
-      } catch (e) {
-        console.warn("[ensure-seller]", e);
+        },
+      });
+      if (!result.userId) {
+        toast.error("Could not start email verification. Please try again.");
+        return;
       }
+      setPendingVerify({ email, password: values.password, userId: result.userId });
+      toast.success("We sent a 6-digit code to your email");
+    } catch (e) {
+      showSignUpError(e instanceof Error ? e.message : "Could not create account");
     }
-    if (data.session) {
-      setSessionMode("seller");
-      toast.success("Account created — you're signed in!");
-      window.location.assign("/supplier");
-      return;
-    }
-    setSuccess(email);
   };
 
-  if (success) return <SuccessCard email={success} role="seller" />;
+  if (pendingVerify) {
+    return (
+      <SignupOtpStep
+        email={pendingVerify.email}
+        password={pendingVerify.password}
+        userId={pendingVerify.userId}
+        role="seller"
+        onBack={() => setPendingVerify(null)}
+      />
+    );
+  }
 
   return (
     <div className="space-y-5">
@@ -496,22 +476,68 @@ function RoleBanner({ role, onBack }: { role: BusinessRole; onBack?: () => void 
   );
 }
 
-function SuccessCard({ email, role }: { email: string; role: BusinessRole }) {
+function SignupOtpStep({
+  email,
+  password,
+  userId,
+  role,
+  onBack,
+}: {
+  email: string;
+  password: string;
+  userId: string;
+  role: BusinessRole;
+  onBack: () => void;
+}) {
+  const search = useSearch({ strict: false }) as { redirect?: string };
+
   return (
-    <div className="rounded-2xl border border-border bg-card p-8 text-center shadow-soft">
-      <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-brand-soft text-brand">
-        <CheckCircle2 className="h-7 w-7" />
+    <div className="space-y-5">
+      <div className="rounded-2xl border border-border bg-card p-6 shadow-soft">
+        <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-brand-soft text-brand">
+          <CheckCircle2 className="h-6 w-6" />
+        </div>
+        <h3 className="mt-3 text-center font-display text-xl font-semibold">Verify your email</h3>
+        <p className="mt-1 text-center text-sm text-muted-foreground">
+          Enter the 6-digit code we emailed you to activate your{" "}
+          {role === "seller" ? "seller" : "customer"} account.
+        </p>
+        <div className="mt-5">
+          <EmailOtpForm
+            email={email}
+            purpose="signup"
+            userId={userId}
+            newPassword={password}
+            submitLabel="Verify & continue"
+            onVerified={async ({ token_hash }) => {
+              try {
+                await establishSessionAfterSignup({
+                  email,
+                  password,
+                  tokenHash: token_hash,
+                });
+                setSessionMode(role === "seller" ? "seller" : "buyer");
+                toast.success("Account verified — you're signed in!");
+                const pending = peekPendingCartAdd();
+                const next =
+                  search.redirect ||
+                  pending?.returnTo ||
+                  (role === "seller" ? "/seller/dashboard" : "/buyer/dashboard");
+                window.location.assign(next);
+              } catch (e) {
+                toast.error(e instanceof Error ? e.message : "Sign in failed after verification");
+              }
+            }}
+          />
+        </div>
+        <button
+          type="button"
+          className="mt-4 w-full text-center text-sm text-muted-foreground hover:text-foreground"
+          onClick={onBack}
+        >
+          <ArrowLeft className="mr-1 inline h-3.5 w-3.5" /> Back
+        </button>
       </div>
-      <h3 className="mt-4 font-display text-xl font-semibold">Welcome to VyaparSetu!</h3>
-      <p className="mt-2 text-sm text-muted-foreground">
-        Your {role === "seller" ? "seller" : "customer"} account for{" "}
-        <span className="font-medium text-foreground">{email}</span> is ready. You can sign in now.
-      </p>
-      <Button asChild size="lg" className="mt-6 w-full shadow-brand">
-        <Link to="/auth" search={{ mode: "signin" }}>
-          Continue to sign in
-        </Link>
-      </Button>
     </div>
   );
 }

@@ -10,6 +10,7 @@ import {
   updateGuestLine,
   upsertGuestLine,
 } from "@/lib/guestCart";
+import { peekPendingCartAdd, setPendingCartAdd, takePendingCartAdd } from "@/lib/pendingCart";
 import { openCartSheet } from "@/hooks/useCartSheet";
 import { toast } from "sonner";
 
@@ -39,6 +40,7 @@ export function normalizeSnapshot(raw: unknown, productId?: string): ProductSnap
     gstRate: num(s.gstRate, 18),
     gstIncluded: Boolean(s.gstIncluded),
     stockCount: Math.max(0, num(s.stockCount, 9999)),
+    category: String(s.category ?? ""),
     supplierName: String(s.supplierName ?? "Supplier"),
     supplierId: String(s.supplierId ?? ""),
   };
@@ -111,23 +113,90 @@ async function mergeGuestCartIntoUser(userId: string) {
   clearGuestCart();
 }
 
+/** Prevent concurrent remounts from adding the same pending item twice. */
+let pendingCartFlush: Promise<boolean> | null = null;
+
+/** Add the product the guest clicked before they were sent to auth. */
+async function flushPendingCartAdd(userId: string) {
+  if (pendingCartFlush) return pendingCartFlush;
+
+  pendingCartFlush = (async () => {
+    const pending = peekPendingCartAdd();
+    if (!pending) return false;
+
+    const safe = normalizeSnapshot(pending.snapshot);
+    if (!safe) {
+      takePendingCartAdd();
+      return false;
+    }
+    const qty = Math.max(pending.quantity ?? safe.moq, safe.moq);
+
+    try {
+      const { data: existing } = await supabase
+        .from("cart_items")
+        .select("id, quantity")
+        .eq("user_id", userId)
+        .eq("product_id", safe.id)
+        .maybeSingle();
+
+      if (existing) {
+        const { error } = await supabase
+          .from("cart_items")
+          .update({ quantity: existing.quantity + qty, saved_for_later: false })
+          .eq("id", existing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("cart_items").insert({
+          user_id: userId,
+          product_id: safe.id,
+          product_snapshot: safe as never,
+          quantity: qty,
+        });
+        if (error) throw error;
+      }
+      takePendingCartAdd();
+      return true;
+    } catch (e) {
+      setPendingCartAdd(pending);
+      throw e;
+    }
+  })().finally(() => {
+    pendingCartFlush = null;
+  });
+
+  return pendingCartFlush;
+}
+
 export function useCart() {
   const { user, loading } = useAuth();
   const qc = useQueryClient();
 
-  // Merge guest cart into the buyer account once after login
+  // After sign-in: merge guest cart (if any) + add the product they clicked pre-auth
   useEffect(() => {
     if (!user || loading) return;
-    const guest = readGuestCart();
-    if (!guest.length) return;
     let cancelled = false;
-    mergeGuestCartIntoUser(user.id)
-      .then(() => {
-        if (!cancelled) qc.invalidateQueries({ queryKey: CART_KEY });
-      })
-      .catch((e) => {
-        console.warn("[merge-guest-cart]", e);
-      });
+
+    (async () => {
+      try {
+        const guest = readGuestCart();
+        if (guest.length) {
+          await mergeGuestCartIntoUser(user.id);
+        }
+        const addedPending = await flushPendingCartAdd(user.id);
+        if (cancelled) return;
+        await qc.invalidateQueries({ queryKey: CART_KEY });
+        if (addedPending) {
+          toast.success("Added to cart");
+          // Do not auto-open cart drawer — badge / toast is enough
+        }
+      } catch (e) {
+        console.warn("[cart-post-login]", e);
+        if (!cancelled) {
+          toast.error(e instanceof Error ? e.message : "Could not add item to cart");
+        }
+      }
+    })();
+
     return () => {
       cancelled = true;
     };
@@ -176,7 +245,7 @@ export function useAddToCart() {
     mutationFn: async ({
       snapshot,
       quantity,
-      openSheet = true,
+      openSheet = false,
     }: {
       snapshot: ProductSnapshot;
       quantity?: number;
@@ -187,8 +256,7 @@ export function useAddToCart() {
       const qty = Math.max(quantity ?? safe.moq, safe.moq);
 
       if (!user) {
-        upsertGuestLine(safe, qty);
-        return { openSheet };
+        throw new Error("Please sign in to add items to your cart");
       }
 
       const { data: existing } = await supabase
@@ -217,7 +285,8 @@ export function useAddToCart() {
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: CART_KEY });
       toast.success("Added to cart");
-      if (res?.openSheet !== false) openCartSheet();
+      // Cart drawer only opens when explicitly requested (e.g. View cart)
+      if (res?.openSheet === true) openCartSheet();
     },
     onError: (e: Error) => toast.error(e.message || "Could not add to cart"),
   });

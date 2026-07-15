@@ -134,6 +134,7 @@ export function useProfile() {
   return useQuery({
     queryKey: ["profile", user?.id, preferSeller ? "seller" : "buyer"],
     enabled: !!user?.id && !!account,
+    staleTime: 2 * 60_000,
     queryFn: async (): Promise<Profile | null> => {
       const userId = user!.id;
 

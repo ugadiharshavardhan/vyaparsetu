@@ -5,7 +5,8 @@ import { z } from "zod";
 import type { Product } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { mapDbCategory, type DbCategory } from "@/lib/catalogMap";
-import { getByCategory, getSubCategoryName, useProducts } from "@/hooks/useCatalog";
+import { getSubCategoryName, useProductsByCategory } from "@/hooks/useCatalog";
+import { MarketplacePending } from "@/components/common/LoadingSpinner";
 import { ProductGrid } from "@/components/product/ProductGrid";
 import { ProductList } from "@/components/product/ProductListItem";
 import { ProductGridSkeleton } from "@/components/product/ProductCardSkeleton";
@@ -35,6 +36,7 @@ const searchSchema = z.object({
 });
 
 export const Route = createFileRoute("/categories/$slug")({
+  pendingComponent: MarketplacePending,
   validateSearch: searchSchema,
   loader: async ({ params }) => {
     const { data, error } = await supabase
@@ -77,7 +79,7 @@ function CategoryPage() {
   const { category } = Route.useLoaderData();
   const search = Route.useSearch();
   const navigate = useNavigate({ from: "/categories/$slug" });
-  const { data: allProducts = [], isLoading: productsLoading } = useProducts();
+  const { data: allProducts = [], isLoading: productsLoading } = useProductsByCategory(category.slug, 200);
   const [query, setQuery] = useState(search.q ?? "");
   const debouncedQuery = useDebounce(query, 200);
   const [filters, setFilters] = useState<Filters>({
@@ -115,10 +117,8 @@ function CategoryPage() {
     });
   }, [debouncedQuery, navigate]);
 
-  const categoryProducts = useMemo(
-    () => getByCategory(allProducts, category.slug),
-    [allProducts, category.slug],
-  );
+  // Already scoped by category from the server query
+  const categoryProducts = allProducts;
 
   const filtered = useMemo(() => {
     const list = filterProducts(categoryProducts, { ...filters, category: category.slug }, debouncedQuery);

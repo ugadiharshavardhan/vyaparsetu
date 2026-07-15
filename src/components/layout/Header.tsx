@@ -10,7 +10,6 @@ import { UserMenu } from "@/components/layout/UserMenu";
 import { CartButton } from "@/components/cart/CartButton";
 import { NotificationsMenu } from "@/components/layout/NotificationsMenu";
 
-
 export function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -25,56 +24,59 @@ export function Header() {
   return (
     <header
       className={`sticky top-0 z-40 w-full transition-all ${
-        scrolled ? "glass border-b border-border/60" : "bg-transparent"
+        scrolled ? "glass border-b border-border/60" : "bg-background/80 backdrop-blur-sm"
       }`}
     >
-      <div className="container-page flex h-16 items-center gap-4 md:h-20">
-        <Logo />
+      {/* Full viewport width — no max-width container so the bar spans edge to edge */}
+      <div className="flex h-14 w-full flex-nowrap items-center gap-3 whitespace-nowrap px-4 sm:h-16 sm:px-6 lg:gap-4 lg:px-8">
+        <Logo className="shrink-0" />
 
-        <nav className="hidden items-center gap-1 md:ml-6 md:flex">
+        <nav className="hidden min-w-0 shrink items-center gap-0.5 lg:flex xl:gap-1">
           {NAV_LINKS.map((l) => (
             <Link
               key={l.to}
               to={l.to}
               activeProps={{ className: "text-brand" }}
-              className="rounded-full px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+              className="rounded-full px-2.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground xl:px-3"
             >
               {l.label}
             </Link>
           ))}
         </nav>
 
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex shrink-0 flex-nowrap items-center gap-1.5 sm:gap-2">
           <button
             onClick={() => setSearchOpen(true)}
-            className="hidden h-10 min-w-[240px] items-center gap-2 rounded-full border border-border bg-card px-4 text-sm text-muted-foreground shadow-soft transition hover:border-brand/40 hover:text-foreground md:inline-flex"
+            className="hidden h-9 max-w-[220px] flex-nowrap items-center gap-2 overflow-hidden rounded-full border border-border bg-card px-3 text-sm text-muted-foreground shadow-soft transition hover:border-brand/40 hover:text-foreground md:inline-flex lg:max-w-none lg:min-w-[200px] xl:min-w-[260px]"
             aria-label="Search products"
           >
-            <Search className="h-4 w-4" />
-            Search products, brands, suppliers…
-            <kbd className="ml-auto rounded border border-border bg-secondary px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
+            <Search className="h-4 w-4 shrink-0" />
+            <span className="truncate whitespace-nowrap">Search products…</span>
+            <kbd className="ml-auto shrink-0 rounded border border-border bg-secondary px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
               ⌘K
             </kbd>
           </button>
           <button
             onClick={() => setSearchOpen(true)}
-            className="grid h-10 w-10 place-items-center rounded-full border border-border bg-card text-muted-foreground shadow-soft md:hidden"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-border bg-card text-muted-foreground shadow-soft md:hidden"
             aria-label="Search"
           >
             <Search className="h-4 w-4" />
           </button>
 
-          <CartButton className="h-10 w-10 border border-border bg-card shadow-soft" />
+          <CartButton className="h-9 w-9 shrink-0 border border-border bg-card shadow-soft" />
 
-          <div className="hidden md:flex md:items-center md:gap-2">
+          <div className="hidden shrink-0 items-center gap-1.5 md:flex">
             <NotificationsMenu />
             <UserMenu />
           </div>
 
-
           <Sheet>
             <SheetTrigger asChild>
-              <button className="grid h-10 w-10 place-items-center rounded-full border border-border bg-card text-foreground md:hidden" aria-label="Open menu">
+              <button
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-border bg-card text-foreground lg:hidden"
+                aria-label="Open menu"
+              >
                 <Menu className="h-5 w-5" />
               </button>
             </SheetTrigger>
@@ -82,7 +84,10 @@ export function Header() {
               <div className="flex items-center justify-between border-b border-border p-5">
                 <Logo />
                 <SheetTrigger asChild>
-                  <button className="grid h-9 w-9 place-items-center rounded-full border border-border" aria-label="Close menu">
+                  <button
+                    className="grid h-9 w-9 place-items-center rounded-full border border-border"
+                    aria-label="Close menu"
+                  >
                     <X className="h-4 w-4" />
                   </button>
                 </SheetTrigger>
@@ -99,10 +104,14 @@ export function Header() {
                 ))}
                 <div className="mt-4 flex flex-col gap-2 border-t border-border pt-4">
                   <Button variant="outline" asChild>
-                    <Link to="/auth" search={{ mode: "signin" }}>Sign in</Link>
+                    <Link to="/auth" search={{ mode: "signin" }}>
+                      Sign in
+                    </Link>
                   </Button>
                   <Button className="shadow-brand" asChild>
-                    <Link to="/auth" search={{ mode: "signup" }}>Get Started</Link>
+                    <Link to="/auth" search={{ mode: "signup" }}>
+                      Get Started
+                    </Link>
                   </Button>
                 </div>
               </div>

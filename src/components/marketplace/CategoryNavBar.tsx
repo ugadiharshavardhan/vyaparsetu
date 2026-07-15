@@ -15,7 +15,7 @@ export function CategoryNavBar({ activeSlug = null }: { activeSlug?: string | nu
       aria-label="Main categories"
       className="border-b border-border bg-card"
     >
-      <div className="container-page flex gap-1 overflow-x-auto py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="flex w-full gap-1 overflow-x-auto px-4 py-2 sm:px-6 lg:px-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <NavItem
           to="/marketplace"
           active={isAll}

@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/common/PageHeader";
 import { SectionCard } from "@/components/dashboard/SectionCard";
@@ -59,11 +59,16 @@ function SupplierSettingsPage() {
           <p className="text-sm text-muted-foreground">Bank account and UPI settlement configuration will be enabled in a later release.</p>
         </SectionCard>
 
-        <SectionCard title="Security">
+        <SectionCard title="Security" description="Password and account access">
           <div className="space-y-2">
             <Toggle label="Two-factor authentication" defaultChecked />
             <Toggle label="Login alerts" defaultChecked />
             <Toggle label="IP whitelist for API access" />
+          </div>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <Button variant="outline" asChild>
+              <Link to="/forgot-password">Reset password via email OTP</Link>
+            </Button>
           </div>
         </SectionCard>
 

@@ -1,13 +1,14 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
-  ChevronRight, MapPin, MessageCircle, Minus, PackageCheck, Plus,
+  ChevronRight, Loader2, MapPin, MessageCircle, Minus, PackageCheck, Plus,
   ShieldCheck, Sparkles, Truck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { mapDbProduct, type DbProduct } from "@/lib/catalogMap";
-import { getRelatedFromList, useProducts } from "@/hooks/useCatalog";
+import { useCartRelatedProducts, useProductsByIds, useRelatedProducts } from "@/hooks/useCatalog";
+import { useCart } from "@/hooks/useCart";
 import { Button } from "@/components/ui/button";
 import { VerifiedBadge } from "@/components/common/VerifiedBadge";
 import { PriceDisplay } from "@/components/common/PriceDisplay";
@@ -79,11 +80,33 @@ const PRODUCT_FAQS = [
 
 function ProductPage() {
   const { product } = Route.useLoaderData();
-  const { data: allProducts = [] } = useProducts();
+  const { data: sameCategory = [], isLoading: relatedLoading } = useRelatedProducts(product, 8);
+  const { data: cartItems = [] } = useCart();
+  const cartActive = cartItems.filter((i) => !i.saved_for_later);
+  const cartExcludeIds = cartActive.map((i) => i.product_id).concat(product.id);
+  const cartCategories = Array.from(
+    new Set(
+      [
+        product.category,
+        ...cartActive.map((i) => i.product_snapshot?.category).filter(Boolean),
+      ].filter((c): c is string => !!c && c.trim().length > 0),
+    ),
+  );
+  const { data: cartRelated = [] } = useCartRelatedProducts({
+    excludeIds: cartExcludeIds,
+    categoryHints: cartCategories,
+    limit: 8,
+    enabled: cartActive.length > 0,
+  });
+  // Prefer cart-driven same-category picks when cart has items; else PDP category
+  const related =
+    cartActive.length > 0 && cartRelated.length > 0
+      ? cartRelated
+      : sameCategory;
   const gallery = product.images ?? [product.image];
-  const related = useMemo(() => getRelatedFromList(allProducts, product), [allProducts, product]);
   const { ids, push } = useRecentlyViewed();
-  const recentlyViewed = allProducts.filter((p) => ids.includes(p.id) && p.id !== product.id).slice(0, 4);
+  const recentIds = ids.filter((id) => id !== product.id).slice(0, 4);
+  const { data: recentlyViewed = [], isLoading: recentLoading } = useProductsByIds(recentIds);
 
   const moq = Math.max(1, product.moq);
   const [qty, setQty] = useState(moq);
@@ -363,17 +386,42 @@ function ProductPage() {
         </Tabs>
       </div>
 
-      {related.length > 0 && (
+      {(relatedLoading || related.length > 0) && (
         <div className="mt-16">
-          <SectionHeading align="left" eyebrow="Related" title="You might also like" />
-          <div className="mt-8"><ProductGrid products={related} /></div>
+          <SectionHeading
+            align="left"
+            eyebrow={cartActive.length > 0 ? "Based on your cart" : "Same category"}
+            title="You might also like"
+            description={
+              cartActive.length > 0
+                ? "Products from the same categories as items in your cart."
+                : `More wholesale products in ${product.category?.replace(/-/g, " ") || "this category"}.`
+            }
+          />
+          <div className="mt-8">
+            {relatedLoading ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin text-brand" /> Loading related products…
+              </div>
+            ) : (
+              <ProductGrid products={related} />
+            )}
+          </div>
         </div>
       )}
 
-      {recentlyViewed.length > 0 && (
+      {(recentLoading || recentlyViewed.length > 0) && (
         <div className="mt-16">
           <SectionHeading align="left" eyebrow="Just browsed" title="Recently viewed" />
-          <div className="mt-8"><ProductGrid products={recentlyViewed} /></div>
+          <div className="mt-8">
+            {recentLoading ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin text-brand" /> Loading recently viewed…
+              </div>
+            ) : (
+              <ProductGrid products={recentlyViewed} />
+            )}
+          </div>
         </div>
       )}
     </div>

@@ -22,6 +22,7 @@ import {
 import { useDebounce } from "@/hooks/useDebounce";
 import { filterProducts, sortProducts } from "@/lib/productFilters";
 import { useCategories, useProducts } from "@/hooks/useCatalog";
+import { MarketplacePending } from "@/components/common/LoadingSpinner";
 
 const searchSchema = z.object({
   q: z.string().optional(),
@@ -31,6 +32,7 @@ const searchSchema = z.object({
 
 export const Route = createFileRoute("/marketplace")({
   validateSearch: searchSchema,
+  pendingComponent: MarketplacePending,
   head: () => ({
     meta: [
       { title: "Marketplace — VyaparSetu" },

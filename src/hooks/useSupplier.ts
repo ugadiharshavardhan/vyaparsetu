@@ -9,7 +9,7 @@ import {
   seedWarehouses,
 } from "@/data/supplierSeed";
 import { supabase } from "@/integrations/supabase/client";
-import { useProducts } from "@/hooks/useCatalog";
+import { useAllProducts } from "@/hooks/useCatalog";
 import {
   mapCatalogProductToSupplier,
   supplierDraftToInsert,
@@ -97,7 +97,7 @@ const uid = (prefix: string) => `${prefix}${Math.random().toString(36).slice(2, 
 
 /* ---------- Products (catalog from Supabase) ---------- */
 export function useSupplierProducts() {
-  const query = useProducts();
+  const query = useAllProducts();
   const queryClient = useQueryClient();
   const products = useMemo(
     () => (query.data ?? []).map(mapCatalogProductToSupplier),

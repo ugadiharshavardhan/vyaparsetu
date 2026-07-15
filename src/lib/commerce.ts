@@ -17,6 +17,7 @@ export function toSnapshot(p: Product): ProductSnapshot {
     gstRate: p.gstRate,
     gstIncluded: p.gstIncluded,
     stockCount: p.stockCount,
+    category: p.category,
     supplierName: p.supplier.name,
     supplierId: p.supplier.id,
   };

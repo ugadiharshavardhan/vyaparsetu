@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Eye, EyeOff } from "lucide-react";
+import { CheckCircle2, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,9 +10,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { EmailOtpForm } from "@/components/auth/EmailOtpForm";
 import { resolvePostLoginPath } from "@/lib/postLoginRedirect";
 import { setSessionMode, clearSessionMode } from "@/lib/sessionMode";
 import { assertAccountMembership } from "@/lib/accountMembership";
+import { establishSessionAfterSignup, sendEmailOtp } from "@/lib/otp";
 
 const schema = z.object({
   email: z.string().trim().email("Please enter a valid email").max(255),
@@ -23,6 +25,7 @@ type FormValues = z.infer<typeof schema>;
 
 export function SignInForm({ role, onBack }: { role?: "buyer" | "seller"; onBack?: () => void } = {}) {
   const [show, setShow] = useState(false);
+  const [pendingVerify, setPendingVerify] = useState<{ email: string; password: string } | null>(null);
   const navigate = useNavigate();
   const search = useSearch({ strict: false }) as { redirect?: string };
 
@@ -40,6 +43,25 @@ export function SignInForm({ role, onBack }: { role?: "buyer" | "seller"; onBack
     else clearSessionMode();
   };
 
+  const finishSignIn = async (userId: string) => {
+    if (role) {
+      const membership = await assertAccountMembership(userId, role);
+      if (!membership.ok) {
+        await supabase.auth.signOut();
+        clearSessionMode();
+        toast.error(membership.message);
+        return;
+      }
+    }
+
+    persistMode();
+    toast.success("Welcome back!");
+    const fallback = await resolvePostLoginPath(userId);
+    // Prefer return URL from "Add to cart" so the pending item can flush on that page
+    const path = search.redirect ?? roleRedirect(fallback);
+    navigate({ to: path as never });
+  };
+
   const submit = async (values: FormValues) => {
     const email = values.email.trim().toLowerCase();
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -50,8 +72,16 @@ export function SignInForm({ role, onBack }: { role?: "buyer" | "seller"; onBack
     if (error) {
       const msg = error.message.toLowerCase();
       if (msg.includes("email not confirmed") || msg.includes("not confirmed")) {
-        toast.error("Please confirm your email first, or try signing up again.");
-      } else if (msg.includes("invalid")) {
+        try {
+          await sendEmailOtp(email, "signup");
+          setPendingVerify({ email, password: values.password });
+          toast.success("We sent a 6-digit code to verify your email");
+        } catch (e) {
+          toast.error(e instanceof Error ? e.message : "Could not send verification code");
+        }
+        return;
+      }
+      if (msg.includes("invalid")) {
         toast.error("Incorrect email or password");
       } else {
         toast.error(error.message);
@@ -64,24 +94,54 @@ export function SignInForm({ role, onBack }: { role?: "buyer" | "seller"; onBack
       return;
     }
 
-    if (role) {
-      const membership = await assertAccountMembership(data.user.id, role);
-      if (!membership.ok) {
-        await supabase.auth.signOut();
-        clearSessionMode();
-        toast.error(membership.message);
-        return;
-      }
-    }
-
-    persistMode();
-    toast.success("Welcome back!");
-    const fallback = await resolvePostLoginPath(data.user.id);
-    const path = search.redirect ?? roleRedirect(fallback);
-    navigate({ to: path as never });
+    await finishSignIn(data.user.id);
   };
 
   const loading = form.formState.isSubmitting;
+
+  if (pendingVerify) {
+    return (
+      <div className="space-y-5">
+        <div className="rounded-2xl border border-border bg-card p-6 shadow-soft">
+          <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-brand-soft text-brand">
+            <CheckCircle2 className="h-6 w-6" />
+          </div>
+          <h3 className="mt-3 text-center font-display text-xl font-semibold">Verify your email</h3>
+          <p className="mt-1 text-center text-sm text-muted-foreground">
+            Enter the 6-digit code we emailed you to open your{" "}
+            {role === "seller" ? "seller" : "buyer"} dashboard.
+          </p>
+          <div className="mt-5">
+            <EmailOtpForm
+              email={pendingVerify.email}
+              purpose="signup"
+              newPassword={pendingVerify.password}
+              submitLabel="Verify & sign in"
+              onVerified={async ({ token_hash }) => {
+                try {
+                  const { userId } = await establishSessionAfterSignup({
+                    email: pendingVerify.email,
+                    password: pendingVerify.password,
+                    tokenHash: token_hash,
+                  });
+                  await finishSignIn(userId);
+                } catch (e) {
+                  toast.error(e instanceof Error ? e.message : "Sign in failed after verification");
+                }
+              }}
+            />
+          </div>
+          <button
+            type="button"
+            className="mt-4 w-full text-center text-sm text-muted-foreground hover:text-foreground"
+            onClick={() => setPendingVerify(null)}
+          >
+            Back to sign in
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">

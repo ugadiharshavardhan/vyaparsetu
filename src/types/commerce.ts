@@ -14,6 +14,7 @@ export type ProductSnapshot = Pick<
   | "gstRate"
   | "gstIncluded"
   | "stockCount"
+  | "category"
 > & {
   supplierName: string;
   supplierId: string;

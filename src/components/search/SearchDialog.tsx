@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { ArrowRight, Clock, Search as SearchIcon, TrendingUp } from "lucide-react";
+import { ArrowRight, Clock, Loader2, Search as SearchIcon, TrendingUp } from "lucide-react";
 import {
   CommandDialog,
   CommandEmpty,
@@ -25,8 +25,8 @@ export function SearchDialog({
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [recent, setRecent] = useState<string[]>([]);
-  const { data: products = [] } = useProducts();
-  const { data: categories = [] } = useCategories();
+  const { data: products = [], isFetching: productsFetching } = useProducts({ enabled: open });
+  const { data: categories = [] } = useCategories({ enabled: open });
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -94,7 +94,15 @@ export function SearchDialog({
         placeholder="Search products, brands, categories…"
       />
       <CommandList>
-        <CommandEmpty>No results. Try a different keyword.</CommandEmpty>
+        <CommandEmpty>
+          {productsFetching ? (
+            <span className="inline-flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin text-brand" /> Searching…
+            </span>
+          ) : (
+            "No results. Try a different keyword."
+          )}
+        </CommandEmpty>
 
         {query && (results.products.length > 0 || results.brands.length > 0 || results.categories.length > 0) && (
           <>

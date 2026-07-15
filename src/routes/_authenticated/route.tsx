@@ -33,7 +33,7 @@ export const Route = createFileRoute("/_authenticated")({
       staleTime: 5 * 60 * 1000,
       queryFn: async () => {
         const [seller, buyer] = await Promise.all([
-          supabase.from("sellers").select("*").eq("id", user.id).maybeSingle(),
+          supabase.from("sellers").select("id, onboarding_completed").eq("id", user.id).maybeSingle(),
           supabase.from("buyers").select("id").eq("id", user.id).maybeSingle(),
         ]);
 

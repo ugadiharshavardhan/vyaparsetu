@@ -47,6 +47,13 @@ function isH3SwallowedErrorBody(body: string): boolean {
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
+      const url = new URL(request.url);
+      // Local Gmail SMTP OTP — avoids undeployed Supabase Edge Functions
+      if (url.pathname === "/api/auth-otp") {
+        const { handleAuthOtpRequest } = await import("./server/authOtpHandler");
+        return await handleAuthOtpRequest(request);
+      }
+
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
       return await normalizeCatastrophicSsrResponse(response);

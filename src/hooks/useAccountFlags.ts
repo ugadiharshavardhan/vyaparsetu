@@ -20,6 +20,7 @@ export function useAccountFlags() {
   return useQuery({
     queryKey: ["account-flags", user?.id],
     enabled: !!user?.id,
+    staleTime: 5 * 60_000,
     queryFn: async (): Promise<AccountFlags> => {
       const userId = user!.id;
       const [buyer, seller, admin] = await Promise.all([

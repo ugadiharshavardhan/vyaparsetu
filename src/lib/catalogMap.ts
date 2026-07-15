@@ -46,7 +46,7 @@ const num = (v: unknown, fallback = 0) => {
   return Number.isFinite(n) ? n : fallback;
 };
 
-function asSupplier(raw: unknown): Supplier {
+export function asSupplier(raw: unknown): Supplier {
   const s = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
   return {
     id: String(s.id ?? ""),

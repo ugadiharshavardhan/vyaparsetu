@@ -13,7 +13,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { AdminProduct } from "@/data/admin";
-import { useProducts } from "@/hooks/useCatalog";
+import { useAllProducts } from "@/hooks/useCatalog";
 import { supabase } from "@/integrations/supabase/client";
 import { mapProductToAdmin } from "@/lib/catalogAdminMap";
 import { inr } from "@/lib/format";
@@ -26,7 +26,7 @@ export const Route = createFileRoute("/_authenticated/admin/products")({
 
 function AdminProductsPage() {
   const queryClient = useQueryClient();
-  const { data: catalog = [], isLoading } = useProducts();
+  const { data: catalog = [], isLoading } = useAllProducts();
   const products = useMemo(() => catalog.map(mapProductToAdmin), [catalog]);
   const [status, setStatus] = useState("all");
   const [selected, setSelected] = useState<string[]>([]);

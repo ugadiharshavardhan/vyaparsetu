@@ -23,11 +23,15 @@ export function useOrders() {
   return useQuery({
     queryKey: ["orders", user?.id ?? "anon"],
     enabled: !!user,
+    staleTime: 60_000,
     queryFn: async (): Promise<Order[]> => {
       const { data, error } = await supabase
         .from("orders")
-        .select("*, order_items(*)")
-        .order("created_at", { ascending: false });
+        .select(
+          "id, order_number, status, payment_status, payment_method, subtotal, tax_total, shipping_total, discount_total, grand_total, created_at, updated_at, estimated_delivery, tracking_number, delivery_partner, shipping_address, status_history, order_items(*)",
+        )
+        .order("created_at", { ascending: false })
+        .limit(40);
       if (error) throw error;
       return (data ?? []) as unknown as Order[];
     },
@@ -38,6 +42,7 @@ export function useOrder(id: string | undefined) {
   return useQuery({
     queryKey: ["order", id],
     enabled: !!id,
+    staleTime: 60_000,
     queryFn: async (): Promise<Order | null> => {
       if (!id) return null;
       const { data, error } = await supabase

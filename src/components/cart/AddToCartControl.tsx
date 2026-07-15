@@ -1,11 +1,14 @@
 import { Minus, Plus, ShoppingCart } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
+import { toast } from "sonner";
 import type { Product } from "@/types";
 import type { ProductSnapshot } from "@/types/commerce";
 import { Button } from "@/components/ui/button";
 import { useAddToCart, useCartLine, useRemoveCartItem, useUpdateCartItem } from "@/hooks/useCart";
+import { useAuth } from "@/hooks/useAuth";
+import { setPendingCartAdd } from "@/lib/pendingCart";
 import { toSnapshot } from "@/lib/commerce";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
 
 type Props = {
   product?: Product;
@@ -27,6 +30,8 @@ export function AddToCartControl({
   showLabel = true,
 }: Props) {
   const snapshot = snapshotProp ?? (product ? toSnapshot(product) : null);
+  const { user, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
   const line = useCartLine(snapshot?.id);
   const add = useAddToCart();
   const update = useUpdateCartItem();
@@ -38,7 +43,30 @@ export function AddToCartControl({
 
   if (!snapshot) return null;
 
+  const requireAuthThenAdd = () => {
+    const qty = Math.max(initialQuantity ?? moq, moq);
+    const returnTo =
+      typeof window !== "undefined"
+        ? `${window.location.pathname}${window.location.search}`
+        : "/marketplace";
+
+    setPendingCartAdd({
+      snapshot,
+      quantity: qty,
+      returnTo,
+    });
+    toast.message("Sign in to add this item to your cart");
+    navigate({
+      to: "/auth",
+      search: { mode: "signin", redirect: returnTo },
+    });
+  };
+
   const changeQty = (next: number) => {
+    if (!user) {
+      requireAuthThenAdd();
+      return;
+    }
     if (!line) return;
     if (next < moq) {
       remove.mutate(line.id);
@@ -59,7 +87,7 @@ export function AddToCartControl({
     );
   }
 
-  if (line) {
+  if (line && user) {
     return (
       <div
         className={cn(
@@ -108,15 +136,27 @@ export function AddToCartControl({
     <Button
       size={size}
       className={cn("flex-1 shadow-brand", className)}
-      disabled={pending}
+      loading={pending || authLoading}
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
-        add.mutate({ snapshot, quantity: initialQuantity ?? moq });
+        if (authLoading) return;
+        if (!user) {
+          requireAuthThenAdd();
+          return;
+        }
+        add.mutate({ snapshot, quantity: initialQuantity ?? moq, openSheet: false });
       }}
     >
-      <ShoppingCart className={cn(size === "lg" ? "mr-1.5 h-4 w-4" : "h-3.5 w-3.5", showLabel && size !== "lg" && "mr-1.5")} />
-      {showLabel ? label : null}
+      {!pending && !authLoading && (
+        <ShoppingCart
+          className={cn(
+            size === "lg" ? "mr-1.5 h-4 w-4" : "h-3.5 w-3.5",
+            showLabel && size !== "lg" && "mr-1.5",
+          )}
+        />
+      )}
+      {showLabel ? (pending ? "Adding…" : label) : null}
     </Button>
   );
 }

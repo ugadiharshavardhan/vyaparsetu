@@ -9,13 +9,13 @@ export function CategoriesPreview() {
   const { data: categories = [], isLoading } = useCategories();
 
   return (
-    <section className="container-page py-20 sm:py-24">
+    <section className="w-full px-4 py-20 sm:px-6 sm:py-24 lg:px-8">
       <SectionHeading
         eyebrow="Categories"
         title="Everything your business needs, in one place"
         description="From daily FMCG to industrial supplies — sourced from verified sellers across India."
       />
-      <div className="mt-12 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="mt-12 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
         {isLoading
           ? Array.from({ length: 10 }).map((_, i) => <Skeleton key={i} className="aspect-[5/4] rounded-2xl" />)
           : categories.map((c, i) => (

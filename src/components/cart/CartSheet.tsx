@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { ArrowRight, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
+import { ArrowRight, Loader2, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
 import { useMemo } from "react";
 import {
   Sheet,
@@ -19,11 +19,13 @@ import { toast } from "sonner";
 
 export function CartSheet() {
   const { open, setOpen } = useCartSheet();
-  const { data: items = [], isLoading } = useCart();
+  // Prefer cached cart when closed; refetch kick starts when opened
+  const { data: items = [], isLoading, isFetching } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
   const update = useUpdateCartItem();
   const remove = useRemoveCartItem();
+  const busy = open && (isLoading || isFetching || update.isPending || remove.isPending);
 
   const active = items.filter((i) => !i.saved_for_later);
   const breakup = useMemo(() => computeTotals(active, null, null), [active]);
@@ -45,6 +47,11 @@ export function CartSheet() {
           <p className="text-sm text-muted-foreground">
             {active.length} {active.length === 1 ? "item" : "items"}
             {!user ? " · Guest cart (saved on this device)" : ""}
+            {busy ? (
+              <span className="ml-2 inline-flex items-center gap-1 text-brand">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Updating…
+              </span>
+            ) : null}
           </p>
         </SheetHeader>
 

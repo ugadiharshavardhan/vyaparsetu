@@ -1,12 +1,15 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import { useMemo, useState } from "react";
-import { ArrowRight, Bookmark, ShoppingBag } from "lucide-react";
+import { ArrowRight, Bookmark, Loader2, ShoppingBag } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
+import { SectionHeading } from "@/components/common/SectionHeading";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ProductGrid } from "@/components/product/ProductGrid";
 import { useAuth } from "@/hooks/useAuth";
 import { useCart } from "@/hooks/useCart";
+import { useCartRelatedProducts } from "@/hooks/useCatalog";
 import { CartItemRow } from "@/components/cart/CartItemRow";
 import { PriceSummary } from "@/components/cart/PriceSummary";
 import { CouponInput } from "@/components/cart/CouponInput";
@@ -26,6 +29,25 @@ function CartPage() {
 
   const active = items.filter((i) => !i.saved_for_later);
   const saved = items.filter((i) => i.saved_for_later);
+
+  const cartExcludeIds = useMemo(() => active.map((i) => i.product_id), [active]);
+  const cartCategories = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          active
+            .map((i) => i.product_snapshot?.category)
+            .filter((c): c is string => !!c && c.trim().length > 0),
+        ),
+      ),
+    [active],
+  );
+  const { data: related = [], isLoading: relatedLoading } = useCartRelatedProducts({
+    excludeIds: cartExcludeIds,
+    categoryHints: cartCategories,
+    limit: 8,
+    enabled: active.length > 0,
+  });
 
   const breakup = useMemo(() => {
     try {
@@ -166,6 +188,26 @@ function CartPage() {
               </Button>
             </div>
           </motion.div>
+        </div>
+      )}
+
+      {active.length > 0 && (relatedLoading || related.length > 0) && (
+        <div className="mt-12 pb-20 lg:pb-0">
+          <SectionHeading
+            align="left"
+            eyebrow="Based on your cart"
+            title="You might also like"
+            description="More wholesale products from the same categories as items in your cart."
+          />
+          <div className="mt-6">
+            {relatedLoading ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin text-brand" /> Loading suggestions…
+              </div>
+            ) : (
+              <ProductGrid products={related} />
+            )}
+          </div>
         </div>
       )}
     </div>
