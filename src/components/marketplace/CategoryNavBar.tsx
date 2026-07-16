@@ -13,7 +13,7 @@ export function CategoryNavBar({ activeSlug = null }: { activeSlug?: string | nu
   return (
     <nav
       aria-label="Main categories"
-      className="border-b border-border bg-card"
+      className="sticky top-14 sm:top-16 z-20 border-b border-border bg-card shadow-sm"
     >
       <div className="flex w-full gap-1 overflow-x-auto px-4 py-2 sm:px-6 lg:px-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <NavItem

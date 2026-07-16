@@ -57,6 +57,7 @@ const SUPPLIER = [
 ] as const;
 
 const SELLER_EXPLORE = [
+  { title: "Marketplace", url: "/marketplace", icon: Store },
   { title: "Suppliers", url: "/suppliers", icon: Users },
 ] as const;
 

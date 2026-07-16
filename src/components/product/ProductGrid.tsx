@@ -1,4 +1,3 @@
-import { motion } from "framer-motion";
 import type { Product } from "@/types";
 import { ProductCard } from "./ProductCard";
 
@@ -10,26 +9,12 @@ export function ProductGrid({
   onQuickView?: (p: Product) => void;
 }) {
   return (
-    <motion.div
-      initial="hidden"
-      animate="show"
-      variants={{
-        hidden: {},
-        show: { transition: { staggerChildren: 0.05 } },
-      }}
-      className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-    >
+    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
       {products.map((p) => (
-        <motion.div
-          key={p.id}
-          variants={{
-            hidden: { opacity: 0, y: 16 },
-            show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" } },
-          }}
-        >
+        <div key={p.id}>
           <ProductCard product={p} onQuickView={onQuickView} />
-        </motion.div>
+        </div>
       ))}
-    </motion.div>
+    </div>
   );
 }

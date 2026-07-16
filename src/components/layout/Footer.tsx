@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Facebook, Instagram, Linkedin, Mail, MapPin, Phone, Twitter, Youtube } from "lucide-react";
+import { Mail, MapPin, Phone, MessageCircle, Briefcase, Camera, Hash, MonitorPlay } from "lucide-react";
 import { Logo } from "@/components/common/Logo";
 import { FOOTER_LINKS, SITE } from "@/constants/site";
 
@@ -19,7 +19,7 @@ export function Footer() {
               <li className="flex items-center gap-2"><Mail className="h-4 w-4 text-brand" />{SITE.email}</li>
             </ul>
             <div className="mt-6 flex items-center gap-3">
-              {[Twitter, Linkedin, Instagram, Facebook, Youtube].map((Icon, i) => (
+              {[MessageCircle, Briefcase, Camera, Hash, MonitorPlay].map((Icon, i) => (
                 <a
                   key={i}
                   href="#"

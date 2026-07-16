@@ -80,17 +80,57 @@ async function fetchCategories(): Promise<Category[]> {
     )
     .order("name", { ascending: true });
 
+  let rawCats: DbCategory[] = [];
   if (!withJoin.error) {
-    return (withJoin.data ?? []).map((row) => mapDbCategory(row as unknown as DbCategory));
+    rawCats = withJoin.data as unknown as DbCategory[];
+  } else {
+    // Fallback before subcategories migration is applied
+    const legacy = await supabase
+      .from("categories")
+      .select("id, slug, name, icon, image, product_count, description, sub_categories")
+      .order("name", { ascending: true });
+    if (legacy.error) throw withJoin.error;
+    rawCats = legacy.data as unknown as DbCategory[];
   }
 
-  // Fallback before subcategories migration is applied
-  const legacy = await supabase
-    .from("categories")
-    .select("id, slug, name, icon, image, product_count, description, sub_categories")
-    .order("name", { ascending: true });
-  if (legacy.error) throw withJoin.error;
-  return (legacy.data ?? []).map((row) => mapDbCategory(row as unknown as DbCategory));
+  // Query products to find representative category images dynamically
+  const { data: productsData } = await supabase
+    .from("products")
+    .select("category_slug, image, images");
+
+  const productMap: Record<string, string[]> = {};
+  if (productsData) {
+    for (const p of productsData) {
+      if (!p.category_slug) continue;
+      if (!productMap[p.category_slug]) {
+        productMap[p.category_slug] = [];
+      }
+      const imgs = Array.isArray(p.images) ? p.images.map(String) : [];
+      if (p.image) imgs.unshift(p.image);
+      productMap[p.category_slug].push(...imgs);
+    }
+  }
+
+  const EXCLUDE_KEYWORDS = [
+    "back", "label", "nutrition", "facts", "ingredient",
+    "barcode", "rear", "side", "table", "chart", "pkg-back",
+    "packaging-back"
+  ];
+
+  return rawCats.map((row) => {
+    const cat = mapDbCategory(row);
+    if (!cat.image || cat.image === "") {
+      const allImgs = productMap[cat.slug] || [];
+      const bestImg = allImgs.find(imgUrl => {
+        const lower = imgUrl.toLowerCase();
+        return !EXCLUDE_KEYWORDS.some(kw => lower.includes(kw));
+      }) || allImgs[0];
+      if (bestImg) {
+        cat.image = bestImg;
+      }
+    }
+    return cat;
+  });
 }
 
 /** Marketplace / browse list — projected columns, capped for fast first paint. */
