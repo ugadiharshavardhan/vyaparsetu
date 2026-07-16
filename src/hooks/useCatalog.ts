@@ -14,6 +14,7 @@ const PRODUCT_LIST_COLUMNS = [
   "brand",
   "category_slug",
   "sub_category",
+  "subcategory_id",
   "sku",
   "image",
   "images",
@@ -65,12 +66,24 @@ async function fetchProductList(options?: {
 }
 
 async function fetchCategories(): Promise<Category[]> {
-  const { data, error } = await supabase
+  const withJoin = await supabase
+    .from("categories")
+    .select(
+      "id, slug, name, icon, image, product_count, description, subcategories(id, slug, name, image, sort_order)",
+    )
+    .order("name", { ascending: true });
+
+  if (!withJoin.error) {
+    return (withJoin.data ?? []).map((row) => mapDbCategory(row as unknown as DbCategory));
+  }
+
+  // Fallback before subcategories migration is applied
+  const legacy = await supabase
     .from("categories")
     .select("id, slug, name, icon, image, product_count, description, sub_categories")
     .order("name", { ascending: true });
-  if (error) throw error;
-  return (data ?? []).map((row) => mapDbCategory(row as unknown as DbCategory));
+  if (legacy.error) throw withJoin.error;
+  return (legacy.data ?? []).map((row) => mapDbCategory(row as unknown as DbCategory));
 }
 
 /** Marketplace / browse list — projected columns, capped for fast first paint. */

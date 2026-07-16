@@ -1,6 +1,7 @@
 import type { Product } from "@/types";
 import type { SupplierProduct } from "@/types/supplier";
 import type { Database } from "@/integrations/supabase/types";
+import { supabase } from "@/integrations/supabase/client";
 
 type ProductInsert = Database["public"]["Tables"]["products"]["Insert"];
 type ProductUpdate = Database["public"]["Tables"]["products"]["Update"];
@@ -49,13 +50,48 @@ export function slugifyProductName(name: string) {
   return base || `product-${Date.now()}`;
 }
 
+/** Resolve relational subcategory id from category + subcategory slugs. */
+export async function resolveSubcategoryId(
+  categorySlug: string,
+  subCategorySlug: string | null | undefined,
+): Promise<string | null> {
+  if (!categorySlug || !subCategorySlug) return null;
+  const { data, error } = await supabase
+    .from("subcategories")
+    .select("id, categories!inner(slug)")
+    .eq("slug", subCategorySlug)
+    .eq("categories.slug", categorySlug)
+    .maybeSingle();
+  if (error) {
+    console.warn("[resolveSubcategoryId]", error.message);
+    return null;
+  }
+  return data?.id ?? null;
+}
+
 export function supplierDraftToInsert(
   draft: Omit<SupplierProduct, "id" | "createdAt" | "updatedAt">,
   id: string,
-  supplier?: Product["supplier"],
+  options?: {
+    sellerId?: string;
+    supplier?: Product["supplier"];
+  },
 ): ProductInsert {
   const images = draft.images.length ? draft.images : ["https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=800&q=70"];
   const slug = `${slugifyProductName(draft.name)}-${id}`;
+  const sellerId = options?.sellerId;
+  const supplier =
+    options?.supplier ??
+    (sellerId
+      ? {
+          id: sellerId,
+          name: draft.brand || draft.name,
+          location: "",
+          verified: true,
+          rating: 4.5,
+          yearsActive: 1,
+        }
+      : {});
   return {
     id,
     slug,
@@ -63,6 +99,7 @@ export function supplierDraftToInsert(
     brand: draft.brand || "Brand",
     category_slug: draft.category,
     sub_category: draft.subCategory || null,
+    subcategory_id: null,
     sku: draft.sku || null,
     image: images[draft.thumbnailIndex] ?? images[0],
     images,
@@ -72,7 +109,8 @@ export function supplierDraftToInsert(
     unit: draft.unit || "unit",
     gst_included: true,
     gst_rate: draft.gstRate,
-    supplier: (supplier ?? {}) as ProductInsert["supplier"],
+    supplier: supplier as ProductInsert["supplier"],
+    seller_id: sellerId ?? null,
     rating: 0,
     review_count: 0,
     in_stock: draft.stock > 0 && draft.status !== "archived",
@@ -91,7 +129,10 @@ export function supplierPatchToUpdate(patch: Partial<SupplierProduct>): ProductU
   if (patch.name != null) update.name = patch.name;
   if (patch.brand != null) update.brand = patch.brand;
   if (patch.category != null) update.category_slug = patch.category;
-  if (patch.subCategory != null) update.sub_category = patch.subCategory || null;
+  if (patch.subCategory != null) {
+    update.sub_category = patch.subCategory || null;
+    if (!patch.subCategory) update.subcategory_id = null;
+  }
   if (patch.sku != null) update.sku = patch.sku || null;
   if (patch.images != null) {
     const images = patch.images.length ? patch.images : undefined;

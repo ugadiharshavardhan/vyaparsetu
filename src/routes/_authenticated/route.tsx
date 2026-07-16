@@ -29,11 +29,15 @@ export const Route = createFileRoute("/_authenticated")({
       path.startsWith("/payments");
 
     const done = await context.queryClient.ensureQueryData({
-      queryKey: ["onboarding-complete", user.id],
-      staleTime: 5 * 60 * 1000,
+      queryKey: ["onboarding-complete", "v2", user.id],
+      staleTime: 60_000,
       queryFn: async () => {
         const [seller, buyer] = await Promise.all([
-          supabase.from("sellers").select("id, onboarding_completed").eq("id", user.id).maybeSingle(),
+          supabase
+            .from("sellers")
+            .select("id, onboarding_completed, business_name, gst_number")
+            .eq("id", user.id)
+            .maybeSingle(),
           supabase.from("buyers").select("id").eq("id", user.id).maybeSingle(),
         ]);
 
@@ -47,10 +51,27 @@ export const Route = createFileRoute("/_authenticated")({
         // Not a seller (admin / unknown) — don't trap on onboarding.
         if (!seller.data) return true;
 
-        const row = seller.data as { onboarding_completed?: boolean };
-        // Missing column (pre-migration) → don't block the app shell
-        if (!("onboarding_completed" in row)) return true;
-        return !!row.onboarding_completed;
+        const row = seller.data as {
+          onboarding_completed?: boolean;
+          business_name?: string | null;
+          gst_number?: string | null;
+        };
+
+        if (row.onboarding_completed) return true;
+
+        // Established sellers (already have business details) should reach the dashboard.
+        const established =
+          Boolean(row.business_name?.trim()) || Boolean(row.gst_number?.trim());
+        if (established) {
+          void supabase
+            .from("sellers")
+            .update({ onboarding_completed: true } as never)
+            .eq("id", user.id)
+            .then(() => undefined);
+          return true;
+        }
+
+        return false;
       },
     });
 

@@ -149,6 +149,7 @@ export type Database = {
           product_snapshot: Json
           quantity: number
           unit_price: number
+          seller_id: string | null
         }
         Insert: {
           created_at?: string
@@ -162,6 +163,7 @@ export type Database = {
           product_snapshot: Json
           quantity: number
           unit_price: number
+          seller_id?: string | null
         }
         Update: {
           created_at?: string
@@ -175,6 +177,7 @@ export type Database = {
           product_snapshot?: Json
           quantity?: number
           unit_price?: number
+          seller_id?: string | null
         }
         Relationships: [
           {
@@ -182,6 +185,13 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "sellers"
             referencedColumns: ["id"]
           },
         ]
@@ -532,7 +542,6 @@ export type Database = {
           image: string | null
           product_count: number
           description: string | null
-          sub_categories: Json
           created_at: string
           updated_at: string
         }
@@ -544,7 +553,6 @@ export type Database = {
           image?: string | null
           product_count?: number
           description?: string | null
-          sub_categories?: Json
           created_at?: string
           updated_at?: string
         }
@@ -556,11 +564,51 @@ export type Database = {
           image?: string | null
           product_count?: number
           description?: string | null
-          sub_categories?: Json
           created_at?: string
           updated_at?: string
         }
         Relationships: []
+      }
+      subcategories: {
+        Row: {
+          id: string
+          category_id: string
+          slug: string
+          name: string
+          image: string | null
+          sort_order: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          category_id: string
+          slug: string
+          name: string
+          image?: string | null
+          sort_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          category_id?: string
+          slug?: string
+          name?: string
+          image?: string | null
+          sort_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subcategories_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       products: {
         Row: {
@@ -570,6 +618,7 @@ export type Database = {
           brand: string
           category_slug: string
           sub_category: string | null
+          subcategory_id: string | null
           sku: string | null
           image: string
           images: Json
@@ -580,6 +629,7 @@ export type Database = {
           gst_included: boolean
           gst_rate: number
           supplier: Json
+          seller_id: string | null
           rating: number
           review_count: number
           in_stock: boolean
@@ -601,6 +651,7 @@ export type Database = {
           brand: string
           category_slug: string
           sub_category?: string | null
+          subcategory_id?: string | null
           sku?: string | null
           image: string
           images?: Json
@@ -611,6 +662,7 @@ export type Database = {
           gst_included?: boolean
           gst_rate?: number
           supplier?: Json
+          seller_id?: string | null
           rating?: number
           review_count?: number
           in_stock?: boolean
@@ -632,6 +684,7 @@ export type Database = {
           brand?: string
           category_slug?: string
           sub_category?: string | null
+          subcategory_id?: string | null
           sku?: string | null
           image?: string
           images?: Json
@@ -642,6 +695,7 @@ export type Database = {
           gst_included?: boolean
           gst_rate?: number
           supplier?: Json
+          seller_id?: string | null
           rating?: number
           review_count?: number
           in_stock?: boolean
@@ -656,7 +710,61 @@ export type Database = {
           created_at?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "products_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "sellers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_subcategory_id_fkey"
+            columns: ["subcategory_id"]
+            isOneToOne: false
+            referencedRelation: "subcategories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seller_products: {
+        Row: {
+          id: string
+          seller_id: string
+          product_id: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          seller_id: string
+          product_id: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          seller_id?: string
+          product_id?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seller_products_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "sellers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seller_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: true
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sellers: {
         Row: {

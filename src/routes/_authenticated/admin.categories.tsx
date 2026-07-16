@@ -39,8 +39,19 @@ function AdminCategoriesPage() {
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["catalog-categories"] });
 
   const remove = async (id: string) => {
-    if (id.includes(":")) {
-      toast.info("Sub-categories are stored on the parent category — edit the parent to change them.");
+    // Subcategory rows use sc-* ids; legacy admin map used parent:slug
+    if (id.startsWith("sc-") || id.includes(":")) {
+      const subId = id.includes(":") ? id.split(":")[1] : id;
+      // Prefer delete by full id when it's a real subcategory id
+      const { error } = id.startsWith("sc-")
+        ? await supabase.from("subcategories").delete().eq("id", id)
+        : await supabase.from("subcategories").delete().eq("slug", subId);
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      await invalidate();
+      toast("Sub-category deleted");
       return;
     }
     const { error } = await supabase.from("categories").delete().eq("id", id);
@@ -64,7 +75,6 @@ function AdminCategoriesPage() {
       image: "",
       product_count: 0,
       description: description.trim() || null,
-      sub_categories: [],
     });
     if (error) {
       toast.error(error.message);
@@ -125,7 +135,7 @@ function AdminCategoriesPage() {
                       <span className="text-xs text-muted-foreground">· {sub.products} products</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => toast.info("Edit the parent category to manage sub-categories")}>
+                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => toast.info("Sub-category visibility coming soon")}>
                         {sub.visible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                       </Button>
                       <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => void remove(sub.id)}><Trash2 className="h-4 w-4" /></Button>

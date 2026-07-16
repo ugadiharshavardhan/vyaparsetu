@@ -1,7 +1,9 @@
 export type SubCategory = {
+  id: string;
   slug: string;
   name: string;
   image?: string;
+  sortOrder?: number;
 };
 
 export type Category = {

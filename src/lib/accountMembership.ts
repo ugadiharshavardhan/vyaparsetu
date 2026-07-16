@@ -1,5 +1,16 @@
 import { supabase } from "@/integrations/supabase/client";
 
+/** Best-effort delete of legacy public.profiles row (table removed after migration). */
+export async function removeLegacyProfileRow(userId: string) {
+  const { error } = await supabase.from("profiles").delete().eq("id", userId);
+  if (
+    error &&
+    !/profiles|schema cache|does not exist|Could not find/i.test(error.message)
+  ) {
+    console.warn("[removeLegacyProfileRow]", error.message);
+  }
+}
+
 /** Verify the auth user exists in the buyers or sellers table for the chosen sign-in role. */
 export async function assertAccountMembership(
   userId: string,
@@ -46,6 +57,7 @@ export async function ensureBuyerAccount(row: {
     { onConflict: "id" },
   );
   if (error) throw error;
+  await removeLegacyProfileRow(row.id);
 }
 
 /** Ensure seller signup lands in public.sellers (does not write profiles). */
@@ -91,4 +103,5 @@ export async function ensureSellerAccount(row: {
     ));
   }
   if (error) throw error;
+  await removeLegacyProfileRow(row.id);
 }

@@ -1,5 +1,13 @@
 import type { Category, Product, SubCategory, Supplier } from "@/types";
 
+export type DbSubcategory = {
+  id: string;
+  slug: string;
+  name: string;
+  image: string | null;
+  sort_order?: number | null;
+};
+
 export type DbCategory = {
   id: string;
   slug: string;
@@ -8,7 +16,10 @@ export type DbCategory = {
   image: string | null;
   product_count: number;
   description: string | null;
-  sub_categories: unknown;
+  /** Nested join from `subcategories` table (preferred). */
+  subcategories?: DbSubcategory[] | null;
+  /** Legacy JSON column — ignored once migration is applied. */
+  sub_categories?: unknown;
 };
 
 export type DbProduct = {
@@ -18,6 +29,7 @@ export type DbProduct = {
   brand: string;
   category_slug: string;
   sub_category: string | null;
+  subcategory_id?: string | null;
   sku: string | null;
   image: string;
   images: unknown;
@@ -67,7 +79,27 @@ export function asSupplier(raw: unknown): Supplier {
 }
 
 export function mapDbCategory(row: DbCategory): Category {
-  const subs = Array.isArray(row.sub_categories) ? row.sub_categories : [];
+  const fromTable = Array.isArray(row.subcategories) ? row.subcategories : null;
+  const fromJson = Array.isArray(row.sub_categories) ? row.sub_categories : [];
+  const subs: SubCategory[] = fromTable
+    ? [...fromTable]
+        .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+        .map((s) => ({
+          id: s.id,
+          slug: s.slug,
+          name: s.name,
+          image: s.image ?? undefined,
+          sortOrder: s.sort_order ?? undefined,
+        }))
+    : fromJson.map((s) => {
+        const x = s as Record<string, unknown>;
+        return {
+          id: String(x.id ?? x.slug ?? ""),
+          slug: String(x.slug ?? ""),
+          name: String(x.name ?? ""),
+          image: x.image ? String(x.image) : undefined,
+        } satisfies SubCategory;
+      });
   return {
     id: row.id,
     slug: row.slug,
@@ -76,14 +108,7 @@ export function mapDbCategory(row: DbCategory): Category {
     image: row.image ?? "",
     productCount: row.product_count ?? 0,
     description: row.description ?? "",
-    subCategories: subs.map((s) => {
-      const x = s as Record<string, unknown>;
-      return {
-        slug: String(x.slug ?? ""),
-        name: String(x.name ?? ""),
-        image: x.image ? String(x.image) : undefined,
-      } satisfies SubCategory;
-    }),
+    subCategories: subs,
   };
 }
 

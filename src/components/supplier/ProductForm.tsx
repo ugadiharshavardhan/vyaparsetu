@@ -188,9 +188,9 @@ export function ProductForm({
                   <Select value={draft.subCategory || undefined} onValueChange={(v) => set("subCategory", v)}>
                     <SelectTrigger><SelectValue placeholder="Select sub-category" /></SelectTrigger>
                     <SelectContent>
-                      {subCategories.map((s) => (
-                        <SelectItem key={s.slug} value={s.slug}>{s.name}</SelectItem>
-                      ))}
+                    {subCategories.map((s) => (
+                      <SelectItem key={s.id} value={s.slug}>{s.name}</SelectItem>
+                    ))}
                     </SelectContent>
                   </Select>
                 ) : (

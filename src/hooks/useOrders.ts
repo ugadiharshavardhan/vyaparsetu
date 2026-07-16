@@ -112,6 +112,16 @@ export function usePlaceOrder() {
       if (orderErr) throw orderErr;
       const order = orderData as unknown as Order;
 
+      const productIds = [...new Set(items.map((i) => i.product_id))];
+      const { data: productOwners, error: ownersErr } = await supabase
+        .from("products")
+        .select("id, seller_id")
+        .in("id", productIds);
+      if (ownersErr) throw ownersErr;
+      const sellerByProduct = new Map(
+        (productOwners ?? []).map((p) => [p.id, p.seller_id as string | null]),
+      );
+
       const itemRows = items.map((i) => {
         const line = i.product_snapshot.wholesalePrice * i.quantity;
         const share = totals.subtotal > 0 ? line / totals.subtotal : 0;
@@ -121,6 +131,14 @@ export function usePlaceOrder() {
         const gst = i.product_snapshot.gstIncluded
           ? taxable - taxable / (1 + rate / 100)
           : (taxable * rate) / 100;
+        // Prefer DB owner; fall back to snapshot only when it looks like a real seller UUID
+        const fromDb = sellerByProduct.get(i.product_id) ?? null;
+        const fromSnap = i.product_snapshot.supplierId?.trim() || "";
+        const snapLooksLikeUuid =
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+            fromSnap,
+          );
+        const seller_id = fromDb ?? (snapLooksLikeUuid ? fromSnap : null);
         return {
           order_id: order.id,
           product_id: i.product_id,
@@ -131,6 +149,7 @@ export function usePlaceOrder() {
           gst_amount: round(gst),
           discount_amount: round(disc),
           line_total: round(i.product_snapshot.gstIncluded ? taxable + 0 : taxable + gst),
+          seller_id,
         };
       }) satisfies Partial<OrderItem>[] as never[];
 
@@ -165,6 +184,9 @@ export function usePlaceOrder() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["orders"] });
       qc.invalidateQueries({ queryKey: ["cart"] });
+      qc.invalidateQueries({ queryKey: ["seller-orders"] });
+      qc.invalidateQueries({ queryKey: ["catalog-products"] });
+      qc.invalidateQueries({ queryKey: ["seller-products"] });
     },
     onError: (e: Error) => toast.error(e.message ?? "Could not place order"),
   });
@@ -191,6 +213,9 @@ export function useCancelOrder() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["orders"] });
       qc.invalidateQueries({ queryKey: ["order"] });
+      qc.invalidateQueries({ queryKey: ["catalog-products"] });
+      qc.invalidateQueries({ queryKey: ["seller-products"] });
+      qc.invalidateQueries({ queryKey: ["seller-orders"] });
       toast.success("Order cancelled");
     },
   });

@@ -286,12 +286,20 @@ function AdjustDialog({
   isRestock?: boolean;
 }) {
   const [open, setOpen] = useState(false);
-  const [qty, setQty] = useState(isRestock ? (product.reorderLevel || 20) * 3 - product.stock : 0);
+  const available = product.stock - product.reserved;
+  const [newStock, setNewStock] = useState(available);
+  const [qty, setQty] = useState(isRestock ? Math.max(0, (product.reorderLevel || 20) * 3 - product.stock) : 0);
   const [note, setNote] = useState(isRestock ? "Supplier delivery received" : "");
   const [type, setType] = useState<"restock" | "adjustment" | "damaged">(isRestock ? "restock" : "adjustment");
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(v) => {
+      setOpen(v);
+      if (v) {
+        setNewStock(available);
+        setQty(isRestock ? Math.max(0, (product.reorderLevel || 20) * 3 - product.stock) : 0);
+      }
+    }}>
       <DialogTrigger asChild>
         <Button size="sm" variant={isRestock ? "default" : "outline"} className={isRestock ? "bg-brand hover:bg-brand/90" : ""}>
           {isRestock ? <><RefreshCcw className="mr-1.5 h-3.5 w-3.5" /> Restock</> : "Update Stock"}
@@ -302,23 +310,43 @@ function AdjustDialog({
         <div className="space-y-4 py-4">
           <div className="flex items-center justify-between text-sm p-3 bg-muted/50 rounded-lg">
             <span>Current Available:</span>
-            <span className="font-bold">{product.stock - product.reserved}</span>
+            <span className="font-bold">{available}</span>
           </div>
           
           <div>
             <Label className="mb-2 block">Movement Type</Label>
             <div className="flex gap-2">
               <Button type="button" variant={type === "restock" ? "default" : "outline"} className={type === "restock" ? "bg-brand" : ""} onClick={() => { setType("restock"); setQty(Math.abs(qty) || 10); }}>Restock</Button>
-              <Button type="button" variant={type === "adjustment" ? "default" : "outline"} onClick={() => setType("adjustment")}>Adjustment</Button>
+              <Button type="button" variant={type === "adjustment" ? "default" : "outline"} onClick={() => { setType("adjustment"); setNewStock(available); }}>Adjustment</Button>
               <Button type="button" variant={type === "damaged" ? "default" : "outline"} className={type === "damaged" ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : ""} onClick={() => { setType("damaged"); setQty(-Math.abs(qty) || -1); }}>Damaged</Button>
             </div>
           </div>
 
-          <div>
-            <Label className="mb-1 block">Quantity Change</Label>
-            <Input type="number" value={qty} onChange={(e) => setQty(Number(e.target.value))} placeholder={type === "damaged" ? "-10" : "10"} />
-            <p className="text-xs text-muted-foreground mt-1">Use negative values to reduce stock manually.</p>
-          </div>
+          {type === "adjustment" ? (
+            <div>
+              <Label className="mb-1 block">New stock count</Label>
+              <Input
+                type="number"
+                min={0}
+                value={newStock}
+                onChange={(e) => setNewStock(Math.max(0, Number(e.target.value)))}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Compared with current ({available}):{" "}
+                {newStock === available
+                  ? "no change"
+                  : newStock > available
+                    ? `increase by ${newStock - available}`
+                    : `decrease by ${available - newStock}`}
+              </p>
+            </div>
+          ) : (
+            <div>
+              <Label className="mb-1 block">Quantity Change</Label>
+              <Input type="number" value={qty} onChange={(e) => setQty(Number(e.target.value))} placeholder={type === "damaged" ? "-10" : "10"} />
+              <p className="text-xs text-muted-foreground mt-1">Use negative values to reduce stock manually.</p>
+            </div>
+          )}
           
           <div>
             <Label className="mb-1 block">Note / Reason</Label>
@@ -328,10 +356,15 @@ function AdjustDialog({
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
           <Button onClick={() => {
-            if (qty === 0) { toast.error("Enter a non-zero quantity"); return; }
-            void Promise.resolve(onAdjust(product, qty, note || "Manual update", type))
+            const delta = type === "adjustment" ? newStock - available : qty;
+            if (delta === 0) { toast.error(type === "adjustment" ? "Enter a different stock count" : "Enter a non-zero quantity"); return; }
+            void Promise.resolve(onAdjust(product, delta, note || "Manual update", type))
               .then(() => {
-                toast.success("Stock updated successfully");
+                toast.success(
+                  delta > 0
+                    ? `Stock increased by ${delta}`
+                    : `Stock decreased by ${Math.abs(delta)}`,
+                );
                 setOpen(false);
                 setQty(0); setNote("");
               })

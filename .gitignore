@@ -21,6 +21,10 @@ dist-ssr
 .env.*
 !.env.example
 
+# Local catalog image trees for bulk upload script (keep off git)
+catalog-images/
+product-images-upload/
+
 # Wrangler / Cloudflare
 .wrangler/
 .dev.vars

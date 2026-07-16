@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   seedCustomers,
   seedMovements,
@@ -9,9 +9,11 @@ import {
   seedWarehouses,
 } from "@/data/supplierSeed";
 import { supabase } from "@/integrations/supabase/client";
-import { useAllProducts } from "@/hooks/useCatalog";
+import { useAuth } from "@/hooks/useAuth";
+import { mapDbProduct, type DbProduct } from "@/lib/catalogMap";
 import {
   mapCatalogProductToSupplier,
+  resolveSubcategoryId,
   supplierDraftToInsert,
   supplierPatchToUpdate,
 } from "@/lib/supplierProductMap";
@@ -26,9 +28,10 @@ import type {
   SupplierOrder,
   SupplierRFQ,
 } from "@/types/supplier";
-
 const KEY = "vs.supplier.v1";
 const PRODUCTS_KEY = ["catalog-products"] as const;
+const SELLER_PRODUCTS_KEY = ["seller-products"] as const;
+const SELLER_ORDERS_KEY = ["seller-orders"] as const;
 
 type Store = {
   warehouses: Warehouse[];
@@ -95,64 +98,216 @@ function useStore(): [Store, (updater: (s: Store) => Store) => void] {
 
 const uid = (prefix: string) => `${prefix}${Math.random().toString(36).slice(2, 8)}`;
 
-/* ---------- Products (catalog from Supabase) ---------- */
-export function useSupplierProducts() {
-  const query = useAllProducts();
-  const queryClient = useQueryClient();
-  const products = useMemo(
-    () => (query.data ?? []).map(mapCatalogProductToSupplier),
-    [query.data],
-  );
+async function updateOwnedProduct(
+  sellerId: string,
+  productId: string,
+  patch: Record<string, unknown>,
+) {
+  let { error } = await supabase
+    .from("products")
+    .update(patch as never)
+    .eq("id", productId)
+    .eq("seller_id", sellerId);
+  if (!error) return;
+  if (!String(error.message).includes("seller_id")) throw error;
+  ({ error } = await supabase
+    .from("products")
+    .update(patch as never)
+    .eq("id", productId)
+    .filter("supplier->>id", "eq", sellerId));
+  if (error) throw error;
+}
 
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: PRODUCTS_KEY });
+async function deleteOwnedProduct(sellerId: string, productId: string) {
+  let { error } = await supabase.from("products").delete().eq("id", productId).eq("seller_id", sellerId);
+  if (!error) return;
+  if (!String(error.message).includes("seller_id")) throw error;
+  ({ error } = await supabase
+    .from("products")
+    .delete()
+    .eq("id", productId)
+    .filter("supplier->>id", "eq", sellerId));
+  if (error) throw error;
+}
+
+async function fetchSellerOwnedProducts(sellerId: string): Promise<SupplierProduct[]> {
+  const bySellerColumn = await supabase
+    .from("products")
+    .select("*")
+    .eq("seller_id", sellerId)
+    .order("created_at", { ascending: false });
+
+  if (!bySellerColumn.error && (bySellerColumn.data?.length ?? 0) > 0) {
+    return (bySellerColumn.data ?? []).map((row) =>
+      mapCatalogProductToSupplier(mapDbProduct(row as unknown as DbProduct)),
+    );
+  }
+
+  const bySupplierJson = await supabase
+    .from("products")
+    .select("*")
+    .filter("supplier->>id", "eq", sellerId)
+    .order("created_at", { ascending: false });
+
+  if (!bySupplierJson.error && (bySupplierJson.data?.length ?? 0) > 0) {
+    return (bySupplierJson.data ?? []).map((row) =>
+      mapCatalogProductToSupplier(mapDbProduct(row as unknown as DbProduct)),
+    );
+  }
+
+  if (!bySellerColumn.error) {
+    return (bySellerColumn.data ?? []).map((row) =>
+      mapCatalogProductToSupplier(mapDbProduct(row as unknown as DbProduct)),
+    );
+  }
+
+  const owned = await supabase
+    .from("seller_products")
+    .select("product_id, created_at, updated_at, products(*)")
+    .eq("seller_id", sellerId)
+    .order("created_at", { ascending: false });
+
+  if (owned.error) throw bySellerColumn.error;
+  return (owned.data ?? [])
+    .map((row) => {
+      const raw = row.products as unknown as DbProduct | DbProduct[] | null;
+      const productRow = Array.isArray(raw) ? raw[0] : raw;
+      if (!productRow) return null;
+      const mapped = mapCatalogProductToSupplier(mapDbProduct(productRow));
+      return {
+        ...mapped,
+        createdAt: row.created_at ?? mapped.createdAt,
+        updatedAt: row.updated_at ?? mapped.updatedAt,
+      };
+    })
+    .filter(Boolean) as SupplierProduct[];
+}
+
+/* ---------- Products (seller-owned only) ---------- */
+export function useSupplierProducts() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const query = useQuery({
+    queryKey: [...SELLER_PRODUCTS_KEY, user?.id ?? "anon"],
+    enabled: !!user?.id,
+    staleTime: 30_000,
+    queryFn: () => fetchSellerOwnedProducts(user!.id),
+  });
+
+  const invalidate = async () => {
+    await queryClient.invalidateQueries({ queryKey: SELLER_PRODUCTS_KEY });
+    await queryClient.invalidateQueries({ queryKey: PRODUCTS_KEY });
+  };
+
+  const create = async (p: Omit<SupplierProduct, "id" | "createdAt" | "updatedAt">) => {
+    if (!user?.id) throw new Error("Sign in as a seller to create products");
+    const id = uid("p");
+    const row = supplierDraftToInsert(p, id, { sellerId: user.id });
+    const subcategoryId = await resolveSubcategoryId(p.category, p.subCategory);
+    if (subcategoryId) {
+      (row as Record<string, unknown>).subcategory_id = subcategoryId;
+    }
+    let { error } = await supabase.from("products").insert(row as never);
+    if (error && String(error.message).includes("seller_id")) {
+      const { seller_id: _drop, ...withoutSellerId } = row as Record<string, unknown>;
+      void _drop;
+      ({ error } = await supabase.from("products").insert(withoutSellerId as never));
+    }
+    if (error && String(error.message).includes("subcategory_id")) {
+      const { subcategory_id: _dropSub, ...withoutSub } = row as Record<string, unknown>;
+      void _dropSub;
+      ({ error } = await supabase.from("products").insert(withoutSub as never));
+    }
+    if (error) throw error;
+
+    const { error: linkErr } = await supabase.from("seller_products").insert({
+      id,
+      seller_id: user.id,
+      product_id: id,
+    } as never);
+    if (linkErr) {
+      // Ownership table may not be migrated yet — products.seller_id still scopes the catalog
+      console.warn("[seller_products insert]", linkErr.message);
+    }
+
+    await invalidate();
+    return id;
+  };
 
   return {
-    products,
+    products: query.data ?? [],
     isLoading: query.isLoading,
     error: query.error,
-    create: async (p: Omit<SupplierProduct, "id" | "createdAt" | "updatedAt">) => {
-      const id = uid("p");
-      const row = supplierDraftToInsert(p, id);
-      const { error } = await supabase.from("products").insert(row);
-      if (error) throw error;
-      await invalidate();
-      return id;
-    },
+    create,
     updateProduct: async (id: string, patch: Partial<SupplierProduct>) => {
+      if (!user?.id) throw new Error("Sign in as a seller to update products");
       const update = supplierPatchToUpdate(patch);
+
+      if (patch.category != null || patch.subCategory != null) {
+        let categorySlug = patch.category;
+        if (!categorySlug) {
+          const { data: current } = await supabase
+            .from("products")
+            .select("category_slug")
+            .eq("id", id)
+            .maybeSingle();
+          categorySlug = current?.category_slug ?? undefined;
+        }
+        const subSlug = patch.subCategory;
+        if (categorySlug && subSlug) {
+          const subcategoryId = await resolveSubcategoryId(categorySlug, subSlug);
+          if (subcategoryId) {
+            (update as Record<string, unknown>).subcategory_id = subcategoryId;
+          }
+        } else if (patch.subCategory === "") {
+          (update as Record<string, unknown>).subcategory_id = null;
+        }
+      }
+
+      // Compare new stock with existing DB count, then set absolute (increase or decrease)
+      if (patch.stock != null) {
+        const { data: currentRow } = await supabase
+          .from("products")
+          .select("stock_count")
+          .eq("id", id)
+          .maybeSingle();
+        const existing = Math.max(0, Number(currentRow?.stock_count ?? 0));
+        const next = Math.max(0, patch.stock);
+        update.stock_count = next;
+        update.in_stock = next > 0;
+        if (next === existing) {
+          // no stock change — leave other fields to update
+        }
+      }
+
       if (Object.keys(update).length === 0) return;
-      const { error } = await supabase.from("products").update(update).eq("id", id);
-      if (error) throw error;
+      await updateOwnedProduct(user.id, id, update as Record<string, unknown>);
+      await supabase
+        .from("seller_products")
+        .update({ updated_at: new Date().toISOString() } as never)
+        .eq("product_id", id)
+        .eq("seller_id", user.id);
       await invalidate();
     },
     remove: async (id: string) => {
-      const { error } = await supabase.from("products").delete().eq("id", id);
-      if (error) throw error;
+      if (!user?.id) throw new Error("Sign in as a seller to delete products");
+      await supabase.from("seller_products").delete().eq("product_id", id).eq("seller_id", user.id);
+      await deleteOwnedProduct(user.id, id);
       await invalidate();
     },
     duplicate: async (id: string) => {
-      const original = products.find((p) => p.id === id);
+      const original = (query.data ?? []).find((p) => p.id === id);
       if (!original) return;
       const { id: _id, createdAt: _c, updatedAt: _u, ...draft } = original;
       void _id;
       void _c;
       void _u;
-      await createLike(draft);
-      async function createLike(d: Omit<SupplierProduct, "id" | "createdAt" | "updatedAt">) {
-        const newId = uid("p");
-        const row = supplierDraftToInsert(
-          {
-            ...d,
-            name: `${d.name} (Copy)`,
-            sku: `${d.sku}-COPY`,
-            status: "draft",
-          },
-          newId,
-        );
-        const { error } = await supabase.from("products").insert(row);
-        if (error) throw error;
-        await invalidate();
-      }
+      await create({
+        ...draft,
+        name: `${draft.name} (Copy)`,
+        sku: `${draft.sku}-COPY`,
+        status: "draft",
+      });
     },
   };
 }
@@ -184,17 +339,26 @@ export function useWarehouses() {
 /* ---------- Stock ---------- */
 export function useStockMovements() {
   const [store, update] = useStore();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   return {
     movements: store.movements,
     adjust: async (product: SupplierProduct, qty: number, note: string, type: StockMovement["type"] = "adjustment") => {
-      const nextStock = Math.max(0, product.stock + qty);
-      const { error } = await supabase
+      if (!user?.id) throw new Error("Sign in as a seller to adjust stock");
+      // qty is the delta vs existing stock (positive = increase, negative = decrease)
+      const { data: currentRow } = await supabase
         .from("products")
-        .update({ stock_count: nextStock, in_stock: nextStock > 0 })
-        .eq("id", product.id);
-      if (error) throw error;
+        .select("stock_count")
+        .eq("id", product.id)
+        .maybeSingle();
+      const existing = Math.max(0, Number(currentRow?.stock_count ?? product.stock));
+      const nextStock = Math.max(0, existing + qty);
+      await updateOwnedProduct(user.id, product.id, {
+        stock_count: nextStock,
+        in_stock: nextStock > 0,
+      });
       await queryClient.invalidateQueries({ queryKey: PRODUCTS_KEY });
+      await queryClient.invalidateQueries({ queryKey: SELLER_PRODUCTS_KEY });
       update((s) => ({
         ...s,
         movements: [
@@ -203,8 +367,42 @@ export function useStockMovements() {
             productId: product.id,
             productName: product.name,
             type,
-            qty,
+            qty: nextStock - existing,
             note,
+            createdAt: new Date().toISOString(),
+          },
+          ...s.movements,
+        ].slice(0, 200),
+      }));
+    },
+    /** Set absolute stock; compares with existing and applies increase/decrease. */
+    setStock: async (product: SupplierProduct, newStock: number, note: string) => {
+      if (!user?.id) throw new Error("Sign in as a seller to adjust stock");
+      const { data: currentRow } = await supabase
+        .from("products")
+        .select("stock_count")
+        .eq("id", product.id)
+        .maybeSingle();
+      const existing = Math.max(0, Number(currentRow?.stock_count ?? product.stock));
+      const next = Math.max(0, Math.floor(newStock));
+      const delta = next - existing;
+      if (delta === 0) return;
+      await updateOwnedProduct(user.id, product.id, {
+        stock_count: next,
+        in_stock: next > 0,
+      });
+      await queryClient.invalidateQueries({ queryKey: PRODUCTS_KEY });
+      await queryClient.invalidateQueries({ queryKey: SELLER_PRODUCTS_KEY });
+      update((s) => ({
+        ...s,
+        movements: [
+          {
+            id: uid("m"),
+            productId: product.id,
+            productName: product.name,
+            type: delta > 0 ? "restock" : "adjustment",
+            qty: delta,
+            note: note || (delta > 0 ? `Stock increased by ${delta}` : `Stock decreased by ${Math.abs(delta)}`),
             createdAt: new Date().toISOString(),
           },
           ...s.movements,
@@ -264,67 +462,197 @@ export function useSupplierCustomers() {
   return { customers: store.customers };
 }
 
-/* ---------- Supplier orders (mock derived from customer data) ---------- */
+/* ---------- Supplier orders (real buyer orders for this seller's SKUs) ---------- */
 
-const seedOrders = (): SupplierOrder[] => {
-  const now = Date.now();
-  return [
-    { id: "so1", orderNumber: "VS-1044", customer: "Sri Lakshmi Kirana", product: "Aashirvaad Shudh Chakki Atta 10kg", qty: 12, amount: 4620, status: "pending", createdAt: new Date(now).toISOString(), destination: "Mumbai, MH", paymentStatus: "paid", expectedDelivery: new Date(now + 86400_000 * 3).toISOString() },
-    { id: "so2", orderNumber: "VS-1043", customer: "Sai Super Market", product: "Parle-G Glucose Biscuits", qty: 30, amount: 3300, status: "accepted", createdAt: new Date(now - 3600_000 * 4).toISOString(), destination: "Pune, MH", paymentStatus: "paid", expectedDelivery: new Date(now + 86400_000 * 2).toISOString() },
-    { id: "so3", orderNumber: "VS-1042", customer: "Sri Lakshmi Kirana", product: "Aashirvaad Shudh Chakki Atta 10kg", qty: 8, amount: 3080, status: "packing", createdAt: new Date(now - 86400_000).toISOString(), destination: "Mumbai, MH", paymentStatus: "paid", expectedDelivery: new Date(now + 86400_000 * 1).toISOString() },
-    { id: "so4", orderNumber: "VS-1041", customer: "Balaji Traders", product: "Tata Salt Iodized 1kg", qty: 48, amount: 1056, status: "ready", createdAt: new Date(now - 86400_000 * 2).toISOString(), destination: "Ahmedabad, GJ", paymentStatus: "paid", expectedDelivery: new Date(now + 86400_000 * 1).toISOString() },
-    { id: "so5", orderNumber: "VS-1040", customer: "Vijaya Mart", product: "Britannia Marie Gold 120g Carton", qty: 30, amount: 1650, status: "shipped", createdAt: new Date(now - 86400_000 * 3).toISOString(), destination: "Hyderabad, TS", paymentStatus: "paid", expectedDelivery: new Date(now + 86400_000 * 0).toISOString(), porterName: "Raju Delivery", porterContact: "+91 98765 43210", vehicleDetails: "TS 01 AB 1234 (Tata Ace)", pickupTime: new Date(now - 86400_000 * 1).toISOString(), pickupAddress: "Central Hub" },
-    { id: "so6", orderNumber: "VS-1039", customer: "Ramesh Wholesale", product: "India Gate Classic Basmati Rice 5kg", qty: 20, amount: 7700, status: "delivered", createdAt: new Date(now - 86400_000 * 4).toISOString(), destination: "Delhi, DL", paymentStatus: "paid", porterName: "XpressBees", porterContact: "1800 123 456", pickupTime: new Date(now - 86400_000 * 2).toISOString() },
-    { id: "so7", orderNumber: "VS-1038", customer: "Sai Super Market", product: "Parle-G Glucose Biscuits", qty: 15, amount: 1650, status: "cancelled", createdAt: new Date(now - 86400_000 * 5).toISOString(), destination: "Pune, MH", paymentStatus: "pending" },
-  ];
-};
+type DbOrderStatus =
+  | "pending"
+  | "confirmed"
+  | "processing"
+  | "packed"
+  | "shipped"
+  | "out_for_delivery"
+  | "delivered"
+  | "cancelled"
+  | "return_requested"
+  | "returned";
 
-const ORDER_KEY = "vs.supplier.orders.v1";
-
-function readOrders(): SupplierOrder[] {
-  if (typeof window === "undefined") return seedOrders();
-  try {
-    const raw = window.localStorage.getItem(ORDER_KEY);
-    if (!raw) return seedOrders();
-    return JSON.parse(raw);
-  } catch {
-    return seedOrders();
+function mapDbStatusToSupplier(status: string): SupplierOrder["status"] {
+  switch (status as DbOrderStatus) {
+    case "pending":
+      return "pending";
+    case "confirmed":
+      return "accepted";
+    case "processing":
+      return "packing";
+    case "packed":
+      return "ready";
+    case "out_for_delivery":
+      return "picked_up";
+    case "shipped":
+      return "shipped";
+    case "delivered":
+      return "delivered";
+    case "cancelled":
+      return "cancelled";
+    case "returned":
+    case "return_requested":
+      return "returned";
+    default:
+      return "pending";
   }
 }
 
-const orderListeners = new Set<() => void>();
-let orderCache: SupplierOrder[] | null = null;
-
-function getOrders() {
-  if (!orderCache) orderCache = readOrders();
-  return orderCache;
+function mapSupplierStatusToDb(status: SupplierOrder["status"]): DbOrderStatus {
+  switch (status) {
+    case "pending":
+      return "pending";
+    case "accepted":
+      return "confirmed";
+    case "packing":
+      return "processing";
+    case "ready":
+      return "packed";
+    case "picked_up":
+      return "out_for_delivery";
+    case "shipped":
+      return "shipped";
+    case "delivered":
+      return "delivered";
+    case "cancelled":
+      return "cancelled";
+    case "returned":
+      return "returned";
+    default:
+      return "confirmed";
+  }
 }
 
-function writeOrders(next: SupplierOrder[]) {
-  orderCache = next;
-  if (typeof window !== "undefined") window.localStorage.setItem(ORDER_KEY, JSON.stringify(next));
-  orderListeners.forEach((l) => l());
+function destinationFromAddress(addr: unknown): string {
+  if (!addr || typeof addr !== "object") return "—";
+  const a = addr as Record<string, unknown>;
+  const city = String(a.city ?? "");
+  const state = String(a.state ?? "");
+  if (city && state) return `${city}, ${state}`;
+  return city || state || String(a.line1 ?? "—");
+}
+
+function customerFromAddress(addr: unknown): string {
+  if (!addr || typeof addr !== "object") return "Buyer";
+  const a = addr as Record<string, unknown>;
+  return String(a.contact_name ?? a.label ?? "Buyer");
+}
+
+async function fetchSellerOrders(sellerId: string): Promise<SupplierOrder[]> {
+  const { data, error } = await supabase
+    .from("order_items")
+    .select(
+      `
+      id,
+      quantity,
+      line_total,
+      product_id,
+      product_snapshot,
+      seller_id,
+      orders (
+        id,
+        order_number,
+        status,
+        payment_status,
+        created_at,
+        estimated_delivery,
+        shipping_address,
+        tracking_number,
+        delivery_partner
+      )
+    `,
+    )
+    .eq("seller_id", sellerId)
+    .order("id", { ascending: false });
+
+  if (error) throw error;
+
+  const mapped = (data ?? []).map((row) => {
+    const orderRaw = row.orders as unknown as Record<string, unknown> | Record<string, unknown>[] | null;
+    const order = Array.isArray(orderRaw) ? orderRaw[0] : orderRaw;
+    const snap = (row.product_snapshot ?? {}) as Record<string, unknown>;
+    const productName = String(snap.name ?? row.product_id ?? "Product");
+    const paymentStatus = String(order?.payment_status ?? "pending");
+    return {
+      id: String(row.id),
+      orderNumber: String(order?.order_number ?? "—"),
+      customer: customerFromAddress(order?.shipping_address),
+      product: productName,
+      qty: Number(row.quantity ?? 0),
+      amount: Number(row.line_total ?? 0),
+      status: mapDbStatusToSupplier(String(order?.status ?? "pending")),
+      createdAt: String(order?.created_at ?? new Date().toISOString()),
+      expectedDelivery: order?.estimated_delivery ? String(order.estimated_delivery) : undefined,
+      destination: destinationFromAddress(order?.shipping_address),
+      paymentStatus: paymentStatus === "success" || paymentStatus === "paid" ? "paid" : "pending",
+      porterName: order?.delivery_partner ? String(order.delivery_partner) : undefined,
+      vehicleDetails: order?.tracking_number ? `Track: ${String(order.tracking_number)}` : undefined,
+    } satisfies SupplierOrder;
+  });
+
+  return mapped.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
 }
 
 export function useSupplierOrders() {
-  const [, setTick] = useState(0);
-  useEffect(() => {
-    const l = () => setTick((t) => t + 1);
-    orderListeners.add(l);
-    return () => {
-      orderListeners.delete(l);
-    };
-  }, []);
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  const query = useQuery({
+    queryKey: [...SELLER_ORDERS_KEY, user?.id ?? "anon"],
+    enabled: !!user?.id,
+    staleTime: 20_000,
+    queryFn: () => fetchSellerOrders(user!.id),
+  });
+
+  const updateStatus = async (
+    id: string,
+    status: SupplierOrder["status"],
+    logisticsUpdate?: {
+      porterName?: string;
+      porterContact?: string;
+      vehicleDetails?: string;
+      pickupTime?: string;
+      pickupAddress?: string;
+    },
+  ) => {
+    if (!user?.id) throw new Error("Sign in as a seller to update orders");
+
+    // id is order_items.id — resolve parent order
+    const { data: line, error: lineErr } = await supabase
+      .from("order_items")
+      .select("order_id, seller_id")
+      .eq("id", id)
+      .eq("seller_id", user.id)
+      .maybeSingle();
+    if (lineErr) throw lineErr;
+    if (!line?.order_id) throw new Error("Order line not found for this seller");
+
+    const dbStatus = mapSupplierStatusToDb(status);
+    const patch: Record<string, unknown> = { status: dbStatus };
+    if (logisticsUpdate?.porterName) patch.delivery_partner = logisticsUpdate.porterName;
+    if (logisticsUpdate?.vehicleDetails?.startsWith("Track:")) {
+      patch.tracking_number = logisticsUpdate.vehicleDetails.replace(/^Track:\s*/, "");
+    }
+
+    const { error } = await supabase.from("orders").update(patch as never).eq("id", line.order_id);
+    if (error) throw error;
+
+    await queryClient.invalidateQueries({ queryKey: SELLER_ORDERS_KEY });
+  };
+
   return {
-    orders: getOrders(),
-    updateStatus: (
-      id: string, 
-      status: SupplierOrder["status"],
-      logisticsUpdate?: { porterName?: string; porterContact?: string; vehicleDetails?: string; pickupTime?: string; pickupAddress?: string }
-    ) =>
-      writeOrders(getOrders().map((o) => (o.id === id ? { ...o, status, ...logisticsUpdate } : o))),
+    orders: query.data ?? [],
+    isLoading: query.isLoading,
+    error: query.error,
+    updateStatus,
   };
 }
+
+export type { SupplierOrder };
 
 /* ---------- RFQs ---------- */
 import { seedRfqs } from "@/data/supplierSeed";

@@ -63,7 +63,10 @@ function EditProductPage() {
           submitLabel="Save changes"
           onSubmit={(patch) => {
             void updateProduct(product.id, patch)
-              .then(() => toast.success("Product updated"))
+              .then(() => {
+                toast.success("Product updated");
+                navigate({ to: "/supplier/products" });
+              })
               .catch((e: Error) => toast.error(e.message));
           }}
         />

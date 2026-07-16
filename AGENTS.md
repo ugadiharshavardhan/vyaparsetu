@@ -1,4 +1,4 @@
-# VyaparSetu — AI Assistant Knowledge Base
+# VyaparSetu ? AI Assistant Knowledge Base
 
 ## Project Identity
 - **Project Name:** VyaparSetu
@@ -75,8 +75,9 @@
 - **Tables & Models:**
   - `profiles`: Core user details (business_type, phone, gst_number).
   - `buyers`, `sellers`, `admins`: Role-specific tables linked to `auth.users(id)`.
-  - `categories`: Marketplace categories (`slug`, `name`, `sub_categories` JSON).
-  - `products`: Catalog items (`slug`, `wholesale_price`, `moq`, `gst_rate`, `category_slug`).
+ - `categories`: Marketplace categories (`slug`, `name`).
+ - `subcategories`: Child taxonomy (`category_id` ? `categories`, `slug`, `name`, `sort_order`).
+ - `products`: Catalog items (`slug`, `wholesale_price`, `moq`, `gst_rate`, `category_slug`, `subcategory_id`).
   - `cart_items`: Per-user cart lines with `product_snapshot`.
   - `wishlist_items`, `shipping_addresses`, `orders`, `order_items`, `payment_records`, `invoices`, `coupons`.
 - **Validation & Constraints:** Row-Level Security (RLS) is heavily used. Check constraints (e.g., `quantity > 0` on `cart_items`).
@@ -132,8 +133,8 @@
 <!-- LOVABLE:BEGIN -->
 > [!IMPORTANT]
 > This project is connected to [Lovable](https://lovable.dev). Avoid rewriting
-> published git history — force pushing, or rebasing/amending/squashing commits
-> that are already pushed — as it rewrites history on Lovable's side and the
+> published git history ? force pushing, or rebasing/amending/squashing commits
+> that are already pushed ? as it rewrites history on Lovable's side and the
 > user will likely lose their project history.
 >
 > Commits you push to the connected branch sync back to Lovable and show up in
@@ -155,15 +156,93 @@
 
 # Current Project State
 
-- **Current Phase:** Initial AI Memory Setup
+- **Current Phase:** Catalog import from public/ image tree
 - **Current Branch:** N/A
-- **Current Module:** N/A
-- **Overall Progress:** Project is heavily scaffolded with B2B marketplace features.
-- **Last Updated:** 2026-07-14
+- **Current Module:** `scripts/upload-product-images.mjs`
+- **Overall Progress:** Script matches `public/<category-slug>/<subcategory-slug>/<item>/` to DB taxonomy and creates products with Storage images. Subcategories migration must be applied first.
+- **Last Updated:** 2026-07-16
 
 # Development History
 
-## 2026-07-14 — Baseline Setup
+## 2026-07-16 ? Create products from public/ slug image folders
+
+### Feature/Task Name
+Bulk create products from `public/<categories.slug>/<subcategories.slug>/<item-folder>/`.
+
+### Why
+Operators upload image trees using DB slug folder names; script creates new products linked to category + subcategory and uploads images to Supabase Storage.
+
+### Files Modified
+- `scripts/upload-product-images.mjs` (rewritten: create products by slug path)
+- `AGENTS.md`
+
+### Usage
+```bash
+node scripts/upload-product-images.mjs --dry-run
+node scripts/upload-product-images.mjs --seller-email ugadiharshavardhan@gmail.com
+```
+
+## 2026-07-16 - Relational categories and subcategories
+
+### Feature/Task Name
+Split category taxonomy into categories + subcategories tables; seed FMCG wholesale list.
+
+### Why
+Subcategories lived in JSON on categories, blocking proper product relations and admin CRUD.
+
+### Files Created
+- supabase/migrations/20260716170000_subcategories_table.sql
+- scratch/APPLY_SUBCATEGORIES.sql
+- scripts/seed-categories.mjs
+
+### Files Modified
+- src/hooks/useCatalog.ts, useSupplier.ts
+- src/lib/catalogMap.ts, catalogAdminMap.ts, supplierProductMap.ts
+- src/integrations/supabase/types.ts, src/data/categories.ts, src/types/index.ts
+- src/routes/_authenticated/admin.categories.tsx
+- AGENTS.md
+
+### Database
+- New subcategories table (category_id FK)
+- products.subcategory_id FK
+- Drop categories.sub_categories JSON (via migration)
+- Seeded 14 categories + 80+ subcategories (duplicate Barley removed)
+
+### Next
+- Re-run scratch/APPLY_SUBCATEGORIES.sql in Supabase SQL Editor (fixed is_admin(auth.uid()))
+- Then node scripts/seed-categories.mjs if relational rows need refill
+
+## 2026-07-16 ? Bulk product image upload script
+
+### Feature/Task Name
+Folder-tree bulk image upload for catalog products.
+
+### Why the change was made
+Operators need to attach local product photos using a `Main Category ? Subcategory ? Item Name` folder layout, matching folder names to catalog product names and writing public URLs into the database.
+
+### Files Created
+- `scripts/upload-product-images.mjs`
+
+### Files Modified
+- `.gitignore` ? ignore local `catalog-images/` upload trees
+- `AGENTS.md`
+
+### Usage
+```bash
+node scripts/upload-product-images.mjs --dir ./catalog-images --dry-run
+node scripts/upload-product-images.mjs --dir ./catalog-images
+```
+
+### Design Decisions
+- Match by normalized equality (case/spacing/punctuation insensitive), preferring category + subcategory + name, then name-only fallback.
+- Creates public Storage bucket `product-images` if missing (service role).
+- `--dry-run` reports matches without uploading.
+
+### Known Limitations
+- Ambiguous duplicate product names require renaming folders or products for a unique match.
+- Category folder must roughly match `products.category_slug` (hyphens treated as spaces) or matching falls back to name/subcategory.
+
+## 2026-07-14 ? Baseline Setup
 ### Objective
 Create initial comprehensive project documentation in AGENTS.md.
 ### Changes
@@ -171,7 +250,7 @@ Create initial comprehensive project documentation in AGENTS.md.
 - Created `AGENTS.md` as the continuous project memory.
 - Added Continuous Project Memory guidelines.
 
-## 2026-07-14 — RBAC Foundation
+## 2026-07-14 ? RBAC Foundation
 
 ### Feature/Task Name
 Scalable Role-Based Authentication (RBAC) foundation for Buyer and Seller.
@@ -230,7 +309,7 @@ To separate buyer and seller workflows natively at the router level, preventing 
 ### Next Recommended Tasks
 - Migrate all `supplier.*.tsx` routes to `seller.*.tsx` to fully encompass them under the new seller route guard.
 
-## 2026-07-14 — Seller Product Management Phase
+## 2026-07-14 ? Seller Product Management Phase
 ### Objective
 Transform the Product Management module into an enterprise-grade system mimicking professional workspaces like Shopify and Amazon Seller Central.
 ### Changes
@@ -276,7 +355,7 @@ Transform the Product Management module into an enterprise-grade system mimickin
 ### Next Recommended Tasks
 - Fully connect the upgraded Product schemas and views to actual Supabase database schemas and TanStack Query mutations.
 
-## 2026-07-14 — Seller Order Management Phase
+## 2026-07-14 ? Seller Order Management Phase
 ### Objective
 Transform the Orders module into a professional B2B Order Management System and introduce Buyers and RFQs logic.
 ### Changes
@@ -328,7 +407,7 @@ Transform the Orders module into a professional B2B Order Management System and 
 ### Next Recommended Tasks
 - Fully implement real backend integration for Orders, Buyers, and RFQs via Supabase.
 
-## 2026-07-14 — Inventory & Dispatch Management Phase
+## 2026-07-14 ? Inventory & Dispatch Management Phase
 ### Objective
 Transform the Inventory and Dispatch modules into professional, enterprise-grade systems mimicking top-tier B2B seller tools.
 ### Changes
@@ -370,7 +449,7 @@ Transform the Inventory and Dispatch modules into professional, enterprise-grade
 ### Next Recommended Tasks
 - Integrate these advanced workflows with the Supabase database.
 
-## 2026-07-14 — Bug Fix: Missing TrendingUp Import
+## 2026-07-14 ? Bug Fix: Missing TrendingUp Import
 ### Objective
 Fix the "TrendingUp is not defined" error when accessing the Seller Product Management page.
 ### Changes
@@ -378,65 +457,123 @@ Fix the "TrendingUp is not defined" error when accessing the Seller Product Mana
 ### Files Modified
 - `src/routes/_authenticated/supplier.products.index.tsx`
 - `AGENTS.md`
-# #   2 0 2 6 - 0 7 - 1 4   � �    P r o d u c t i o n   M a r k e t p l a c e   T r a n s f o r m a t i o n   P h a s e  
-  
- # # #   F e a t u r e / T a s k   N a m e  
- P r o d u c t i o n   M a r k e t p l a c e   T r a n s f o r m a t i o n   ( A n a l y t i c s ,   P a y m e n t s ,   R e p o r t s ,   D a t a )  
-  
- # # #   W h y   t h e   c h a n g e   w a s   m a d e  
- T o   t r a n s f o r m   V y a p a r S e t u   f r o m   a   d e m o n s t r a t i o n   s t a t e   i n t o   a   h i g h l y   r e a l i s t i c   p r o d u c t i o n   B 2 B   p l a t f o r m ,   f o c u s i n g   o n   A n a l y t i c s ,   P a y m e n t s ,   R e p o r t s ,   a n d   a   m a s s i v e l y   e x p a n d e d   r e a l i s t i c   p r o d u c t   c a t a l o g .  
-  
- # # #   F i l e s   C r e a t e d  
- -   ` s c r a t c h / g e n e r a t e _ c a t a l o g . j s `   ( S c r i p t   t o   g e n e r a t e   r e a l i s t i c   p r o d u c t s )  
- -   ` s r c / r o u t e s / _ a u t h e n t i c a t e d / s u p p l i e r . r e p o r t s . t s x `   ( N e w   R e p o r t s   m o d u l e )  
-  
- # # #   F i l e s   M o d i f i e d  
- -   ` s r c / d a t a / p r o d u c t s . t s `   ( R e p l a c e d   p l a c e h o l d e r   d a t a   w i t h   2 0 0 +   g e n e r a t e d   r e a l i s t i c   p r o d u c t s )  
- -   ` s r c / d a t a / s u p p l i e r S e e d . t s `   ( E x p a n d e d   m o c k   b u y e r   d a t a   a n d   u p d a t e d   n a m e s )  
- -   ` s r c / h o o k s / u s e S u p p l i e r . t s `   ( U p d a t e d   s e e d   o r d e r s   t o   u s e   r e a l i s t i c   c u s t o m e r   n a m e s )  
- -   ` s r c / r o u t e s / _ a u t h e n t i c a t e d / s u p p l i e r . a n a l y t i c s . t s x `   ( C o m p l e t e   o v e r h a u l   o f   c h a r t s   a n d   m e t r i c s )  
- -   ` s r c / r o u t e s / _ a u t h e n t i c a t e d / s u p p l i e r . p a y m e n t s . t s x `   ( C o m p l e t e   o v e r h a u l   w i t h   r e a l i s t i c   m e t r i c s   a n d   t r a n s a c t i o n   t a b l e )  
- -   ` s r c / c o m p o n e n t s / d a s h b o a r d / D a s h b o a r d S i d e b a r . t s x `   ( A d d e d   A n a l y t i c s   a n d   R e p o r t s   l i n k s   t o   t h e   S e l l e r   s i d e b a r )  
- -   ` A G E N T S . m d `   ( A d d e d   t h i s   c h a n g e l o g )  
-  
- # # #   F i l e s   D e l e t e d  
- -   N o n e  
-  
- # # #   D a t a b a s e   C h a n g e s  
- -   N o n e   ( M o c k   d a t a   l a y e r   w a s   e x p a n d e d   m a s s i v e l y ) .  
-  
- # # #   A P I   C h a n g e s  
- -   N o n e  
-  
- # # #   U I   C h a n g e s  
- -   * * P a y m e n t s : * *   I n t r o d u c e d   a   n e w   p r o f e s s i o n a l   s u m m a r y   c a r d   l a y o u t   a n d   a   d e t a i l e d   t r a n s a c t i o n   t a b l e   w i t h   e x p o r t   a c t i o n s .  
- -   * * A n a l y t i c s : * *   R e p l a c e d   b a s i c   c h a r t s   w i t h   a d v a n c e d   R e c h a r t s   c o m p o n e n t s   ( A r e a C h a r t   f o r   g r o w t h ,   B a r C h a r t   f o r   m o n t h l y   r e v e n u e ,   P i e C h a r t   f o r   c a t e g o r y   s h a r e ) .  
- -   * * R e p o r t s : * *   C r e a t e d   a   n e w   R e p o r t s   p a g e   w i t h   e x p o r t   b u t t o n s   f o r   S a l e s ,   I n v e n t o r y ,   G S T ,   R e v e n u e ,   a n d   O r d e r s .  
- -   * * D a s h b o a r d   S i d e b a r : * *   A d d e d   A n a l y t i c s   a n d   R e p o r t s   t o   t h e   S e l l e r   n a v i g a t i o n   m e n u .  
-  
- # # #   C o n f i g u r a t i o n   /   E n v   C h a n g e s  
- -   N o n e  
-  
- # # #   B r e a k i n g   C h a n g e s  
- -   N o n e  
-  
- # # #   D e p e n d e n c i e s  
- -   N o n e   ( U s e d   e x i s t i n g   ` r e c h a r t s `   a n d   ` l u c i d e - r e a c t ` ) .  
-  
- # # #   D e s i g n   D e c i s i o n s   M a d e  
- -   W r o t e   a   N o d e   s c r i p t   ( ` g e n e r a t e _ c a t a l o g . j s ` )   t o   p r o c e d u r a l l y   c o n s t r u c t   t h e   p r o d u c t   c a t a l o g   d a t a   i n s t e a d   o f   t y p i n g   m a n u a l l y ,   g u a r a n t e e i n g   r e a l i s t i c   m o c k   d a t a   a n d   p r o p e r   U n s p l a s h   i m a g e r y   a t   s c a l e .  
- -   A u d i t e d   ` P r o d u c t C a r d . t s x `   a n d   d e t e r m i n e d   i t s   e x i s t i n g   U I   f u l l y   m e t   t h e   n e w   r e q u i r e m e n t s   ( o f f e r i n g   F r a m e r   M o t i o n   a n i m a t i o n s ,   %   O F F   t a g s ,   G S T   t a g s ,   e t c . ) ,   s a v i n g   t i m e   b y   r e u s i n g   t h e   c o m p o n e n t   a s - i s .  
-  
- # # #   A s s u m p t i o n s   T a k e n  
- -   I t ' s   s a f e   t o   o v e r w r i t e   ` p r o d u c t s . t s `   s i n c e   t h e   o l d   d a t a   w a s   m o s t l y   p l a c e h o l d e r s ,   a n d   t h e   n e w   d a t a   i n c l u d e s   a l l   r e q u e s t e d   c a t e g o r i e s   a n d   m a n u f a c t u r e r s .  
-  
- # # #   K n o w n   L i m i t a t i o n s   I n t r o d u c e d  
- -   " E x p o r t "   f u n c t i o n a l i t y   o n   P a y m e n t s   a n d   R e p o r t s   i s   c u r r e n t l y   U I - o n l y   ( d i s p l a y s   a   t o a s t )   u n t i l   t h e   a c t u a l   b a c k e n d   P D F / C S V   g e n e r a t i o n   l o g i c   i s   w i r e d   u p .  
-  
- # # #   N e x t   R e c o m m e n d e d   T a s k s  
- -   F u l l y   c o n n e c t   P a y m e n t s ,   A n a l y t i c s ,   a n d   R e p o r t s   t o   a   l i v e   S u p a b a s e   b a c k e n d .  
- -   B u i l d   o u t   t h e   a c t u a l   P D F   a n d   C S V   e x p o r t   g e n e r a t i o n   l o g i c .  
- ## 2026-07-14 — Final UI Polish, Business Intelligence & UX Enhancements
+# #   2 0 2 6 - 0 7 - 1 4   ? ?    P r o d u c t i o n   M a r k e t p l a c e   T r a n s f o r m a t i o n   P h a s e 
+ 
+ 
+ 
+ # # #   F e a t u r e / T a s k   N a m e 
+ 
+ P r o d u c t i o n   M a r k e t p l a c e   T r a n s f o r m a t i o n   ( A n a l y t i c s ,   P a y m e n t s ,   R e p o r t s ,   D a t a ) 
+ 
+ 
+ 
+ # # #   W h y   t h e   c h a n g e   w a s   m a d e 
+ 
+ T o   t r a n s f o r m   V y a p a r S e t u   f r o m   a   d e m o n s t r a t i o n   s t a t e   i n t o   a   h i g h l y   r e a l i s t i c   p r o d u c t i o n   B 2 B   p l a t f o r m ,   f o c u s i n g   o n   A n a l y t i c s ,   P a y m e n t s ,   R e p o r t s ,   a n d   a   m a s s i v e l y   e x p a n d e d   r e a l i s t i c   p r o d u c t   c a t a l o g . 
+ 
+ 
+ 
+ # # #   F i l e s   C r e a t e d 
+ 
+ -   ` s c r a t c h / g e n e r a t e _ c a t a l o g . j s `   ( S c r i p t   t o   g e n e r a t e   r e a l i s t i c   p r o d u c t s ) 
+ 
+ -   ` s r c / r o u t e s / _ a u t h e n t i c a t e d / s u p p l i e r . r e p o r t s . t s x `   ( N e w   R e p o r t s   m o d u l e ) 
+ 
+ 
+ 
+ # # #   F i l e s   M o d i f i e d 
+ 
+ -   ` s r c / d a t a / p r o d u c t s . t s `   ( R e p l a c e d   p l a c e h o l d e r   d a t a   w i t h   2 0 0 +   g e n e r a t e d   r e a l i s t i c   p r o d u c t s ) 
+ 
+ -   ` s r c / d a t a / s u p p l i e r S e e d . t s `   ( E x p a n d e d   m o c k   b u y e r   d a t a   a n d   u p d a t e d   n a m e s ) 
+ 
+ -   ` s r c / h o o k s / u s e S u p p l i e r . t s `   ( U p d a t e d   s e e d   o r d e r s   t o   u s e   r e a l i s t i c   c u s t o m e r   n a m e s ) 
+ 
+ -   ` s r c / r o u t e s / _ a u t h e n t i c a t e d / s u p p l i e r . a n a l y t i c s . t s x `   ( C o m p l e t e   o v e r h a u l   o f   c h a r t s   a n d   m e t r i c s ) 
+ 
+ -   ` s r c / r o u t e s / _ a u t h e n t i c a t e d / s u p p l i e r . p a y m e n t s . t s x `   ( C o m p l e t e   o v e r h a u l   w i t h   r e a l i s t i c   m e t r i c s   a n d   t r a n s a c t i o n   t a b l e ) 
+ 
+ -   ` s r c / c o m p o n e n t s / d a s h b o a r d / D a s h b o a r d S i d e b a r . t s x `   ( A d d e d   A n a l y t i c s   a n d   R e p o r t s   l i n k s   t o   t h e   S e l l e r   s i d e b a r ) 
+ 
+ -   ` A G E N T S . m d `   ( A d d e d   t h i s   c h a n g e l o g ) 
+ 
+ 
+ 
+ # # #   F i l e s   D e l e t e d 
+ 
+ -   N o n e 
+ 
+ 
+ 
+ # # #   D a t a b a s e   C h a n g e s 
+ 
+ -   N o n e   ( M o c k   d a t a   l a y e r   w a s   e x p a n d e d   m a s s i v e l y ) . 
+ 
+ 
+ 
+ # # #   A P I   C h a n g e s 
+ 
+ -   N o n e 
+ 
+ 
+ 
+ # # #   U I   C h a n g e s 
+ 
+ -   * * P a y m e n t s : * *   I n t r o d u c e d   a   n e w   p r o f e s s i o n a l   s u m m a r y   c a r d   l a y o u t   a n d   a   d e t a i l e d   t r a n s a c t i o n   t a b l e   w i t h   e x p o r t   a c t i o n s . 
+ 
+ -   * * A n a l y t i c s : * *   R e p l a c e d   b a s i c   c h a r t s   w i t h   a d v a n c e d   R e c h a r t s   c o m p o n e n t s   ( A r e a C h a r t   f o r   g r o w t h ,   B a r C h a r t   f o r   m o n t h l y   r e v e n u e ,   P i e C h a r t   f o r   c a t e g o r y   s h a r e ) . 
+ 
+ -   * * R e p o r t s : * *   C r e a t e d   a   n e w   R e p o r t s   p a g e   w i t h   e x p o r t   b u t t o n s   f o r   S a l e s ,   I n v e n t o r y ,   G S T ,   R e v e n u e ,   a n d   O r d e r s . 
+ 
+ -   * * D a s h b o a r d   S i d e b a r : * *   A d d e d   A n a l y t i c s   a n d   R e p o r t s   t o   t h e   S e l l e r   n a v i g a t i o n   m e n u . 
+ 
+ 
+ 
+ # # #   C o n f i g u r a t i o n   /   E n v   C h a n g e s 
+ 
+ -   N o n e 
+ 
+ 
+ 
+ # # #   B r e a k i n g   C h a n g e s 
+ 
+ -   N o n e 
+ 
+ 
+ 
+ # # #   D e p e n d e n c i e s 
+ 
+ -   N o n e   ( U s e d   e x i s t i n g   ` r e c h a r t s `   a n d   ` l u c i d e - r e a c t ` ) . 
+ 
+ 
+ 
+ # # #   D e s i g n   D e c i s i o n s   M a d e 
+ 
+ -   W r o t e   a   N o d e   s c r i p t   ( ` g e n e r a t e _ c a t a l o g . j s ` )   t o   p r o c e d u r a l l y   c o n s t r u c t   t h e   p r o d u c t   c a t a l o g   d a t a   i n s t e a d   o f   t y p i n g   m a n u a l l y ,   g u a r a n t e e i n g   r e a l i s t i c   m o c k   d a t a   a n d   p r o p e r   U n s p l a s h   i m a g e r y   a t   s c a l e . 
+ 
+ -   A u d i t e d   ` P r o d u c t C a r d . t s x `   a n d   d e t e r m i n e d   i t s   e x i s t i n g   U I   f u l l y   m e t   t h e   n e w   r e q u i r e m e n t s   ( o f f e r i n g   F r a m e r   M o t i o n   a n i m a t i o n s ,   %   O F F   t a g s ,   G S T   t a g s ,   e t c . ) ,   s a v i n g   t i m e   b y   r e u s i n g   t h e   c o m p o n e n t   a s - i s . 
+ 
+ 
+ 
+ # # #   A s s u m p t i o n s   T a k e n 
+ 
+ -   I t ' s   s a f e   t o   o v e r w r i t e   ` p r o d u c t s . t s `   s i n c e   t h e   o l d   d a t a   w a s   m o s t l y   p l a c e h o l d e r s ,   a n d   t h e   n e w   d a t a   i n c l u d e s   a l l   r e q u e s t e d   c a t e g o r i e s   a n d   m a n u f a c t u r e r s . 
+ 
+ 
+ 
+ # # #   K n o w n   L i m i t a t i o n s   I n t r o d u c e d 
+ 
+ -   " E x p o r t "   f u n c t i o n a l i t y   o n   P a y m e n t s   a n d   R e p o r t s   i s   c u r r e n t l y   U I - o n l y   ( d i s p l a y s   a   t o a s t )   u n t i l   t h e   a c t u a l   b a c k e n d   P D F / C S V   g e n e r a t i o n   l o g i c   i s   w i r e d   u p . 
+ 
+ 
+ 
+ # # #   N e x t   R e c o m m e n d e d   T a s k s 
+ 
+ -   F u l l y   c o n n e c t   P a y m e n t s ,   A n a l y t i c s ,   a n d   R e p o r t s   t o   a   l i v e   S u p a b a s e   b a c k e n d . 
+ 
+ -   B u i l d   o u t   t h e   a c t u a l   P D F   a n d   C S V   e x p o r t   g e n e r a t i o n   l o g i c . 
+ 
+ ## 2026-07-14 ? Final UI Polish, Business Intelligence & UX Enhancements
 
 ### Feature/Task Name
 Final UX Polish (Notifications, AI Insights, Messages, Search)
@@ -494,7 +631,7 @@ To achieve Udaan/Shopify level of production polish, providing contextual Busine
 
 ### Next Recommended Tasks
 - Fully wire up the Postgres database for real-time WebSockets messaging.
-## 2026-07-14 — Phase 5: Production Database Migration Planning
+## 2026-07-14 ? Phase 5: Production Database Migration Planning
 
 ### Objective
 Transition VyaparSetu from a mock-data prototype to a real-time, production-ready B2B marketplace using Supabase.
@@ -512,3 +649,134 @@ Transition VyaparSetu from a mock-data prototype to a real-time, production-read
 - **Migrate Orders Module**: Refactor `useSupplierOrders` to use `@tanstack/react-query` and `@supabase/supabase-js`.
 - **Migrate Inventory Module**: Move stock adjustments to rely on `inventory_movements` rather than client-side `localStorage`.
 - **Real-time Wiring**: Add `supabase.channel('public:orders').on('postgres_changes', ...)` to the Seller Dashboard.
+
+## 2026-07-16 ? Seller-owned products & seller Orders (DB-scoped)
+
+### Feature/Task Name
+Per-seller product ownership table and buyer-order visibility limited to that seller?s SKUs.
+
+### Why the change was made
+Sellers must only manage products they created, and Seller Orders must show only buyer order lines for those products ? not mock/shared catalog data.
+
+### Files Created
+- `supabase/migrations/20260716010000_seller_products_and_order_seller.sql`
+
+### Files Modified
+- `src/hooks/useSupplier.ts` ? `useSupplierProducts` / `useSupplierOrders` query Supabase by seller id; stock adjust scoped
+- `src/hooks/useOrders.ts` ? checkout stamps `order_items.seller_id` from `products.seller_id`
+- `src/lib/supplierProductMap.ts` ? inserts set `seller_id`
+- `src/integrations/supabase/types.ts` ? `seller_products`, `seller_id` on products/order_items
+- `AGENTS.md`
+
+### Database Changes
+- `products.seller_id` ? `sellers(id)`
+- Table `seller_products` (seller_id + product_id) with RLS
+- `order_items.seller_id` + seller SELECT/UPDATE RLS on orders/order_items
+- Trigger `trg_order_items_set_seller_id` auto-fills seller from product owner
+
+### API Changes
+- None (Supabase client queries)
+
+### UI Changes
+- Seller Products / Orders screens now bind to live seller-scoped data (empty until migration + real creates/orders)
+
+### Configuration / Env Changes
+- None
+
+### Breaking Changes
+- Mock localStorage supplier orders (`vs.supplier.orders.v1`) no longer used
+
+### Known Limitations Introduced
+- Migration must be run in the Lovable/Supabase SQL editor for project `juoufayfyzpmscxeiydd` (MCP apply may lack permission)
+- Seed/catalog products without `seller_id` will not appear in any seller Orders until claimed/owned
+
+### Next Recommended Tasks
+- Apply `supabase/migrations/20260716010000_seller_products_and_order_seller.sql` in Supabase SQL Editor
+- Smoke-test: seller create product ? buyer order ? only that seller sees the line in Orders
+- Migrate remaining seller modules (inventory movements, customers) off localStorage
+
+## 2026-07-16 ? Backfill catalog to ugadiharshavardhan@gmail.com seller
+
+### Feature/Task Name
+Assign all existing DB products to primary seller account and show in Seller Products.
+
+### Why the change was made
+65 catalog products existed without seller ownership; seller `ugadiharshavardhan@gmail.com` should see and manage all of them.
+
+### Files Created
+- `supabase/migrations/20260716130000_assign_catalog_to_primary_seller.sql`
+- `scripts/backfill-seller-products.mjs`
+- `scripts/apply-seller-migration-and-backfill.mjs`
+
+### Files Modified
+- `src/hooks/useSupplier.ts` ? fetch/update/delete by `products.seller_id` or `supplier->>id` fallback
+- `AGENTS.md`
+
+### Database Changes
+- Backfilled `products.supplier.id` = `0f96cf1c-0664-48d6-8c42-4e16c2d43648` for all 65 products (via service role script)
+- SQL migration ready for `seller_id` + `seller_products` when run in Supabase SQL Editor
+
+### Known Limitations Introduced
+- `products.seller_id` / `seller_products` / `order_items.seller_id` columns not yet applied remotely; seller orders still need schema migration
+
+## 2026-07-16 ? Remove legacy profiles table (sellers/buyers only)
+
+### Feature/Task Name
+Stop writing new sellers to `public.profiles`; drop table and fix signup trigger.
+
+### Why the change was made
+Remote DB still had `handle_new_user()` inserting into `profiles` on every auth signup, duplicating data instead of using `sellers` / `buyers` only.
+
+### Files Created
+- `supabase/migrations/20260716140000_remove_profiles_table.sql`
+- `scratch/REMOVE_PROFILES_TABLE.sql`
+
+### Files Modified
+- `src/server/authOtpHandler.ts` ? delete legacy `profiles` row after seller/buyer upsert
+- `src/lib/accountMembership.ts` ? same cleanup helper
+- `AGENTS.md`
+
+### Database Changes (must run SQL in Supabase editor)
+- Replace `handle_new_user()` ? inserts `sellers` or `buyers` only
+- Migrate remaining `profiles` data ? `sellers` / `buyers`
+- `DROP TABLE public.profiles`
+
+### Next Recommended Tasks
+- Run `scratch/REMOVE_PROFILES_TABLE.sql` in Supabase SQL Editor
+- Register a new seller and confirm row appears in `sellers` only
+
+## 2026-07-16 ? Order stock decrement & seller stock UX
+
+### Feature/Task Name
+Sync available stock with buyer orders; seller stock compare/set; full stock bar; redirect after product save.
+
+### Why the change was made
+Buyer checkout did not reduce inventory; stock bar used a hard max of 200 (looked incomplete); edit-product save stayed on the form instead of returning to the products list.
+
+### Files Created
+- `supabase/migrations/20260716150000_order_stock_decrement.sql`
+
+### Files Modified
+- `src/hooks/useOrders.ts` ? invalidate catalog/seller product queries after place/cancel
+- `src/hooks/useSupplier.ts` ? stock update compares DB `stock_count`; inventory `setStock` helper
+- `src/routes/_authenticated/supplier.products.$id.tsx` ? navigate to `/supplier/products` after save
+- `src/routes/_authenticated/supplier.products.index.tsx` ? available-stock bar full when stock > 0
+- `src/routes/_authenticated/supplier.inventory.tsx` ? adjustment mode sets new stock vs current
+- `AGENTS.md`
+
+### Database Changes
+- Trigger `trg_order_items_apply_stock`: AFTER INSERT on `order_items` decrements `products.stock_count` (SECURITY DEFINER)
+- Trigger `trg_orders_restore_stock_on_cancel`: restores stock when order status ? cancelled
+
+### Next Recommended Tasks
+- Smoke-test: place buyer order ? seller products stock drops; cancel order ? stock restores
+- Smoke-test: Save changes on edit product ? lands on `/supplier/products`
+
+## 2026-07-16 ? Fix seller onboarding redirect trap
+
+### Why
+All sellers had `onboarding_completed = false`, so authenticated routes redirected to `/onboarding` instead of the seller dashboard.
+
+### Changes
+- Migration `20260716160000_mark_sellers_onboarding_complete.sql`
+- `src/routes/_authenticated/route.tsx` ? established sellers (business name / GST) skip the gate

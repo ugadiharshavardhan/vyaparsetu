@@ -14,7 +14,7 @@ import { EmailOtpForm } from "@/components/auth/EmailOtpForm";
 import { resolvePostLoginPath } from "@/lib/postLoginRedirect";
 import { setSessionMode, clearSessionMode } from "@/lib/sessionMode";
 import { assertAccountMembership } from "@/lib/accountMembership";
-import { establishSessionAfterSignup, sendEmailOtp } from "@/lib/otp";
+import { establishSessionAfterSignup, sendEmailOtp, checkLoginHelp } from "@/lib/otp";
 
 const schema = z.object({
   email: z.string().trim().email("Please enter a valid email").max(255),
@@ -82,10 +82,29 @@ export function SignInForm({ role, onBack }: { role?: "buyer" | "seller"; onBack
         return;
       }
       if (msg.includes("invalid")) {
-        toast.error("Incorrect email or password");
-      } else {
-        toast.error(error.message);
+        try {
+          const help = await checkLoginHelp(email, role);
+          if (help.exists && help.hasRole === false && role) {
+            toast.error(
+              role === "seller"
+                ? "No seller account for this email. Sign in as Customer or create a seller account."
+                : "No customer account for this email. Sign in as Seller or create a customer account.",
+            );
+            return;
+          }
+          if (help.exists && help.confirmed === false) {
+            await sendEmailOtp(email, "signup", { userId: help.userId, force: true });
+            setPendingVerify({ email, password: values.password });
+            toast.success("Verify your email with the 6-digit code we sent");
+            return;
+          }
+        } catch {
+          /* fall through */
+        }
+        toast.error("Incorrect email or password. Try Forgot password to reset.");
+        return;
       }
+      toast.error(error.message);
       return;
     }
 

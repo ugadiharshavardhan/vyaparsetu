@@ -237,13 +237,14 @@ function SupplierProductsPage() {
               cell: (p) => {
                 const band = stockBand(p);
                 const s = bandStyles[band];
-                const pct = Math.min(100, (p.stock / 200) * 100);
+                // Full bar when any stock is available; empty only when out of stock
+                const pct = p.stock <= 0 ? 0 : 100;
                 return (
                   <div className="min-w-[120px] space-y-1.5">
                     <div className="flex items-center justify-between text-xs">
                       <span className={cn("font-semibold", s.text)}>{p.stock === 0 ? "Out of Stock" : `${p.stock} ${p.unit}`}</span>
                     </div>
-                    <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
                       <div className={cn("h-full rounded-full", s.bar)} style={{ width: `${pct}%` }} />
                     </div>
                   </div>

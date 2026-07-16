@@ -12,6 +12,9 @@ type OtpResponse = {
   userId?: string;
   email?: string;
   token_hash?: string;
+  exists?: boolean;
+  confirmed?: boolean;
+  hasRole?: boolean;
 };
 
 async function invokeOtp(body: Record<string, unknown>): Promise<OtpResponse> {
@@ -33,6 +36,10 @@ async function invokeOtp(body: Record<string, unknown>): Promise<OtpResponse> {
   }
   if (data.error) throw new Error(data.error);
   return data;
+}
+
+export async function checkLoginHelp(email: string, role?: "buyer" | "seller") {
+  return invokeOtp({ action: "login-help", email, role });
 }
 
 export async function registerWithOtp(input: {

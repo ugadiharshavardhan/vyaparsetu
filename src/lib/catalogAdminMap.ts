@@ -29,7 +29,7 @@ export function mapCategoriesToAdmin(categories: Category[]): AdminCategory[] {
     });
     c.subCategories.forEach((sub, j) => {
       items.push({
-        id: `${c.id}:${sub.slug}`,
+        id: sub.id || `${c.id}:${sub.slug}`,
         name: sub.name,
         parent: c.id,
         products: 0,
