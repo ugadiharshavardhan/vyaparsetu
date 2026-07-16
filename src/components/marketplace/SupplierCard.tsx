@@ -23,7 +23,7 @@ export function SupplierCard({ supplier, productCount }: { supplier: Supplier; p
           <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
             <MapPin className="h-3 w-3" /> {supplier.location}
           </div>
-          <div className="mt-2"><Rating value={supplier.rating} /></div>
+          <div className="mt-2"><Rating value={supplier.rating} count={supplier.reviewCount} /></div>
         </div>
       </div>
       <div className="mt-5 grid grid-cols-3 gap-2 border-t border-border pt-4 text-center text-xs">

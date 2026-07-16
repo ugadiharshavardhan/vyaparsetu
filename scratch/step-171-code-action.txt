@@ -1,0 +1,177 @@
+Created At: 2026-07-16T18:27:21Z
+Completed At: 2026-07-16T18:27:23Z
+The following changes were made by the replace_file_content tool to: c:\Users\nanda\Downloads\vyaparsetu\src\components\supplier\DataTable.tsx. If relevant, proactively run terminal commands to execute this code for the USER. Don't ask for permission.
+[diff_block_start]
+@@ -72,9 +72,9 @@
+   return (
+     <div className="space-y-4">
+       {selectedIds.length > 0 && bulkActions && (
+-        <div className="flex items-center gap-3 rounded-xl border border-brand/20 bg-brand-soft/50 p-2 pl-4">
+-          <span className="text-sm font-medium text-brand">{selectedIds.length} selected</span>
+-          <div className="h-4 w-px bg-border"></div>
++        <div className="flex items-center gap-3.5 rounded-full border border-brand/20 bg-brand-soft/30 px-4 py-2 shadow-soft transition-all duration-200">
++          <span className="text-xs font-semibold uppercase tracking-wider text-brand">{selectedIds.length} selected</span>
++          <div className="h-4 w-px bg-brand/20"></div>
+           {bulkActions}
+         </div>
+       )}
+@@ -81,10 +81,10 @@
+-      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
++      <div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-soft">
+         <div className="overflow-x-auto">
+           <table className="w-full min-w-[720px] text-sm">
+             <thead>
+-              <tr className="border-b border-border bg-muted/40 text-left">
++              <tr className="border-b border-border/40 bg-muted/15 text-left">
+                 {selectable && (
+-                  <th className="w-12 px-4 py-3">
++                  <th className="w-12 pl-5 pr-2 py-3.5">
+                     <Checkbox
+                       checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                       onCheckedChange={toggleAll}
+@@ -94,7 +94,7 @@
+                 {columns.map((c) => (
+                   <th
+                     key={c.key}
+-                    className={`px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground ${c.className ?? ""}`}
++                    className={`px-5 py-3.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80 ${c.className ?? ""}`}
+                   >
+                     {c.header}
+                   </th>
+@@ -108,7 +108,7 @@
+                     key={row.id}
+                     initial={{ opacity: 0, y: 4 }}
+                     animate={{ opacity: 1, y: 0 }}
+-                    transition={{ delay: i * 0.02, duration: 0.2 }}
++                    transition={{ delay: i * 0.01, duration: 0.15 }}
+                     onClick={() => {
+                       if (selectable && onSelectChange) {
+                         toggleOne(row.id);
+@@ -115,12 +115,12 @@
+                         onRowClick?.(row);
+                       }
+                     }}
+-                    className={`border-b border-border/60 transition-colors last:border-0 ${
+-                      isSelected ? "bg-muted/50" : "hover:bg-muted/30"
++                    className={`border-b border-border/30 transition-colors duration-150 last:border-0 ${
++                      isSelected ? "bg-brand-soft/20 text-brand" : "hover:bg-muted/20"
+                     } ${onRowClick || selectable ? "cursor-pointer" : ""}`}
+                   >
+                     {selectable && (
+-                      <td className="px-4 py-3 align-middle" onClick={(e) => e.stopPropagation()}>
++                      <td className="pl-5 pr-2 py-4 align-middle" onClick={(e) => e.stopPropagation()}>
+                         <Checkbox
+                           checked={isSelected}
+                           onCheckedChange={() => toggleOne(row.id)}
+@@ -130,7 +130,7 @@
+                     {columns.map((c) => (
+                       <td 
+                         key={c.key} 
+-                        className={`px-4 py-3 align-middle ${c.className ?? ""}`}
++                        className={`px-5 py-4 align-middle ${c.className ?? ""}`}
+                         onClick={(e) => {
+                           if (selectable && onRowClick) {
+                             e.stopPropagation();
+@@ -146,50 +146,56 @@
+             </tbody>
+           </table>
+         </div>
+-      </div>
+-
+-      {totalPages > 1 && (
+-        <div className="flex items-center justify-between">
+-          <p className="text-xs text-muted-foreground">
+-            Showing <span className="font-medium text-foreground">{(page - 1) * pageSize + 1}</span> to <span className="font-medium text-foreground">{Math.min(page * pageSize, rows.length)}</span> of <span className="font-medium text-foreground">{rows.length}</span> results
+-          </p>
+-          <div className="flex items-center gap-1">
+-            <Button
+-              variant="outline"
+-              size="sm"
+-              onClick={() => setPage((p) => Math.max(1, p - 1))}
+-              disabled={page === 1}
+-              className="h-8 w-8 p-0"
+-            >
+-              <ChevronLeft className="h-4 w-4" />
+-            </Button>
+-            {Array.from({ length: totalPages }, (_, i) => i + 1)
+-              .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+-              .map((p, i, arr) => (
+-                <div key={p} className="flex items-center">
+-                  {i > 0 && p - arr[i - 1] > 1 && <span className="px-2 text-muted-foreground">...</span>}
+-                  <Button
+-                    variant={page === p ? "default" : "ghost"}
+-                    size="sm"
+-                    onClick={() => setPage(p)}
+-                    className="h-8 w-8 p-0"
+-                  >
+-                    {p}
+-                  </Button>
+-                </div>
+-              ))}
+-            <Button
+-              variant="outline"
+-              size="sm"
+-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+-              disabled={page === totalPages}
+-              className="h-8 w-8 p-0"
+-            >
+-              <ChevronRight className="h-4 w-4" />
+-            </Button>
++
++        {/* Visually integrated table footer for results count and pagination */}
++        {totalPages > 1 && (
++          <div className="flex items-center justify-between border-t border-border/40 bg-muted/5 px-6 py-4">
++            <p className="text-xs text-muted-foreground/90">
++              Showing <span className="font-semibold text-foreground">{(page - 1) * pageSize + 1}</span> to <span className="font-semibold text-foreground">{Math.min(page * pageSize, rows.length)}</span> of <span className="font-semibold text-foreground">{rows.length}</span> results
++            </p>
++            <div className="flex items-center gap-1.5">
++              <Button
++                variant="outline"
++                size="sm"
++                onClick={() => setPage((p) => Math.max(1, p - 1))}
++                disabled={page === 1}
++                className="h-8 w-8 rounded-full border-border/60 text-muted-foreground hover:bg-muted/40 hover:text-foreground transition-colors"
++              >
++                <ChevronLeft className="h-4 w-4" />
++              </Button>
++              {Array.from({ length: totalPages }, (_, i) => i + 1)
++                .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
++                .map((p, i, arr) => (
++                  <div key={p} className="flex items-center gap-1.5">
++                    {i > 0 && p - arr[i - 1] > 1 && <span className="px-1 text-muted-foreground/60 text-xs">...</span>}
++                    <Button
++                      variant={page === p ? "default" : "ghost"}
++                      size="sm"
++                      onClick={() => setPage(p)}
++                      className={cn(
++                        "h-8 w-8 rounded-full text-xs font-semibold transition-colors",
++                        page === p
++                          ? "bg-brand text-white shadow-sm"
++                          : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"
++                      )}
++                    >
++                      {p}
++                    </Button>
++                  </div>
++                ))}
++              <Button
++                variant="outline"
++                size="sm"
++                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
++                disabled={page === totalPages}
++                className="h-8 w-8 rounded-full border-border/60 text-muted-foreground hover:bg-muted/40 hover:text-foreground transition-colors"
++              >
++                <ChevronRight className="h-4 w-4" />
++              </Button>
++            </div>
+           </div>
+-        </div>
+-      )}
++        )}
++      </div>
+     </div>
+   );
+ }
+[diff_block_end]
+
+Please note that the above snippet only shows the MODIFIED lines from the last change. It shows up to 3 lines of unchanged lines before and after the modified lines. The actual file contents may have many more lines not shown.

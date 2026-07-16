@@ -3,9 +3,11 @@ import { cn } from "@/lib/utils";
 
 export function Logo({
   compact = false,
+  hideSubtitle = false,
   className,
 }: {
   compact?: boolean;
+  hideSubtitle?: boolean;
   className?: string;
 }) {
   return (
@@ -31,9 +33,11 @@ export function Logo({
           <span className="font-display text-lg font-bold tracking-tight text-foreground">
             VyaparSetu
           </span>
-          <span className="hidden text-[10px] uppercase tracking-[0.16em] text-muted-foreground sm:inline">
-            B2B Marketplace
-          </span>
+          {!hideSubtitle && (
+            <span className="hidden text-[10px] uppercase tracking-[0.16em] text-muted-foreground sm:inline">
+              B2B Marketplace
+            </span>
+          )}
         </span>
       )}
     </Link>

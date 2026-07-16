@@ -28,7 +28,7 @@ export function useOrders() {
       const { data, error } = await supabase
         .from("orders")
         .select(
-          "id, order_number, status, payment_status, payment_method, subtotal, tax_total, shipping_total, discount_total, grand_total, created_at, updated_at, estimated_delivery, tracking_number, delivery_partner, shipping_address, status_history, order_items(*)",
+          "id, order_number, status, payment_status, payment_method, subtotal, gst_total, shipping_total, discount_total, grand_total, created_at, updated_at, estimated_delivery, tracking_number, delivery_partner, shipping_address, status_history, order_items(*)",
         )
         .order("created_at", { ascending: false })
         .limit(40);

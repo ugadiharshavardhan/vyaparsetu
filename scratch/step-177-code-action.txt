@@ -1,0 +1,32 @@
+Created At: 2026-07-16T18:27:29Z
+Completed At: 2026-07-16T18:27:31Z
+The following changes were made by the replace_file_content tool to: c:\Users\nanda\Downloads\vyaparsetu\src\components\supplier\Pill.tsx. If relevant, proactively run terminal commands to execute this code for the USER. Don't ask for permission.
+[diff_block_start]
+@@ -3,12 +3,12 @@
+ type Tone = "default" | "success" | "warning" | "danger" | "info" | "muted";
+ 
+ const map: Record<Tone, string> = {
+-  default: "bg-brand-soft text-brand",
+-  success: "bg-success-soft text-success",
+-  warning: "bg-warning-soft text-warning",
+-  danger: "bg-destructive/10 text-destructive",
+-  info: "bg-info-soft text-info",
+-  muted: "bg-muted text-muted-foreground",
++  default: "bg-brand-soft/40 border-brand/20 text-brand",
++  success: "bg-success-soft/40 border-success/20 text-success",
++  warning: "bg-warning-soft/40 border-warning/20 text-warning",
++  danger: "bg-destructive/10 border-destructive/20 text-destructive",
++  info: "bg-info-soft/40 border-info/20 text-info",
++  muted: "bg-muted/40 border-muted-foreground/15 text-muted-foreground",
+ };
+ 
+ export function Pill({ tone = "default", children, className }: { tone?: Tone; children: React.ReactNode; className?: string }) {
+@@ -15,4 +15,4 @@
+-    <span className={cn("inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold", map[tone], className)}>
++    <span className={cn("inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium tracking-wide", map[tone], className)}>
+       {children}
+     </span>
+   );
+[diff_block_end]
+
+Please note that the above snippet only shows the MODIFIED lines from the last change. It shows up to 3 lines of unchanged lines before and after the modified lines. The actual file contents may have many more lines not shown.

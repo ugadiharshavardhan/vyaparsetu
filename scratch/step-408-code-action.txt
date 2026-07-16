@@ -1,0 +1,60 @@
+Created At: 2026-07-16T18:55:20Z
+Completed At: 2026-07-16T18:55:22Z
+The following changes were made by the replace_file_content tool to: c:\Users\nanda\Downloads\vyaparsetu\src\routes\_authenticated\supplier.products.index.tsx. If relevant, proactively run terminal commands to execute this code for the USER. Don't ask for permission.
+[diff_block_start]
+@@ -1,5 +1,5 @@
+ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+-import { useMemo, useState, useEffect } from "react";
++import { useMemo, useState, useEffect, useRef } from "react";
+ import { z } from "zod";
+ import {
+   Copy, Download, Edit3, Filter, MoreVertical, Package, Plus, Search,
+@@ -75,7 +75,11 @@
+   const setPage = (p: number) => navigate({ search: (prev) => ({ ...prev, page: p }) });
+ 
+   // Restore query parameters from sessionStorage on mount if URL has no active params
+-  useEffect(() => {
++  const restoredRef = useRef(false);
++  useEffect(() => {
++    if (restoredRef.current) return;
++    restoredRef.current = true;
++
+     const savedSearch = sessionStorage.getItem("vs:supplier:products:search");
+     if (savedSearch) {
+       try {
+@@ -82,7 +82,11 @@
+-        const hasParamsInUrl = Boolean(search.q || search.cat !== "all" || search.status !== "all" || search.stock !== "all" || search.brand !== "all" || search.sortBy !== "newest" || (search.page && search.page > 1));
++        const hasParamsInUrl = Boolean(search.q || (search.cat && search.cat !== "all") || (search.status && search.status !== "all") || (search.stock && search.stock !== "all") || (search.brand && search.brand !== "all") || (search.sortBy && search.sortBy !== "newest") || (search.page && search.page > 1));
+ 
+         if (!hasParamsInUrl) {
+-          navigate({ search: parsed, replace: true });
++          // Check if the saved search has any meaningful state worth restoring
++          const hasSavedState = Boolean(parsed.q || parsed.cat || parsed.status || parsed.stock || parsed.brand || parsed.sortBy || (parsed.page && parsed.page > 1));
++          if (hasSavedState) {
++            navigate({ search: parsed, replace: true });
++          }
+         }
+       } catch {
+         // Ignore
+@@ -105,12 +105,15 @@
+     return () => window.removeEventListener("scroll", handleScroll);
+   }, []);
+ 
+-  // Restore scroll position after loading products
+-  useEffect(() => {
++  // Restore scroll position once after products load
++  const scrollRestoredRef = useRef(false);
++  useEffect(() => {
++    if (scrollRestoredRef.current) return;
+     const savedScroll = sessionStorage.getItem("vs:supplier:products:scroll");
+     if (savedScroll && products.length > 0) {
++      scrollRestoredRef.current = true;
+       const timer = setTimeout(() => {
+-        window.scrollTo({ top: Number(savedScroll), behavior: "instant" as any });
++        window.scrollTo({ top: Number(savedScroll), behavior: "instant" as ScrollBehavior });
+       }, 100);
+       return () => clearTimeout(timer);
+     }
+[diff_block_end]
+
+Please note that the above snippet only shows the MODIFIED lines from the last change. It shows up to 3 lines of unchanged lines before and after the modified lines. The actual file contents may have many more lines not shown.

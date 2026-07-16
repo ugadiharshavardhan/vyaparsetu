@@ -1,0 +1,19 @@
+Let's edit `supplier.products.index.tsx` using `replace_file_content` to add `embedded={true}` to the `DataTable` rendering.
+Wait! Let's check lines 260 to 285 in `supplier.products.index.tsx`:
+```tsx
+            </Select>
+          </div>
+        </div>
+
+        {/* Data Table */}
+        <DataTable<SupplierProduct>
+          rows={filtered}
+          selectable={true}
+          selectedIds={selectedIds}
+          onSelectChange={setSelectedIds}
+          pageSize={10}
+          page={page}
+          onPageChange={setPage}
+```
+
+Let's do the replacement.I will update the `DataTable` instantiation in [supplier.products.index.tsx](file:///c:/Users/nanda/Downloads/vyaparsetu/src/routes/_authenticated/supplier.products.index.tsx) to pass `embedded={true}`. This integrates the table inside the parent card, removing redundant inner cards, shadows, and margins.

@@ -1,0 +1,54 @@
+Created At: 2026-07-16T20:37:28Z
+Completed At: 2026-07-16T20:37:29Z
+
+				The command completed successfully.
+				Output:
+				On branch main
+Your branch is up to date with 'origin/main'.
+
+Changes not staged for commit:
+  (use "git add/rm <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   AGENTS.md
+	modified:   src/components/auth/RoleSelect.tsx
+	modified:   src/components/common/Logo.tsx
+	modified:   src/components/dashboard/DashboardSidebar.tsx
+	modified:   src/components/dashboard/DashboardTopbar.tsx
+	modified:   src/components/dashboard/StatCard.tsx
+	modified:   src/components/layout/UserMenu.tsx
+	modified:   src/components/supplier/DataTable.tsx
+	modified:   src/components/supplier/Pill.tsx
+	modified:   src/components/supplier/ProductForm.tsx
+	modified:   src/hooks/useOrders.ts
+	modified:   src/hooks/useSupplier.ts
+	modified:   src/lib/format.ts
+	modified:   src/routeTree.gen.ts
+	modified:   src/routes/_authenticated/profile.tsx
+	modified:   src/routes/_authenticated/seller.dashboard.tsx
+	modified:   src/routes/_authenticated/supplier.analytics.tsx
+	modified:   src/routes/_authenticated/supplier.customers.$id.tsx
+	modified:   src/routes/_authenticated/supplier.customers.tsx
+	deleted:    src/routes/_authenticated/supplier.dispatch.tsx
+	modified:   src/routes/_authenticated/supplier.inventory.tsx
+	modified:   src/routes/_authenticated/supplier.orders.$id.tsx
+	modified:   src/routes/_authenticated/supplier.orders.tsx
+	modified:   src/routes/_authenticated/supplier.payments.tsx
+	modified:   src/routes/_authenticated/supplier.products.$id.tsx
+	modified:   src/routes/_authenticated/supplier.products.index.tsx
+	modified:   src/routes/_authenticated/supplier.products.new.tsx
+	modified:   src/routes/_authenticated/supplier.profile.tsx
+	modified:   src/routes/_authenticated/supplier.reports.tsx
+	deleted:    src/routes/_authenticated/supplier.rfqs.$id.tsx
+	deleted:    src/routes/_authenticated/supplier.rfqs.tsx
+	modified:   src/routes/_authenticated/supplier.settings.tsx
+	modified:   src/types/supplier.ts
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	scripts/apply-fix-ambiguous.mjs
+	scripts/apply-fix-orders-rls.mjs
+	supabase/migrations/20260717000000_fix_orders_rls_recursion.sql
+	supabase/migrations/20260717013200_fix_ambiguous_rls_variables.sql
+
+no changes added to commit (use "git add" and/or "git commit -a")
+

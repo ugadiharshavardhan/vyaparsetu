@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": false,
+  "Description": "Import cn utility in DataTable.tsx to fix the runtime 'cn is not defined' crash.",
+  "EndLine": 6,
+  "Instruction": "Add import for cn from @/lib/utils at the top of DataTable.tsx.",
+  "ReplacementContent": "import { useState, type ReactNode } from \"react\";\nimport { motion } from \"framer-motion\";\nimport { Checkbox } from \"@/components/ui/checkbox\";\nimport { Button } from \"@/components/ui/button\";\nimport { ChevronLeft, ChevronRight } from \"lucide-react\";\nimport { cn } from \"@/lib/utils\";",
+  "StartLine": 1,
+  "TargetContent": "import { useState, type ReactNode } from \"react\";\nimport { motion } from \"framer-motion\";\nimport { Checkbox } from \"@/components/ui/checkbox\";\nimport { Button } from \"@/components/ui/button\";\nimport { ChevronLeft, ChevronRight } from \"lucide-react\";",
+  "TargetFile": "c:\\Users\\nanda\\Downloads\\vyaparsetu\\src\\components\\supplier\\DataTable.tsx",
+  "toolAction": "Adding missing cn import to DataTable.tsx",
+  "toolSummary": "Edit DataTable.tsx"
+}

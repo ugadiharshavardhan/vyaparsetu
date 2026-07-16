@@ -104,17 +104,17 @@ function SupplierOrdersPage() {
         <SummaryCard title="Completed" value={counts.completed} icon={PackageCheck} tint="bg-success/20 text-success" />
       </div>
 
-      <SectionCard className="p-0 overflow-visible">
-        <div className="p-4 border-b border-border flex flex-col gap-3 lg:flex-row lg:items-center bg-muted/10">
+      <SectionCard className="p-0 overflow-hidden border-border/50 shadow-soft">
+        <div className="px-6 py-5 border-b border-border flex flex-col gap-4 lg:flex-row lg:items-center bg-muted/5 rounded-t-2xl">
           <div className="relative flex-1 min-w-[200px]">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input className="pl-9 bg-background" placeholder="Search Order ID, Retailer, Product..." value={q} onChange={(e) => setQ(e.target.value)} />
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/80" />
+            <Input className="pl-9.5 bg-background rounded-full border-border/70 h-10 shadow-sm" placeholder="Search Order ID, Retailer, Product..." value={q} onChange={(e) => setQ(e.target.value)} />
           </div>
           
           <div className="flex flex-wrap items-center gap-2">
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-40 bg-background"><SelectValue placeholder="Order Status" /></SelectTrigger>
-              <SelectContent>
+              <SelectTrigger className="w-40 bg-background rounded-full border-border/70 h-10 shadow-sm"><SelectValue placeholder="Order Status" /></SelectTrigger>
+              <SelectContent className="rounded-xl border-border/80 shadow-elevated">
                 <SelectItem value="all">All Statuses</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
                 <SelectItem value="accepted">Accepted</SelectItem>
@@ -127,8 +127,8 @@ function SupplierOrdersPage() {
             </Select>
 
             <Select value={paymentFilter} onValueChange={setPaymentFilter}>
-              <SelectTrigger className="w-40 bg-background"><SelectValue placeholder="Payment Status" /></SelectTrigger>
-              <SelectContent>
+              <SelectTrigger className="w-40 bg-background rounded-full border-border/70 h-10 shadow-sm"><SelectValue placeholder="Payment Status" /></SelectTrigger>
+              <SelectContent className="rounded-xl border-border/80 shadow-elevated">
                 <SelectItem value="all">All Payments</SelectItem>
                 <SelectItem value="paid">Paid</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
@@ -143,12 +143,13 @@ function SupplierOrdersPage() {
           selectedIds={selectedIds}
           onSelectChange={setSelectedIds}
           pageSize={10}
+          embedded={true}
           bulkActions={
             <div className="flex items-center gap-2">
-              <Button size="sm" variant="outline" onClick={() => handleBulkStatus("accepted")}><CheckCircle2 className="mr-1.5 h-3.5 w-3.5" /> Accept</Button>
-              <Button size="sm" variant="outline" onClick={() => handleBulkStatus("packing")}><Package className="mr-1.5 h-3.5 w-3.5" /> Start Packing</Button>
-              <Button size="sm" variant="outline" onClick={() => handleBulkStatus("ready")}><Truck className="mr-1.5 h-3.5 w-3.5" /> Ready for Pickup</Button>
-              <Button size="sm" variant="destructive" onClick={() => handleBulkStatus("cancelled")}><XCircle className="mr-1.5 h-3.5 w-3.5" /> Reject</Button>
+              <Button size="sm" variant="outline" className="h-8 px-3 rounded-full text-xs font-medium border-border/60 hover:bg-muted/40" onClick={() => handleBulkStatus("accepted")}><CheckCircle2 className="mr-1.5 h-3.5 w-3.5" /> Accept</Button>
+              <Button size="sm" variant="outline" className="h-8 px-3 rounded-full text-xs font-medium border-border/60 hover:bg-muted/40" onClick={() => handleBulkStatus("packing")}><Package className="mr-1.5 h-3.5 w-3.5" /> Start Packing</Button>
+              <Button size="sm" variant="outline" className="h-8 px-3 rounded-full text-xs font-medium border-border/60 hover:bg-muted/40" onClick={() => handleBulkStatus("ready")}><Truck className="mr-1.5 h-3.5 w-3.5" /> Ready for Pickup</Button>
+              <Button size="sm" variant="destructive" className="h-8 px-3 rounded-full text-xs font-semibold" onClick={() => handleBulkStatus("cancelled")}><XCircle className="mr-1.5 h-3.5 w-3.5" /> Reject</Button>
             </div>
           }
           columns={[
@@ -256,12 +257,12 @@ function SupplierOrdersPage() {
 
 function SummaryCard({ title, value, icon: Icon, tint }: { title: string; value: number | string; icon: React.ComponentType<{ className?: string }>; tint: string }) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-4 shadow-soft">
-      <div className="flex items-center gap-2 mb-2">
-        <span className={cn("grid h-7 w-7 place-items-center rounded-lg", tint)}><Icon className="h-3.5 w-3.5" /></span>
-        <span className="text-xs font-medium text-muted-foreground line-clamp-1">{title}</span>
+    <div className="rounded-2xl border border-border/50 bg-card p-5 shadow-[0_2px_8px_rgba(0,0,0,0.02)] transition-all duration-200 ease-in-out hover:shadow-[0_6px_16px_rgba(0,0,0,0.06)] hover:border-border/80 hover:-translate-y-0.5">
+      <div className="flex items-center gap-3 mb-2.5">
+        <span className={cn("grid h-8.5 w-8.5 place-items-center rounded-xl transition-colors", tint)}><Icon className="h-4 w-4" /></span>
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80 line-clamp-1">{title}</span>
       </div>
-      <div className="text-xl font-display font-bold">{value}</div>
+      <div className="text-2xl font-display font-bold tracking-tight text-foreground">{value}</div>
     </div>
   );
 }

@@ -11,7 +11,7 @@ import { ImageManager } from "./ImageManager";
 import type { SupplierProduct } from "@/types/supplier";
 import { useWarehouses } from "@/hooks/useSupplier";
 import { useCategories } from "@/hooks/useCatalog";
-import { ArrowLeft, ArrowRight, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const UNITS = ["bag", "carton", "case", "pack", "box", "piece", "kg", "litre"];
@@ -58,10 +58,12 @@ export function ProductForm({
   initial,
   onSubmit,
   submitLabel = "Save product",
+  onCancel,
 }: {
   initial: Draft;
   onSubmit: (draft: Draft) => void;
   submitLabel?: string;
+  onCancel?: () => void;
 }) {
   const { warehouses } = useWarehouses();
   const { data: categories = [] } = useCategories();
@@ -108,6 +110,12 @@ export function ProductForm({
 
   const prevStep = () => setStep((s) => Math.max(0, s - 1));
 
+  const handleStepClick = (index: number) => {
+    if (index < step) {
+      setStep(index);
+    }
+  };
+
   const submit = (status: SupplierProduct["status"]) => {
     if (!draft.name || !draft.sku || !draft.wholesalePrice) {
       toast.error("Name, SKU and wholesale price are required");
@@ -120,33 +128,76 @@ export function ProductForm({
 
     <div className="mx-auto w-full max-w-4xl space-y-8">
       {/* Step Indicator */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
-          {STEPS.map((label, i) => (
-            <div key={label} className="relative flex flex-col items-center">
+      <div className="relative mb-12 px-4 select-none z-0">
+        {/* Connector Line Background & Segments */}
+        <div className="absolute left-[calc(0%+18px)] right-[calc(0%+18px)] top-[18px] -translate-y-1/2 z-0 h-0.5 bg-muted/40 dark:bg-muted/20 rounded-full">
+          {/* Segmented Foreground Connectors */}
+          {Array.from({ length: STEPS.length - 1 }).map((_, idx) => {
+            const isFilled = step > idx;
+            return (
               <div
+                key={idx}
+                className="absolute top-0 bottom-0 bg-brand rounded-full transition-transform duration-300 ease-in-out"
+                style={{
+                  left: `${(idx / (STEPS.length - 1)) * 100}%`,
+                  width: `${(1 / (STEPS.length - 1)) * 100}%`,
+                  transform: `scaleX(${isFilled ? 1 : 0})`,
+                  transformOrigin: "left",
+                }}
+              />
+            );
+          })}
+        </div>
+        
+        <div className="flex items-center justify-between">
+          {STEPS.map((label, i) => {
+            const isCompleted = step > i;
+            const isCurrent = step === i;
+            const isUpcoming = step < i;
+
+            return (
+              <div
+                key={label}
                 className={cn(
-                  "z-10 flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold transition-colors",
-                  step === i
-                    ? "bg-brand text-white shadow-md"
-                    : step > i
-                      ? "bg-brand text-white"
-                      : "bg-muted text-muted-foreground"
+                  "relative flex flex-col items-center text-center flex-1",
+                  isCompleted && "cursor-pointer group"
                 )}
+                onClick={() => handleStepClick(i)}
               >
-                {step > i ? <CheckCircle2 className="h-4 w-4" /> : i + 1}
+                {/* Step Circle */}
+                <div
+                  className={cn(
+                    "z-10 flex h-9 w-9 items-center justify-center rounded-full text-xs font-semibold transition-all duration-300 ease-in-out border",
+                    isCompleted
+                      ? "bg-brand text-white border-transparent shadow-soft group-hover:scale-105 group-hover:shadow-brand/20"
+                      : isCurrent
+                        ? "bg-brand text-white border-transparent shadow-md shadow-brand/20 scale-105"
+                        : "bg-background border-border/80 text-muted-foreground/60"
+                  )}
+                >
+                  {isCompleted ? (
+                    <Check className="h-4 w-4 stroke-[3] transition-transform duration-300 scale-100" />
+                  ) : (
+                    <span>{i + 1}</span>
+                  )}
+                </div>
+
+                {/* Step Label */}
+                <span
+                  className={cn(
+                    "mt-4 text-xs tracking-tight transition-colors duration-200 hidden sm:block max-w-[120px]",
+                    isCurrent
+                      ? "text-foreground font-semibold"
+                      : isCompleted
+                        ? "text-foreground/80 font-medium"
+                        : "text-muted-foreground/60 font-normal"
+                  )}
+                >
+                  {label}
+                </span>
               </div>
-              <span className={cn("mt-2 hidden text-xs font-medium sm:block", step === i ? "text-foreground" : "text-muted-foreground")}>
-                {label}
-              </span>
-            </div>
-          ))}
-          <div className="absolute left-[10%] top-4 -z-10 h-0.5 w-[80%] bg-muted">
-            <div
-              className="h-full bg-brand transition-all duration-300"
-              style={{ width: `${(step / (STEPS.length - 1)) * 100}%` }}
-            />
-          </div>
+            );
+          })}
         </div>
       </div>
 
@@ -359,7 +410,11 @@ export function ProductForm({
         )}
 
         <div className="mt-8 flex items-center justify-between border-t border-border pt-6">
-          <Button variant="ghost" onClick={prevStep} disabled={step === 0}>
+          <Button
+            variant="ghost"
+            onClick={step === 0 ? onCancel : prevStep}
+            disabled={step === 0 && !onCancel}
+          >
             <ArrowLeft className="mr-2 h-4 w-4" /> Back
           </Button>
           {step < STEPS.length - 1 ? (

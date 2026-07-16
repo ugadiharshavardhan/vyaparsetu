@@ -133,18 +133,22 @@ function ProvidedUserMenu() {
             <UserIcon className="mr-2 h-4 w-4" /> Profile
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem
-          className="cursor-pointer"
-          onSelect={(e) => {
-            e.preventDefault();
-            void navigate({ to: "/wishlist" });
-          }}
-        >
-          <Heart className="mr-2 h-4 w-4" /> Saved items
-        </DropdownMenuItem>
-        <DropdownMenuItem className="cursor-pointer" onSelect={() => openCartSheet()}>
-          <ShoppingCart className="mr-2 h-4 w-4" /> Cart
-        </DropdownMenuItem>
+        {!isSeller && (
+          <DropdownMenuItem
+            className="cursor-pointer"
+            onSelect={(e) => {
+              e.preventDefault();
+              void navigate({ to: "/wishlist" });
+            }}
+          >
+            <Heart className="mr-2 h-4 w-4" /> Saved items
+          </DropdownMenuItem>
+        )}
+        {!isSeller && (
+          <DropdownMenuItem className="cursor-pointer" onSelect={() => openCartSheet()}>
+            <ShoppingCart className="mr-2 h-4 w-4" /> Cart
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem
           className="cursor-pointer"
           onSelect={() => navigate({ to: "/settings" })}
