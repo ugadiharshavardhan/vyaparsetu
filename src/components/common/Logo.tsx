@@ -10,7 +10,7 @@ export function Logo({
 }) {
   return (
     <Link
-      to="/"
+      to="/marketplace"
       className={cn(
         "group inline-flex shrink-0 flex-nowrap items-center gap-2 whitespace-nowrap",
         compact && "justify-center",

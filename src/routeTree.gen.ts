@@ -59,7 +59,6 @@ import { Route as AuthenticatedSupplierCustomersRouteImport } from './routes/_au
 import { Route as AuthenticatedSupplierAnalyticsRouteImport } from './routes/_authenticated/supplier.analytics'
 import { Route as AuthenticatedSellerDashboardRouteImport } from './routes/_authenticated/seller.dashboard'
 import { Route as AuthenticatedOrdersIdRouteImport } from './routes/_authenticated/orders.$id'
-import { Route as AuthenticatedBuyerDashboardRouteImport } from './routes/_authenticated/buyer.dashboard'
 import { Route as AuthenticatedAdminVerificationsRouteImport } from './routes/_authenticated/admin.verifications'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin.users'
 import { Route as AuthenticatedAdminSupportRouteImport } from './routes/_authenticated/admin.support'
@@ -353,12 +352,6 @@ const AuthenticatedOrdersIdRoute = AuthenticatedOrdersIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AuthenticatedOrdersRoute,
 } as any)
-const AuthenticatedBuyerDashboardRoute =
-  AuthenticatedBuyerDashboardRouteImport.update({
-    id: '/dashboard',
-    path: '/dashboard',
-    getParentRoute: () => AuthenticatedBuyerRoute,
-  } as any)
 const AuthenticatedAdminVerificationsRoute =
   AuthenticatedAdminVerificationsRouteImport.update({
     id: '/verifications',
@@ -514,7 +507,7 @@ export interface FileRoutesByFullPath {
   '/unauthorized': typeof UnauthorizedRoute
   '/addresses': typeof AuthenticatedAddressesRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
-  '/buyer': typeof AuthenticatedBuyerRouteWithChildren
+  '/buyer': typeof AuthenticatedBuyerRoute
   '/checkout': typeof AuthenticatedCheckoutRoute
   '/help': typeof AuthenticatedHelpRoute
   '/messages': typeof AuthenticatedMessagesRoute
@@ -548,7 +541,6 @@ export interface FileRoutesByFullPath {
   '/admin/support': typeof AuthenticatedAdminSupportRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/admin/verifications': typeof AuthenticatedAdminVerificationsRoute
-  '/buyer/dashboard': typeof AuthenticatedBuyerDashboardRoute
   '/orders/$id': typeof AuthenticatedOrdersIdRoute
   '/seller/dashboard': typeof AuthenticatedSellerDashboardRoute
   '/supplier/analytics': typeof AuthenticatedSupplierAnalyticsRoute
@@ -588,7 +580,7 @@ export interface FileRoutesByTo {
   '/suppliers': typeof SuppliersRouteWithChildren
   '/unauthorized': typeof UnauthorizedRoute
   '/addresses': typeof AuthenticatedAddressesRoute
-  '/buyer': typeof AuthenticatedBuyerRouteWithChildren
+  '/buyer': typeof AuthenticatedBuyerRoute
   '/checkout': typeof AuthenticatedCheckoutRoute
   '/help': typeof AuthenticatedHelpRoute
   '/messages': typeof AuthenticatedMessagesRoute
@@ -622,7 +614,6 @@ export interface FileRoutesByTo {
   '/admin/support': typeof AuthenticatedAdminSupportRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/admin/verifications': typeof AuthenticatedAdminVerificationsRoute
-  '/buyer/dashboard': typeof AuthenticatedBuyerDashboardRoute
   '/orders/$id': typeof AuthenticatedOrdersIdRoute
   '/seller/dashboard': typeof AuthenticatedSellerDashboardRoute
   '/supplier/analytics': typeof AuthenticatedSupplierAnalyticsRoute
@@ -666,7 +657,7 @@ export interface FileRoutesById {
   '/unauthorized': typeof UnauthorizedRoute
   '/_authenticated/addresses': typeof AuthenticatedAddressesRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
-  '/_authenticated/buyer': typeof AuthenticatedBuyerRouteWithChildren
+  '/_authenticated/buyer': typeof AuthenticatedBuyerRoute
   '/_authenticated/checkout': typeof AuthenticatedCheckoutRoute
   '/_authenticated/help': typeof AuthenticatedHelpRoute
   '/_authenticated/messages': typeof AuthenticatedMessagesRoute
@@ -700,7 +691,6 @@ export interface FileRoutesById {
   '/_authenticated/admin/support': typeof AuthenticatedAdminSupportRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
   '/_authenticated/admin/verifications': typeof AuthenticatedAdminVerificationsRoute
-  '/_authenticated/buyer/dashboard': typeof AuthenticatedBuyerDashboardRoute
   '/_authenticated/orders/$id': typeof AuthenticatedOrdersIdRoute
   '/_authenticated/seller/dashboard': typeof AuthenticatedSellerDashboardRoute
   '/_authenticated/supplier/analytics': typeof AuthenticatedSupplierAnalyticsRoute
@@ -778,7 +768,6 @@ export interface FileRouteTypes {
     | '/admin/support'
     | '/admin/users'
     | '/admin/verifications'
-    | '/buyer/dashboard'
     | '/orders/$id'
     | '/seller/dashboard'
     | '/supplier/analytics'
@@ -852,7 +841,6 @@ export interface FileRouteTypes {
     | '/admin/support'
     | '/admin/users'
     | '/admin/verifications'
-    | '/buyer/dashboard'
     | '/orders/$id'
     | '/seller/dashboard'
     | '/supplier/analytics'
@@ -929,7 +917,6 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/support'
     | '/_authenticated/admin/users'
     | '/_authenticated/admin/verifications'
-    | '/_authenticated/buyer/dashboard'
     | '/_authenticated/orders/$id'
     | '/_authenticated/seller/dashboard'
     | '/_authenticated/supplier/analytics'
@@ -1326,13 +1313,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOrdersIdRouteImport
       parentRoute: typeof AuthenticatedOrdersRoute
     }
-    '/_authenticated/buyer/dashboard': {
-      id: '/_authenticated/buyer/dashboard'
-      path: '/dashboard'
-      fullPath: '/buyer/dashboard'
-      preLoaderRoute: typeof AuthenticatedBuyerDashboardRouteImport
-      parentRoute: typeof AuthenticatedBuyerRoute
-    }
     '/_authenticated/admin/verifications': {
       id: '/_authenticated/admin/verifications'
       path: '/verifications'
@@ -1551,17 +1531,6 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
 const AuthenticatedAdminRouteWithChildren =
   AuthenticatedAdminRoute._addFileChildren(AuthenticatedAdminRouteChildren)
 
-interface AuthenticatedBuyerRouteChildren {
-  AuthenticatedBuyerDashboardRoute: typeof AuthenticatedBuyerDashboardRoute
-}
-
-const AuthenticatedBuyerRouteChildren: AuthenticatedBuyerRouteChildren = {
-  AuthenticatedBuyerDashboardRoute: AuthenticatedBuyerDashboardRoute,
-}
-
-const AuthenticatedBuyerRouteWithChildren =
-  AuthenticatedBuyerRoute._addFileChildren(AuthenticatedBuyerRouteChildren)
-
 interface AuthenticatedOrdersRouteChildren {
   AuthenticatedOrdersIdRoute: typeof AuthenticatedOrdersIdRoute
 }
@@ -1630,7 +1599,7 @@ const AuthenticatedSupplierRfqsRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAddressesRoute: typeof AuthenticatedAddressesRoute
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
-  AuthenticatedBuyerRoute: typeof AuthenticatedBuyerRouteWithChildren
+  AuthenticatedBuyerRoute: typeof AuthenticatedBuyerRoute
   AuthenticatedCheckoutRoute: typeof AuthenticatedCheckoutRoute
   AuthenticatedHelpRoute: typeof AuthenticatedHelpRoute
   AuthenticatedMessagesRoute: typeof AuthenticatedMessagesRoute
@@ -1667,7 +1636,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAddressesRoute: AuthenticatedAddressesRoute,
   AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
-  AuthenticatedBuyerRoute: AuthenticatedBuyerRouteWithChildren,
+  AuthenticatedBuyerRoute: AuthenticatedBuyerRoute,
   AuthenticatedCheckoutRoute: AuthenticatedCheckoutRoute,
   AuthenticatedHelpRoute: AuthenticatedHelpRoute,
   AuthenticatedMessagesRoute: AuthenticatedMessagesRoute,
