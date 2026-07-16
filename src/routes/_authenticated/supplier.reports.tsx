@@ -53,25 +53,25 @@ function ReportsPage() {
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {reports.map((report, idx) => (
-          <SectionCard key={idx} className="flex flex-col">
+          <SectionCard key={idx} className="p-6 flex flex-col border-border/50 shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_6px_16px_rgba(0,0,0,0.06)] hover:border-border/80">
             <div className="flex items-start gap-4 mb-4">
-              <div className="p-3 bg-muted/30 rounded-xl border border-border shrink-0">
+              <div className="p-3 bg-muted/5 rounded-xl border border-border/50 shrink-0">
                 {report.icon}
               </div>
               <div>
-                <h3 className="font-bold text-base">{report.title}</h3>
+                <h3 className="font-semibold text-base text-foreground">{report.title}</h3>
                 <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{report.description}</p>
               </div>
             </div>
             
-            <div className="mt-auto pt-4 border-t border-border grid grid-cols-3 gap-2">
-              <Button size="sm" variant="outline" className="w-full text-xs h-8" onClick={() => toast.success(`${report.title} (PDF) downloaded`)}>
+            <div className="mt-auto pt-4 border-t border-border/50 grid grid-cols-3 gap-2">
+              <Button size="sm" variant="outline" className="w-full text-xs h-8 rounded-full border-border/60 hover:bg-muted/40" onClick={() => toast.success(`${report.title} (PDF) downloaded`)}>
                 PDF
               </Button>
-              <Button size="sm" variant="outline" className="w-full text-xs h-8" onClick={() => toast.success(`${report.title} (CSV) downloaded`)}>
+              <Button size="sm" variant="outline" className="w-full text-xs h-8 rounded-full border-border/60 hover:bg-muted/40" onClick={() => toast.success(`${report.title} (CSV) downloaded`)}>
                 CSV
               </Button>
-              <Button size="sm" variant="outline" className="w-full text-xs h-8" onClick={() => toast.success(`${report.title} (Excel) downloaded`)}>
+              <Button size="sm" variant="outline" className="w-full text-xs h-8 rounded-full border-border/60 hover:bg-muted/40" onClick={() => toast.success(`${report.title} (Excel) downloaded`)}>
                 Excel
               </Button>
             </div>

@@ -1,0 +1,34 @@
+Created At: 2026-07-16T18:37:26Z
+Completed At: 2026-07-16T18:37:28Z
+The following changes were made by the replace_file_content tool to: c:\Users\nanda\Downloads\vyaparsetu\AGENTS.md. If relevant, proactively run terminal commands to execute this code for the USER. Don't ask for permission.
+[diff_block_start]
+@@ -156,10 +156,10 @@
+ 
+ # Current Project State
+ 
+-- **Current Phase:** Premium UI Polish (Seller Product Management)
++- **Current Phase:** Product List State Preservation (Seller Portal)
+ - **Current Branch:** N/A
+-- **Current Module:** Seller workspace cleanup
+-- **Overall Progress:** Refined Seller Product Management UI details, spacing, border-radius, shadows, typography, hover states, and paginations.
++- **Current Module:** Seller workspace state management
++- **Overall Progress:** Preserved complete product list state (filters, pagination, sorting, search text, and scroll position) after editing/deleting products and navigating back.
+ - **Last Updated:** 2026-07-16
+ 
+ # Development History
+@@ -166,3 +166,12 @@
++## 2026-07-16 - Preserve Complete Product List State After Editing a Product
++
++### Why
++Improve the seller workflow UX by retaining filters, pagination page, search queries, sorting order, and scroll position on the Product Management page when returning from editing or deleting a product, rather than resetting everything back to defaults.
++
++### Changes
++- `src/components/supplier/DataTable.tsx` — Added optional `page` and `onPageChange` props to allow controlled pagination from the URL query string.
++- `src/routes/_authenticated/supplier.products.index.tsx` — Registered a Zod typed search validation schema `productSearchSchema` on the route, bound UI filters to `Route.useSearch()`, and added sessionStorage sync, load/restore, and scroll position restoration hooks.
++
+ ## 2026-07-16 - Premium UI Polish for Seller Product Management
+ 
+ ### Why
+[diff_block_end]
+
+Please note that the above snippet only shows the MODIFIED lines from the last change. It shows up to 3 lines of unchanged lines before and after the modified lines. The actual file contents may have many more lines not shown.

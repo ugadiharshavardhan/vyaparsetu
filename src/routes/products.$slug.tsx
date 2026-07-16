@@ -19,6 +19,7 @@ import { ProductGallery } from "@/components/product/ProductGallery";
 import { SpecificationTable } from "@/components/product/SpecificationTable";
 import { ReviewCard, type ReviewData } from "@/components/product/ReviewCard";
 import { SectionHeading } from "@/components/common/SectionHeading";
+import { useProductReviews } from "@/hooks/useProductReviews";
 import {
   Tabs, TabsContent, TabsList, TabsTrigger,
 } from "@/components/ui/tabs";
@@ -81,6 +82,7 @@ const PRODUCT_FAQS = [
 function ProductPage() {
   const navigate = useNavigate();
   const { product } = Route.useLoaderData();
+  const { data: dbReviews = [] } = useProductReviews(product.id);
   const { data: sameCategory = [], isLoading: relatedLoading } = useRelatedProducts(product, 8);
   const { data: cartItems = [] } = useCart();
   const cartActive = cartItems.filter((i) => !i.saved_for_later);
@@ -154,7 +156,7 @@ function ProductPage() {
     ...(hasDesc ? [{ value: "desc", label: "Description" }] : []),
     ...(hasSpecs ? [{ value: "spec", label: "Specifications" }] : []),
     ...(hasPack ? [{ value: "pack", label: "Packaging & Shipping" }] : []),
-    { value: "reviews", label: `Reviews (${REVIEWS.length})` },
+    { value: "reviews", label: `Reviews (${dbReviews.length})` },
     { value: "faq", label: "FAQs" }
   ];
 
@@ -257,18 +259,42 @@ function ProductPage() {
                 <TabsContent value="reviews" className="mt-6 focus-visible:outline-none">
                   <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border bg-secondary/20 p-5">
                     <div className="flex items-center gap-4">
-                      <div className="text-4xl font-display font-bold text-foreground">{product.rating.toFixed(1)}</div>
+                      <div className="text-4xl font-display font-bold text-foreground">
+                        {product.rating > 0 ? product.rating.toFixed(1) : "—"}
+                      </div>
                       <div>
-                        <RatingBadge value={product.rating} />
+                        <RatingBadge value={product.rating} count={product.reviewCount} />
                         <div className="text-xs text-muted-foreground mt-1">Based on {product.reviewCount} verified B2B transactions</div>
                       </div>
                     </div>
-                    <Button onClick={() => toast.success("Review form coming soon")} className="shadow-brand bg-brand text-brand-foreground hover:bg-brand/90 font-medium text-xs px-4">
+                    <Button onClick={() => toast.info("To write a review, please visit your Order Details page and select the item you purchased.")} className="shadow-brand bg-brand text-brand-foreground hover:bg-brand/90 font-medium text-xs px-4 cursor-pointer">
                       Write a Review
                     </Button>
                   </div>
                   <div className="grid gap-4 sm:grid-cols-3">
-                    {REVIEWS.map((r) => <ReviewCard key={r.id} review={r} />)}
+                    {dbReviews.length > 0 ? (
+                      dbReviews.map((r) => (
+                        <ReviewCard
+                          key={r.id}
+                          review={{
+                            id: r.id,
+                            name: r.buyer?.fullName || r.buyer?.businessName || "Retailer",
+                            rating: r.rating,
+                            text: r.comment || "Verified transaction",
+                            date: new Date(r.createdAt).toLocaleDateString("en-IN", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            }),
+                            verified: true,
+                          }}
+                        />
+                      ))
+                    ) : (
+                      <div className="col-span-full py-8 text-center text-sm text-muted-foreground">
+                        No reviews yet for this product.
+                      </div>
+                    )}
                   </div>
                 </TabsContent>
                 
@@ -541,7 +567,13 @@ function ProductPage() {
                 <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground font-medium">
                   <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5 shrink-0 text-muted-foreground/75" /> {product.supplier.location}</span>
                   <span>·</span>
-                  <span className="text-amber-500 flex items-center gap-0.5 font-bold">★ {product.supplier.rating.toFixed(1)}</span>
+                  <span className="text-amber-500 flex items-center gap-0.5 font-bold">
+                    {product.supplier.rating && product.supplier.rating > 0 ? (
+                      <>★ {product.supplier.rating.toFixed(1)} ({product.supplier.reviewCount ?? 0} ratings)</>
+                    ) : (
+                      <>No ratings yet</>
+                    )}
+                  </span>
                   <span>·</span>
                   <span>{product.supplier.yearsActive}+ Yrs</span>
                 </div>

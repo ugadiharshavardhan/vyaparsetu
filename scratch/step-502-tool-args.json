@@ -1,0 +1,35 @@
+{
+  "ArtifactMetadata": {
+    "RequestFeedback": false,
+    "Summary": "Added embedded prop support to DataTable to allow borderless nesting in dashboard layout cards and visually connect the pagination footer.",
+    "UserFacing": false
+  },
+  "Description": "Add embedded prop to DataTable for nesting table cleanly inside SectionCard without duplicate borders/shadows/rounded corners.",
+  "Instruction": "Add the embedded prop to the DataTable function signature, types, table wrapper container, and pagination footer container.",
+  "ReplacementChunks": [
+    {
+      "AllowMultiple": false,
+      "EndLine": 39,
+      "ReplacementContent": "export function DataTable<T extends { id: string }>({\n  columns,\n  rows,\n  empty,\n  onRowClick,\n  selectable = false,\n  selectedIds = [],\n  onSelectChange,\n  bulkActions,\n  pageSize = 10,\n  page: externalPage,\n  onPageChange: externalOnPageChange,\n  embedded = false,\n}: {\n  columns: Column<T>[];\n  rows: T[];\n  empty?: ReactNode;\n  onRowClick?: (row: T) => void;\n  selectable?: boolean;\n  selectedIds?: string[];\n  onSelectChange?: (ids: string[]) => void;\n  bulkActions?: ReactNode;\n  pageSize?: number;\n  page?: number;\n  onPageChange?: (page: number) => void;\n  embedded?: boolean;\n}) {",
+      "StartLine": 15,
+      "TargetContent": "export function DataTable<T extends { id: string }>({\n  columns,\n  rows,\n  empty,\n  onRowClick,\n  selectable = false,\n  selectedIds = [],\n  onSelectChange,\n  bulkActions,\n  pageSize = 10,\n  page: externalPage,\n  onPageChange: externalOnPageChange,\n}: {\n  columns: Column<T>[];\n  rows: T[];\n  empty?: ReactNode;\n  onRowClick?: (row: T) => void;\n  selectable?: boolean;\n  selectedIds?: string[];\n  onSelectChange?: (ids: string[]) => void;\n  bulkActions?: ReactNode;\n  pageSize?: number;\n  page?: number;\n  onPageChange?: (page: number) => void;\n}) {"
+    },
+    {
+      "AllowMultiple": false,
+      "EndLine": 105,
+      "ReplacementContent": "      <div className={cn(\n        \"overflow-hidden bg-card transition-all duration-200\",\n        embedded\n          ? \"border-0 shadow-none rounded-none\"\n          : \"rounded-2xl border border-border/50 shadow-soft\"\n      )}>\n        <div className=\"overflow-x-auto\">",
+      "StartLine": 104,
+      "TargetContent": "      <div className=\"overflow-hidden rounded-2xl border border-border/50 bg-card shadow-soft\">\n        <div className=\"overflow-x-auto\">"
+    },
+    {
+      "AllowMultiple": false,
+      "EndLine": 181,
+      "ReplacementContent": "        {totalPages > 1 && (\n          <div className={cn(\n            \"flex items-center justify-between border-t border-border/40 bg-muted/5 px-6 py-4 transition-all duration-200\",\n            embedded && \"rounded-b-2xl\"\n          )}>",
+      "StartLine": 179,
+      "TargetContent": "        {totalPages > 1 && (\n          <div className=\"flex items-center justify-between border-t border-border/40 bg-muted/5 px-6 py-4\">"
+    }
+  ],
+  "TargetFile": "c:\\Users\\nanda\\Downloads\\vyaparsetu\\src\\components\\supplier\\DataTable.tsx",
+  "toolAction": "Adding embedded prop to DataTable components and styling",
+  "toolSummary": "DataTable nested styles"
+}

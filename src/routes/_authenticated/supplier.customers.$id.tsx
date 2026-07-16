@@ -125,9 +125,13 @@ function BuyerProfilePage() {
 
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
-          <SectionCard title="Order History" className="p-0 overflow-visible">
+          <SectionCard className="p-0 overflow-hidden border-border/50 shadow-soft">
+            <div className="px-6 py-5 border-b border-border bg-muted/5">
+              <h3 className="font-semibold text-base text-foreground">Order History</h3>
+            </div>
             <DataTable<SupplierOrder>
               rows={buyerOrders}
+              embedded={true}
               columns={[
                 { key: "id", header: "Order", cell: (o) => <span className="font-semibold">{o.orderNumber}</span> },
                 { key: "date", header: "Date", cell: (o) => <span className="text-sm">{new Date(o.createdAt).toLocaleDateString()}</span> },

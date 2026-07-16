@@ -42,17 +42,18 @@ function BuyersPage() {
         }
       />
 
-      <SectionCard className="p-0 overflow-visible">
-        <div className="p-4 border-b border-border flex items-center bg-muted/10">
+      <SectionCard className="p-0 overflow-hidden border-border/50 shadow-soft">
+        <div className="px-6 py-5 border-b border-border flex items-center bg-muted/5 rounded-t-2xl">
           <div className="relative w-full max-w-sm">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input className="pl-9 bg-background" placeholder="Search by name, business, city or GST..." value={q} onChange={(e) => setQ(e.target.value)} />
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/80" />
+            <Input className="pl-9.5 bg-background rounded-full border-border/70 h-10 shadow-sm" placeholder="Search by name, business, city or GST..." value={q} onChange={(e) => setQ(e.target.value)} />
           </div>
         </div>
 
         <DataTable<SupplierCustomer>
           rows={filtered}
           pageSize={10}
+          embedded={true}
           columns={[
             { 
               key: "business", 

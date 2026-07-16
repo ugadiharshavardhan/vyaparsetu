@@ -1,0 +1,49 @@
+Created At: 2026-07-16T19:15:10Z
+Completed At: 2026-07-16T19:15:12Z
+The following changes were made by the multi_replace_file_content tool to: c:\Users\nanda\Downloads\vyaparsetu\src\components\supplier\DataTable.tsx. If relevant, proactively run terminal commands to execute this code for the USER. Don't ask for permission.
+[diff_block_start]
+@@ -24,6 +24,7 @@
+   pageSize = 10,
+   page: externalPage,
+   onPageChange: externalOnPageChange,
++  embedded = false,
+ }: {
+   columns: Column<T>[];
+   rows: T[];
+@@ -35,6 +35,7 @@
+   pageSize?: number;
+   page?: number;
+   onPageChange?: (page: number) => void;
++  embedded?: boolean;
+ }) {
+   const [internalPage, setInternalPage] = useState(1);
+   const isControlledPage = externalPage !== undefined && externalOnPageChange !== undefined;
+@@ -99,7 +99,12 @@
+         </div>
+       )}
+       
+-      <div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-soft">
++      <div className={cn(
++        "overflow-hidden bg-card transition-all duration-200",
++        embedded
++          ? "border-0 shadow-none rounded-none"
++          : "rounded-2xl border border-border/50 shadow-soft"
++      )}>
+         <div className="overflow-x-auto">
+           <table className="w-full min-w-[720px] text-sm">
+             <thead>
+@@ -174,7 +174,10 @@
+ 
+         {/* Visually integrated table footer for results count and pagination */}
+         {totalPages > 1 && (
+-          <div className="flex items-center justify-between border-t border-border/40 bg-muted/5 px-6 py-4">
++          <div className={cn(
++            "flex items-center justify-between border-t border-border/40 bg-muted/5 px-6 py-4 transition-all duration-200",
++            embedded && "rounded-b-2xl"
++          )}>
+             <p className="text-xs text-muted-foreground/90">
+               Showing <span className="font-semibold text-foreground">{(page - 1) * pageSize + 1}</span> to <span className="font-semibold text-foreground">{Math.min(page * pageSize, rows.length)}</span> of <span className="font-semibold text-foreground">{rows.length}</span> results
+             </p>
+[diff_block_end]
+
+Please note that the above snippet only shows the MODIFIED lines from the last change. It shows up to 3 lines of unchanged lines before and after the modified lines. The actual file contents may have many more lines not shown.

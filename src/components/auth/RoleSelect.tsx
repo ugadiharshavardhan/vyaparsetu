@@ -35,7 +35,7 @@ const OPTIONS: {
     features: [
       { icon: PackageCheck, label: "Product management" },
       { icon: ClipboardList, label: "Inventory & orders" },
-      { icon: Truck, label: "Dispatch" },
+      { icon: TrendingUp, label: "Sales analytics" },
       { icon: Wallet, label: "Payments" },
     ],
   },

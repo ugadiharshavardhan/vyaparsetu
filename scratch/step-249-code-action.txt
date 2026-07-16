@@ -1,0 +1,16 @@
+Created At: 2026-07-16T18:36:41Z
+Completed At: 2026-07-16T18:36:44Z
+The following changes were made by the replace_file_content tool to: c:\Users\nanda\Downloads\vyaparsetu\src\routes\_authenticated\supplier.products.index.tsx. If relevant, proactively run terminal commands to execute this code for the USER. Don't ask for permission.
+[diff_block_start]
+@@ -258,6 +258,8 @@
+           selectedIds={selectedIds}
+           onSelectChange={setSelectedIds}
+           pageSize={10}
++          page={page}
++          onPageChange={setPage}
+           bulkActions={
+             <div className="flex items-center gap-2">
+               <Button size="sm" variant="outline" className="h-8 px-3 rounded-full text-xs font-medium border-border/60 hover:bg-muted/40" onClick={() => handleBulkStatus("published")}><CheckCircle2 className="mr-1.5 h-3.5 w-3.5" /> Publish</Button>
+[diff_block_end]
+
+Please note that the above snippet only shows the MODIFIED lines from the last change. It shows up to 3 lines of unchanged lines before and after the modified lines. The actual file contents may have many more lines not shown.

@@ -79,7 +79,7 @@ function AnalyticsPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <SectionCard title="Monthly Revenue" description="Revenue distribution across the year">
+        <SectionCard title="Monthly Revenue" description="Revenue distribution across the year" className="border-border/50 shadow-soft">
           <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={monthlyRevenueData}>
@@ -93,7 +93,7 @@ function AnalyticsPage() {
           </div>
         </SectionCard>
 
-        <SectionCard title="Revenue Growth" description="Month-over-month percentage growth">
+        <SectionCard title="Revenue Growth" description="Month-over-month percentage growth" className="border-border/50 shadow-soft">
           <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={growthData}>
@@ -115,7 +115,7 @@ function AnalyticsPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <SectionCard title="Category Share" description="Revenue distribution by category" className="lg:col-span-1">
+        <SectionCard title="Category Share" description="Revenue distribution by category" className="lg:col-span-1 border-border/50 shadow-soft">
           <div className="h-72 w-full min-h-[288px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -129,7 +129,7 @@ function AnalyticsPage() {
           </div>
         </SectionCard>
 
-        <SectionCard title="Sales Trend" description="Weekly order volume" className="lg:col-span-2">
+        <SectionCard title="Sales Trend" description="Weekly order volume" className="lg:col-span-2 border-border/50 shadow-soft">
           <div className="h-72 w-full min-h-[288px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={salesTrendData}>
@@ -145,7 +145,7 @@ function AnalyticsPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <SectionCard title="Top Products" description="By units sold this year">
+        <SectionCard title="Top Products" description="By units sold this year" className="border-border/50 shadow-soft">
           <ul className="space-y-4">
             {topProducts.map((p, i) => (
               <li key={i}>
@@ -153,7 +153,7 @@ function AnalyticsPage() {
                   <span className="truncate font-medium">{p.name}</span>
                   <span className="text-muted-foreground font-semibold">{p.units.toLocaleString()} units</span>
                 </div>
-                <div className="h-2 overflow-hidden rounded-full bg-muted">
+                <div className="h-1.5 overflow-hidden rounded-full bg-muted">
                   <div className="h-full rounded-full bg-brand" style={{ width: `${(p.units / topProducts[0].units) * 100}%` }} />
                 </div>
               </li>
@@ -161,7 +161,7 @@ function AnalyticsPage() {
           </ul>
         </SectionCard>
 
-        <SectionCard title="Top Retailers" description="By total lifetime spend">
+        <SectionCard title="Top Retailers" description="By total lifetime spend" className="border-border/50 shadow-soft">
           <ul className="space-y-4">
             {topRetailers.map((r, i) => (
               <li key={i}>
@@ -169,7 +169,7 @@ function AnalyticsPage() {
                   <span className="truncate font-medium">{r.name}</span>
                   <span className="text-muted-foreground font-semibold">{inr(r.spent)}</span>
                 </div>
-                <div className="h-2 overflow-hidden rounded-full bg-muted">
+                <div className="h-1.5 overflow-hidden rounded-full bg-muted">
                   <div className="h-full rounded-full bg-success" style={{ width: `${(r.spent / topRetailers[0].spent) * 100}%` }} />
                 </div>
               </li>

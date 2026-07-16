@@ -1,0 +1,11 @@
+Okay, let's call `multi_replace_file_content` to make these two updates to `DataTable.tsx`.
+Wait, first, let's check what the last line number in `DataTable.tsx` is. It has 230 lines total.
+Let's construct the `multi_replace_file_content` call.
+- ReplacementChunk 1: props signature (lines 15 to 39).
+- ReplacementChunk 2: outer container (lines 104 to 105).
+- ReplacementChunk 3: footer container (lines 179 to 181).
+
+Wait, let's verify if `multi_replace_file_content` is the right tool or if we can make it in separate edits/chunks.
+The rules for editing files:
+"Use this tool ONLY when you are making MULTIPLE, NON-CONTIGUOUS edits to the same file... Specify each edit as a separate ReplacementChunk."
+Yes, `multi_replace_file_content` is exactly correct. Let's make the call.I will modify [DataTable.tsx](file:///c:/Users/nanda/Downloads/vyaparsetu/src/components/supplier/DataTable.tsx) using the `multi_replace_file_content` tool to add the `embedded` option. This allows us to disable the redundant nested border, shadow, and rounded corners when the table is displayed inside the main page card, and visually integrate the pagination footer.

@@ -66,6 +66,7 @@ export function asSupplier(raw: unknown): Supplier {
     location: String(s.location ?? ""),
     verified: Boolean(s.verified ?? true),
     rating: num(s.rating, 4.5),
+    reviewCount: s.reviewCount != null ? num(s.reviewCount) : (s.review_count != null ? num(s.review_count) : undefined),
     yearsActive: num(s.yearsActive, 1),
     logo: s.logo ? String(s.logo) : undefined,
     description: s.description ? String(s.description) : undefined,

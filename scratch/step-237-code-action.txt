@@ -1,0 +1,35 @@
+Created At: 2026-07-16T18:36:19Z
+Completed At: 2026-07-16T18:36:21Z
+The following changes were made by the replace_file_content tool to: c:\Users\nanda\Downloads\vyaparsetu\src\routes\_authenticated\supplier.products.index.tsx. If relevant, proactively run terminal commands to execute this code for the USER. Don't ask for permission.
+[diff_block_start]
+@@ -1,5 +1,6 @@
+ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+-import { useMemo, useState } from "react";
++import { useMemo, useState, useEffect } from "react";
++import { z } from "zod";
+ import {
+   Copy, Download, Edit3, Filter, MoreVertical, Package, Plus, Search,
+   Tag, Trash2, Upload, Boxes, FileText, CheckCircle2, AlertCircle, ArrowUpDown, RefreshCcw, TrendingUp
+@@ -21,8 +21,19 @@
+ import type { SupplierProduct } from "@/types/supplier";
+ import { cn } from "@/lib/utils";
+ 
++const productSearchSchema = z.object({
++  q: z.string().optional().catch(""),
++  cat: z.string().optional().catch("all"),
++  status: z.string().optional().catch("all"),
++  stock: z.string().optional().catch("all"),
++  brand: z.string().optional().catch("all"),
++  sortBy: z.string().optional().catch("newest"),
++  page: z.number().int().positive().optional().catch(1),
++});
++
+ export const Route = createFileRoute("/_authenticated/supplier/products/")({
+   head: () => ({ meta: [{ title: "Product Management — Seller" }] }),
++  validateSearch: (search) => productSearchSchema.parse(search),
+   component: SupplierProductsPage,
+ });
+ 
+[diff_block_end]
+
+Please note that the above snippet only shows the MODIFIED lines from the last change. It shows up to 3 lines of unchanged lines before and after the modified lines. The actual file contents may have many more lines not shown.

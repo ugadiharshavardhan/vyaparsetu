@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": false,
+  "Description": "Make empty state borderless when DataTable is in embedded mode, preventing nested dashed cards and double borders.",
+  "EndLine": 94,
+  "Instruction": "Render borderless empty state in embedded mode, otherwise default to dashed border.",
+  "ReplacementContent": "  if (rows.length === 0 && empty) {\n    return (\n      <div className={cn(\n        \"text-center transition-all duration-200\",\n        embedded \n          ? \"py-8 px-4\" \n          : \"rounded-2xl border border-dashed border-border p-10 bg-card shadow-soft\"\n      )}>\n        {empty}\n      </div>\n    );\n  }",
+  "StartLine": 92,
+  "TargetContent": "  if (rows.length === 0 && empty) {\n    return <div className=\"rounded-2xl border border-dashed border-border p-10 text-center\">{empty}</div>;\n  }",
+  "TargetFile": "c:\\Users\\nanda\\Downloads\\vyaparsetu\\src\\components\\supplier\\DataTable.tsx",
+  "toolAction": "Refining empty state styling for embedded DataTable",
+  "toolSummary": "DataTable empty state styling"
+}

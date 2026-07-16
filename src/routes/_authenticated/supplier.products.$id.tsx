@@ -1,4 +1,5 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
+import { useCallback } from "react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/common/PageHeader";
 import { ProductForm } from "@/components/supplier/ProductForm";
@@ -15,6 +16,33 @@ function EditProductPage() {
   const { product, isLoading } = useSupplierProduct(id);
   const { updateProduct, remove } = useSupplierProducts();
   const navigate = useNavigate();
+  const router = useRouter();
+
+  /**
+   * Navigate back to the product list, preserving URL search params.
+   * Uses history.back() so the browser restores the previous URL with all
+   * filters, pagination, sort, and search state intact.
+   * Falls back to direct navigation if there's no prior history entry
+   * (e.g. the user deep-linked directly to the edit page).
+   */
+  const goBackToList = useCallback(() => {
+    const saved = sessionStorage.getItem("vs:supplier:products:search");
+    if (saved) {
+      try {
+        const search = JSON.parse(saved);
+        navigate({ to: "/supplier/products", search });
+        return;
+      } catch {
+        // fall through
+      }
+    }
+    // No saved state — try browser back, fall back to plain navigate
+    if (window.history.length > 1) {
+      router.history.back();
+    } else {
+      navigate({ to: "/supplier/products" });
+    }
+  }, [navigate, router]);
 
   if (isLoading) {
     return (
@@ -28,7 +56,7 @@ function EditProductPage() {
     return (
         <div className="container-page py-10">
           <PageHeader title="Product not found" description="This product may have been deleted." />
-          <Button className="mt-6" onClick={() => navigate({ to: "/supplier/products" })}>Back to products</Button>
+          <Button className="mt-6" onClick={goBackToList}>Back to products</Button>
         </div>
     );
   }
@@ -49,7 +77,7 @@ function EditProductPage() {
                 void remove(product.id)
                   .then(() => {
                     toast.success("Product deleted");
-                    navigate({ to: "/supplier/products" });
+                    goBackToList();
                   })
                   .catch((e: Error) => toast.error(e.message));
               }}
@@ -65,10 +93,11 @@ function EditProductPage() {
             void updateProduct(product.id, patch)
               .then(() => {
                 toast.success("Product updated");
-                navigate({ to: "/supplier/products" });
+                goBackToList();
               })
               .catch((e: Error) => toast.error(e.message));
           }}
+          onCancel={goBackToList}
         />
       </div>
   );

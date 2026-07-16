@@ -1,0 +1,14 @@
+The following changes were made by the USER to: c:\Users\nanda\Downloads\vyaparsetu\src\routes\_authenticated\supplier.products.index.tsx. If relevant, proactively run terminal commands to execute this code for the USER. Don't ask for permission.
+[diff_block_start]
+@@ -248,7 +248,7 @@
+ 
+             <Select value={sortBy} onValueChange={setSortBy}>
+               <SelectTrigger className="w-40 h-10 rounded-full border-border/60 bg-background text-xs font-medium hover:bg-muted/30 focus:ring-brand/10 transition-all duration-200">
+-                <div className="flex items-center gap-1.5"><ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground/60"/> <SelectValue placeholder="Sort By" /></div>
++                <div className="flex items-center gap-1.5"><ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground/60" /> <SelectValue placeholder="Sort By" /></div>
+               </SelectTrigger>
+               <SelectContent className="rounded-xl border-border/80 shadow-elevated">
+                 <SelectItem value="newest">Newest</SelectItem>
+[diff_block_end]
+
+Please note that the above snippet only shows the MODIFIED lines from the last change. It shows up to 3 lines of unchanged lines before and after the modified lines. The actual file contents may have many more lines not shown.

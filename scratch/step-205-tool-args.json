@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": false,
+  "Description": "Set width limits and enable word-wrapping for product names in the Supplier Products table.",
+  "EndLine": 212,
+  "Instruction": "Change class from truncate to break-words, and add max-width constraint to product column class.",
+  "ReplacementContent": "            {\n              key: \"product\",\n              header: \"Product & SKU\",\n              className: \"max-w-[280px] lg:max-w-[360px] xl:max-w-[440px]\",\n              cell: (p) => (\n                <div className=\"flex items-center gap-3.5 group\">\n                  <div className=\"h-11 w-11 shrink-0 overflow-hidden rounded-xl border border-border/50 bg-secondary shadow-sm transition-transform duration-200 group-hover:scale-[1.02]\">\n                    <img src={p.images[p.thumbnailIndex] ?? p.images[0]} alt=\"\" className=\"h-full w-full object-cover\" />\n                  </div>\n                  <div className=\"min-w-0\">\n                    <div className=\"font-semibold text-sm text-foreground/90 break-words leading-tight\">{p.name}</div>\n                    <div className=\"text-[10px] uppercase tracking-wider text-muted-foreground/70 font-mono mt-1\">{p.sku}</div>\n                  </div>\n                </div>\n              ),\n            },",
+  "StartLine": 197,
+  "TargetContent": "            {\n              key: \"product\",\n              header: \"Product & SKU\",\n              cell: (p) => (\n                <div className=\"flex items-center gap-3.5 group\">\n                  <div className=\"h-11 w-11 shrink-0 overflow-hidden rounded-xl border border-border/50 bg-secondary shadow-sm transition-transform duration-200 group-hover:scale-[1.02]\">\n                    <img src={p.images[p.thumbnailIndex] ?? p.images[0]} alt=\"\" className=\"h-full w-full object-cover\" />\n                  </div>\n                  <div className=\"min-w-0\">\n                    <div className=\"truncate font-semibold text-sm text-foreground/90\">{p.name}</div>\n                    <div className=\"text-[10px] uppercase tracking-wider text-muted-foreground/70 font-mono mt-1\">{p.sku}</div>\n                  </div>\n                </div>\n              ),\n            },",
+  "TargetFile": "c:\\Users\\nanda\\Downloads\\vyaparsetu\\src\\routes\\_authenticated\\supplier.products.index.tsx",
+  "toolAction": "Constraining product name width and wrapping text",
+  "toolSummary": "Edit supplier.products.index.tsx"
+}

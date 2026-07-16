@@ -1,21 +1,36 @@
-import { Link } from "@tanstack/react-router";
-import { Bell, Search } from "lucide-react";
+import { useRouterState } from "@tanstack/react-router";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import {
-  Popover, PopoverContent, PopoverTrigger,
-} from "@/components/ui/popover";
+import { Search } from "lucide-react";
 import { UserMenu } from "@/components/layout/UserMenu";
 import { CartButton } from "@/components/cart/CartButton";
-import { DEMO_NOTIFICATIONS } from "@/data/dashboard";
-
+import { NotificationsMenu } from "@/components/layout/NotificationsMenu";
+import { useSessionMode } from "@/hooks/useSessionMode";
+import { useAccountFlags } from "@/hooks/useAccountFlags";
+import { useProfile } from "@/hooks/useProfile";
 
 export function DashboardTopbar() {
-  const unread = DEMO_NOTIFICATIONS.filter((n) => n.unread).length;
+  const pathname = useRouterState({ select: (r) => r.location.pathname });
+  const sessionMode = useSessionMode();
+  const { data: account } = useAccountFlags();
 
+  const isSellerWorkspace =
+    sessionMode === "seller" ||
+    (sessionMode !== "buyer" && !!account?.isSeller);
+
+  // On seller routes, show the workspace-oriented header
+  const isSellerRoute =
+    pathname.startsWith("/seller") || pathname.startsWith("/supplier");
+
+  const showSellerHeader = isSellerWorkspace && isSellerRoute;
+
+  if (showSellerHeader) {
+    return <SellerTopbar />;
+  }
+
+  // Default buyer/shared dashboard topbar
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border bg-card/80 px-3 backdrop-blur-md sm:px-4">
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b border-border bg-card/80 px-3 backdrop-blur-md sm:px-4">
       <SidebarTrigger />
 
       <div className="ml-auto flex items-center gap-2">
@@ -25,43 +40,53 @@ export function DashboardTopbar() {
         </div>
 
         <CartButton variant="ghost" />
+        <NotificationsMenu />
+        <UserMenu />
+      </div>
+    </header>
+  );
+}
 
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="ghost" size="icon" className="relative" aria-label="Notifications">
-              <Bell className="h-5 w-5" />
-              {unread > 0 && (
-                <span className="absolute right-1.5 top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-brand px-1 text-[10px] font-bold text-white">
-                  {unread}
-                </span>
-              )}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent align="end" className="w-80 p-0">
-            <div className="flex items-center justify-between border-b px-4 py-3">
-              <div>
-                <div className="font-semibold">Notifications</div>
-                <div className="text-xs text-muted-foreground">{unread} unread</div>
-              </div>
-              <Button asChild variant="ghost" size="sm"><Link to="/notifications">See all</Link></Button>
-            </div>
-            <ul className="max-h-80 divide-y overflow-y-auto">
-              {DEMO_NOTIFICATIONS.slice(0, 4).map((n) => (
-                <li key={n.id} className="flex gap-3 p-3 hover:bg-muted/50">
-                  <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-brand-soft text-brand">
-                    <n.icon className="h-4 w-4" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-medium">{n.title}</div>
-                    <div className="line-clamp-2 text-xs text-muted-foreground">{n.body}</div>
-                    <div className="mt-0.5 text-[10px] text-muted-foreground">{n.time}</div>
-                  </div>
-                  {n.unread && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand" />}
-                </li>
-              ))}
-            </ul>
-          </PopoverContent>
-        </Popover>
+/* ────────────────────────────────────────────────────────────────────────────
+ * Seller-specific topbar — clean, workspace-oriented, no marketplace chrome
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+function SellerTopbar() {
+  const { data: profile } = useProfile();
+
+  // Derive a short workspace label from business name
+  const workspaceLabel =
+    profile?.business_name?.split(/\s+/).slice(0, 3).join(" ") || "Seller Workspace";
+
+  return (
+    <header className="sticky top-0 z-30 flex h-16 items-center border-b border-border/60 bg-card/80 backdrop-blur-md">
+      {/* Left: sidebar trigger + workspace context */}
+      <div className="flex items-center gap-2 px-3 sm:gap-3 sm:px-5">
+        <SidebarTrigger className="h-8 w-8 rounded-lg text-muted-foreground transition-colors duration-150 hover:bg-secondary hover:text-foreground" />
+
+        {/* Thin vertical divider */}
+        <div className="hidden h-5 w-px bg-border/60 sm:block" />
+
+        {/* Workspace title — subtle, non-dominant */}
+        <div className="hidden items-center gap-2 sm:flex">
+          <span className="text-[13px] font-semibold tracking-tight text-foreground/85">
+            {workspaceLabel}
+          </span>
+          <span className="rounded-md bg-brand/8 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand">
+            Seller
+          </span>
+        </div>
+      </div>
+
+      {/* Spacer */}
+      <div className="flex-1" />
+
+      {/* Right: notifications + profile */}
+      <div className="flex items-center gap-1.5 px-3 sm:gap-2.5 sm:px-5">
+        <NotificationsMenu />
+
+        {/* Thin vertical divider before profile */}
+        <div className="hidden h-5 w-px bg-border/60 sm:block" />
 
         <UserMenu />
       </div>

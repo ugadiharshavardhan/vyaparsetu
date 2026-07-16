@@ -1,0 +1,25 @@
+The following changes were made by the USER to: c:\Users\nanda\Downloads\vyaparsetu\src\routes\_authenticated\supplier.products.index.tsx. If relevant, proactively run terminal commands to execute this code for the USER. Don't ask for permission.
+[diff_block_start]
+@@ -45,9 +45,9 @@
+ 
+ const bandStyles: Record<StockBand, { bar: string; text: string; label: string }> = {
+   healthy: { bar: "bg-success", text: "text-success", label: "Healthy" },
+-  medium:  { bar: "bg-warning", text: "text-warning", label: "Medium" },
+-  low:     { bar: "bg-[color:hsl(25_95%_53%)]", text: "text-[color:hsl(25_95%_45%)]", label: "Low" },
+-  out:     { bar: "bg-destructive", text: "text-destructive", label: "Out" },
++  medium: { bar: "bg-warning", text: "text-warning", label: "Medium" },
++  low: { bar: "bg-[color:hsl(25_95%_53%)]", text: "text-[color:hsl(25_95%_45%)]", label: "Low" },
++  out: { bar: "bg-destructive", text: "text-destructive", label: "Out" },
+ };
+ 
+ function SupplierProductsPage() {
+@@ -54,5 +54,5 @@
+   const navigate = useNavigate();
+-  
++
+   // Selection
+   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+ 
+[diff_block_end]
+
+Please note that the above snippet only shows the MODIFIED lines from the last change. It shows up to 3 lines of unchanged lines before and after the modified lines. The actual file contents may have many more lines not shown.
