@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Building2, Camera, Facebook, Globe, Instagram, Linkedin } from "lucide-react";
+import { Building2, Camera, Globe, Hash, MessageCircle, Briefcase } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/common/PageHeader";
 import { SectionCard } from "@/components/dashboard/SectionCard";
@@ -87,9 +87,9 @@ function BusinessProfilePage() {
             </div>
             <div className="space-y-2">
               <SocialRow icon={Globe} label="Website" value={social.website} onChange={(v) => setSocial({ ...social, website: v })} />
-              <SocialRow icon={Instagram} label="Instagram" value={social.instagram} onChange={(v) => setSocial({ ...social, instagram: v })} />
-              <SocialRow icon={Facebook} label="Facebook" value={social.facebook} onChange={(v) => setSocial({ ...social, facebook: v })} />
-              <SocialRow icon={Linkedin} label="LinkedIn" value={social.linkedin} onChange={(v) => setSocial({ ...social, linkedin: v })} />
+              <SocialRow icon={Camera} label="Instagram" value={social.instagram} onChange={(v) => setSocial({ ...social, instagram: v })} />
+              <SocialRow icon={Hash} label="Facebook" value={social.facebook} onChange={(v) => setSocial({ ...social, facebook: v })} />
+              <SocialRow icon={Briefcase} label="LinkedIn" value={social.linkedin} onChange={(v) => setSocial({ ...social, linkedin: v })} />
             </div>
           </div>
         </SectionCard>

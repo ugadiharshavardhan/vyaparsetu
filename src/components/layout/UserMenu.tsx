@@ -115,11 +115,19 @@ function ProvidedUserMenu() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link to={isSeller ? "/seller/dashboard" : "/buyer/dashboard"} className="cursor-pointer">
-            <LayoutDashboard className="mr-2 h-4 w-4" /> Dashboard
-          </Link>
-        </DropdownMenuItem>
+        {isSeller ? (
+          <DropdownMenuItem asChild>
+            <Link to="/seller/dashboard" className="cursor-pointer">
+              <LayoutDashboard className="mr-2 h-4 w-4" /> Seller Dashboard
+            </Link>
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem asChild>
+            <Link to="/marketplace" className="cursor-pointer">
+              <LayoutDashboard className="mr-2 h-4 w-4" /> Marketplace
+            </Link>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem asChild>
           <Link to="/profile" className="cursor-pointer">
             <UserIcon className="mr-2 h-4 w-4" /> Profile

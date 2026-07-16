@@ -4,6 +4,8 @@ import type { Category, SubCategory } from "@/types";
 import { CategoryImage } from "@/components/marketplace/CategoryCard";
 import { useCategories } from "@/hooks/useCatalog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 export type SubCategoryRef = SubCategory & { categorySlug: string; categoryName: string };
 
@@ -18,6 +20,81 @@ export function flattenSubCategories(categories: Category[]): SubCategoryRef[] {
   );
 }
 
+/** Hook to fetch the first product image for each subcategory */
+export function useSubcategoryImages() {
+  return useQuery({
+    queryKey: ["subcategory-product-images"],
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("products")
+        .select("subcategory_id, image, images")
+        .not("subcategory_id", "is", null)
+        .not("image", "eq", "");
+      if (error) throw error;
+
+      const isFrontFacingImage = (url: string): boolean => {
+        const lowercase = url.toLowerCase();
+        const badKeywords = [
+          "back",
+          "label",
+          "nutrition",
+          "facts",
+          "ingredient",
+          "barcode",
+          "rear",
+          "side",
+          "packaging-back",
+          "table",
+          "chart",
+        ];
+        return !badKeywords.some((keyword) => lowercase.includes(keyword));
+      };
+
+      const imgMap: Record<string, string> = {};
+      const fallbackMap: Record<string, string> = {};
+
+      for (const row of data || []) {
+        if (!row.subcategory_id || !row.image) continue;
+
+        // Keep track of the very first image we see for each subcategory as fallback
+        if (!fallbackMap[row.subcategory_id]) {
+          fallbackMap[row.subcategory_id] = row.image;
+        }
+
+        // Check if we already found a clean image for this subcategory
+        if (imgMap[row.subcategory_id]) continue;
+
+        // Test main image
+        if (isFrontFacingImage(row.image)) {
+          imgMap[row.subcategory_id] = row.image;
+          continue;
+        }
+
+        // Test additional images
+        const allImages = Array.isArray(row.images)
+          ? row.images.map(String)
+          : typeof row.images === "string"
+          ? [row.images]
+          : [];
+        const cleanImg = allImages.find((img) => img && isFrontFacingImage(img));
+        if (cleanImg) {
+          imgMap[row.subcategory_id] = cleanImg;
+        }
+      }
+
+      // Fill in fallback images for subcategories that have no clean image at all
+      for (const subId of Object.keys(fallbackMap)) {
+        if (!imgMap[subId]) {
+          imgMap[subId] = fallbackMap[subId];
+        }
+      }
+
+      return imgMap;
+    },
+  });
+}
+
 /** Marketplace "All" strip — shows every subcategory (not main categories). */
 export function AllSubcategoriesStrip({
   title = "Shop by subcategory",
@@ -26,8 +103,22 @@ export function AllSubcategoriesStrip({
   title?: string;
   description?: string;
 }) {
-  const { data: categories = [], isLoading } = useCategories();
-  const items = useMemo(() => flattenSubCategories(categories), [categories]);
+  const { data: categories = [], isLoading: catsLoading } = useCategories();
+  const { data: imagesMap = {}, isLoading: imgsLoading } = useSubcategoryImages();
+
+  const isLoading = catsLoading || imgsLoading;
+
+  const items = useMemo(() => {
+    const all = flattenSubCategories(categories);
+    // Filter to only those subcategories that have products (i.e. exist in the imagesMap)
+    // And override the subcategory image with the real product image!
+    return all
+      .filter((sc) => !!imagesMap[sc.id])
+      .map((sc) => ({
+        ...sc,
+        image: imagesMap[sc.id],
+      }));
+  }, [categories, imagesMap]);
 
   if (isLoading) {
     return (
@@ -76,3 +167,4 @@ export function AllSubcategoriesStrip({
     </section>
   );
 }
+
