@@ -24,6 +24,9 @@ dist-ssr
 # Local catalog image trees for bulk upload script (keep off git)
 catalog-images/
 product-images-upload/
+category-images/
+subcategory-images/
+manufacturer-logos-upload/
 
 # Wrangler / Cloudflare
 .wrangler/

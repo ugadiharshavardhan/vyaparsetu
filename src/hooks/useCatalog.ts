@@ -123,6 +123,41 @@ export function useCategories(options?: { enabled?: boolean }) {
   });
 }
 
+const MANUFACTURERS_KEY = ["manufacturers"] as const;
+
+export interface ManufacturerLogo {
+  id: string;
+  name: string;
+  slug: string;
+  logo: string | null;
+  sortOrder: number;
+}
+
+async function fetchManufacturers(): Promise<ManufacturerLogo[]> {
+  const { data, error } = await supabase
+    .from("manufacturers")
+    .select("id, name, slug, logo, sort_order")
+    .order("sort_order", { ascending: true })
+    .order("slug", { ascending: true });
+  if (error) throw error;
+  return (data ?? []).map((row) => ({
+    id: row.id as string,
+    name: row.name as string,
+    slug: row.slug as string,
+    logo: (row.logo as string | null) ?? null,
+    sortOrder: (row.sort_order as number) ?? 0,
+  }));
+}
+
+export function useManufacturers(options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: MANUFACTURERS_KEY,
+    enabled: options?.enabled ?? true,
+    staleTime: 10 * 60_000,
+    queryFn: fetchManufacturers,
+  });
+}
+
 export function useProductBySlug(slug: string | undefined) {
   return useQuery({
     queryKey: [...PRODUCTS_KEY, "slug", slug],

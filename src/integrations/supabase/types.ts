@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      manufacturers: {
+        Row: {
+          id: string
+          name: string
+          slug: string
+          logo: string | null
+          source_image: string | null
+          sort_order: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          name: string
+          slug: string
+          logo?: string | null
+          source_image?: string | null
+          sort_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          slug?: string
+          logo?: string | null
+          source_image?: string | null
+          sort_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       cart_items: {
         Row: {
           created_at: string
@@ -1062,6 +1095,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      marketplace_public_stats: {
+        Args: Record<string, never>
+        Returns: Json
       }
     }
     Enums: {

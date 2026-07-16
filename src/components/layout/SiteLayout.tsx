@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { useContext } from "react";
+import { useContext, useEffect } from "react";
 import { useRouterState } from "@tanstack/react-router";
 import { Header } from "./Header";
 import { Footer } from "./Footer";
@@ -24,6 +24,7 @@ const SHARED_PREFIXES = ["/marketplace", "/suppliers", "/products", "/categories
 
 export function SiteLayout({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
+  const hash = useRouterState({ select: (r) => r.location.hash });
   const isNavigating = useRouterState({
     select: (r) => Boolean(r.isLoading),
   });
@@ -31,6 +32,12 @@ export function SiteLayout({ children }: { children: ReactNode }) {
   // root route's error/notFound boundaries (which mount outside AuthProvider).
   const auth = useContext(AuthContext);
   const isAuthenticated = !!auth?.isAuthenticated;
+
+  // Always land at the top of the destination page (hash links keep section scroll).
+  useEffect(() => {
+    if (hash) return;
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [pathname, hash]);
 
   const isApp = APP_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
   const isShared = SHARED_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
