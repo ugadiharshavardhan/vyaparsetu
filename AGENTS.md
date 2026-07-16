@@ -156,13 +156,48 @@
 
 # Current Project State
 
-- **Current Phase:** Merge resolved — landing redesign + seller rating system
+- **Current Phase:** Category cover images corrected
 - **Current Branch:** N/A
-- **Current Module:** Public marketing / home + seller ratings
-- **Overall Progress:** Kept green Hyperpure footer/landing work; retained holistic seller/product ratings from the incoming branch. Merge conflicts in `Footer.tsx` and `AGENTS.md` resolved.
+- **Current Module:** Marketplace categories / Our Categories
+- **Overall Progress:** Fixed wrong `spices` cover (was Tikhalal+Tata Salt collage → Everest Coriander pack); cache-busted `pulses-dal` / `salt-sugar` / `spices` URLs.
 - **Last Updated:** 2026-07-17
 
 # Development History
+
+## 2026-07-17 - Fix wrong Spices category cover in Our Categories
+
+### Why
+Landing “Our Categories” still showed a bad `spices.png` (Everest Tikhalal + Tata Salt collage). Slug upload only updated `pulses-dal` / `salt-sugar`; spices kept the old Storage object.
+
+### Changes
+- Replaced Storage `category-images/categories/spices.png` with Everest Coriander Powder pack front
+- Set `categories.image` for `spices`, `pulses-dal`, `salt-sugar` with `?v=` cache-busters so the UI refreshes
+
+## 2026-07-17 - Upload category images by slug (pulses-dal, salt-sugar)
+
+### Why
+Operator asked to run the slug-based category cover upload script.
+
+### Changes
+- Ran `node scripts/upload-category-images.mjs --dir ./public`
+- Updated: `pulses-dal`, `salt-sugar` → `category-images/categories/<slug>.png` + `categories.image`
+- Skipped non-category files in `public/`; remaining 12 categories already had images
+
+## 2026-07-17 - Footer social icons: drop lucide brand exports
+
+### Why
+Vercel/Rolldown failed with `[MISSING_EXPORT] "Linkedin" / "Youtube" is not exported` — lucide-react v1 removed brand logo icons.
+
+### Changes
+- `Footer.tsx` — replaced `Linkedin` / `Instagram` / `Youtube` lucide imports with inline SVG brand marks (same pattern as Play/App Store badges)
+
+## 2026-07-17 - Restore Logo variant/hideSubtitle props
+
+### Why
+Merge left `Logo.tsx` reading `variant` without declaring it, so `Footer` (`variant="onBrand"`) and `DashboardSidebar` (`hideSubtitle`) failed type-check.
+
+### Changes
+- `Logo.tsx` — restored `variant?: "default" | "onBrand"` and `hideSubtitle?: boolean`; onBrand uses white mark/wordmark (and muted white subtitle) for the green footer
 
 ## 2026-07-17 - Resolve merge conflicts (Footer + AGENTS.md)
 

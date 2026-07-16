@@ -3,9 +3,13 @@ import { cn } from "@/lib/utils";
 
 export function Logo({
   compact = false,
+  hideSubtitle = false,
+  variant = "default",
   className,
 }: {
   compact?: boolean;
+  hideSubtitle?: boolean;
+  variant?: "default" | "onBrand";
   className?: string;
 }) {
   const onBrand = variant === "onBrand";
@@ -38,9 +42,16 @@ export function Logo({
           >
             VyaparSetu
           </span>
-          <span className="hidden text-[10px] uppercase tracking-[0.16em] text-muted-foreground sm:inline">
-            B2B Marketplace
-          </span>
+          {!hideSubtitle && (
+            <span
+              className={cn(
+                "hidden text-[10px] uppercase tracking-[0.16em] sm:inline",
+                onBrand ? "text-white/70" : "text-muted-foreground",
+              )}
+            >
+              B2B Marketplace
+            </span>
+          )}
         </span>
       )}
     </Link>
