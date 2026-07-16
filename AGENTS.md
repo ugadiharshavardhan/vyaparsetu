@@ -158,11 +158,20 @@
 
 - **Current Phase:** Seller verification + deferred OTP membership
 - **Current Branch:** N/A
-- **Current Module:** Auth OTP + Admin access
-- **Overall Progress:** Removed all `console.*` calls from `src/` application code.
+- **Current Module:** Buyer/seller workspace isolation
+- **Overall Progress:** Admin nav no longer appears on buyer/seller dashboards.
 - **Last Updated:** 2026-07-16
 
 # Development History
+
+## 2026-07-16 - Hide admin nav from buyer/seller workspaces
+
+### Why
+Primary admin account is also buyer/seller; Admin sidebar group and UserMenu link appeared on buyer dashboard.
+
+### Changes
+- `DashboardSidebar.tsx` — Admin nav only when path is `/admin*`; buyer/seller workspaces never show it
+- `UserMenu.tsx` — removed Admin console menu item (admin uses dedicated `/admin` login)
 
 ## 2026-07-16 - Remove all application console logs
 

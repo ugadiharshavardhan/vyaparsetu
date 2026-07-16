@@ -88,9 +88,13 @@ export function DashboardSidebar() {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const { data: account } = useAccountFlags();
   const sessionMode = useSessionMode();
-  const isAdmin = !!account?.isAdmin;
+  // Admin nav only on /admin routes — never mix into buyer/seller workspaces.
+  const isAdminRoute = pathname.startsWith("/admin");
+  const showAdminNav = isAdminRoute && !!account?.isAdmin;
   // Session mode (chosen at sign-in) wins so a customer sign-in shows buyer nav.
-  const isSupplier = sessionMode === "seller" || (sessionMode !== "buyer" && !!account?.isSeller);
+  const isSupplier =
+    !showAdminNav &&
+    (sessionMode === "seller" || (sessionMode !== "buyer" && !!account?.isSeller));
   const navigate = useNavigate();
   const qc = useQueryClient();
   const cartCount = useCartCount();
@@ -145,63 +149,65 @@ export function DashboardSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border">
         <Link
-          to={isSupplier ? "/seller/dashboard" : "/buyer/dashboard"}
+          to={showAdminNav ? "/admin" : isSupplier ? "/seller/dashboard" : "/buyer/dashboard"}
           className={`flex h-12 items-center ${collapsed ? "justify-center px-0" : "gap-2 px-2"}`}
         >
           <Logo compact={collapsed} />
         </Link>
       </SidebarHeader>
       <SidebarContent>
-        {!isSupplier && (
-          <SidebarGroup>
-            {!collapsed && <SidebarGroupLabel>Workspace</SidebarGroupLabel>}
-            <SidebarGroupContent>{renderItems(MAIN)}</SidebarGroupContent>
-          </SidebarGroup>
-        )}
-
-        {!isSupplier && (
-          <SidebarGroup>
-            {!collapsed && <SidebarGroupLabel>Explore</SidebarGroupLabel>}
-            <SidebarGroupContent>{renderItems(EXPLORE)}</SidebarGroupContent>
-          </SidebarGroup>
-        )}
-
-        {isSupplier && (
-          <SidebarGroup>
-            {!collapsed && <SidebarGroupLabel>Seller workspace</SidebarGroupLabel>}
-            <SidebarGroupContent>{renderItems(SUPPLIER)}</SidebarGroupContent>
-          </SidebarGroup>
-        )}
-
-        {isSupplier && (
-          <SidebarGroup>
-            {!collapsed && <SidebarGroupLabel>Explore</SidebarGroupLabel>}
-            <SidebarGroupContent>{renderItems(SELLER_EXPLORE)}</SidebarGroupContent>
-          </SidebarGroup>
-        )}
-
-        {/* Profile / saved items for sellers (buyers already have these in Workspace) */}
-        {isSupplier && (
-          <SidebarGroup>
-            {!collapsed && <SidebarGroupLabel>Account</SidebarGroupLabel>}
-            <SidebarGroupContent>{renderItems(ACCOUNT)}</SidebarGroupContent>
-          </SidebarGroup>
-        )}
-
-        {!isSupplier && (
-          <SidebarGroup>
-            {!collapsed && <SidebarGroupLabel>Account</SidebarGroupLabel>}
-            <SidebarGroupContent>
-              {renderItems([{ title: "Profile", url: "/profile", icon: User }] as const)}
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
-
-        {isAdmin && (
+        {showAdminNav ? (
           <SidebarGroup>
             {!collapsed && <SidebarGroupLabel>Admin</SidebarGroupLabel>}
             <SidebarGroupContent>{renderItems(ADMIN)}</SidebarGroupContent>
           </SidebarGroup>
+        ) : (
+          <>
+            {!isSupplier && (
+              <SidebarGroup>
+                {!collapsed && <SidebarGroupLabel>Workspace</SidebarGroupLabel>}
+                <SidebarGroupContent>{renderItems(MAIN)}</SidebarGroupContent>
+              </SidebarGroup>
+            )}
+
+            {!isSupplier && (
+              <SidebarGroup>
+                {!collapsed && <SidebarGroupLabel>Explore</SidebarGroupLabel>}
+                <SidebarGroupContent>{renderItems(EXPLORE)}</SidebarGroupContent>
+              </SidebarGroup>
+            )}
+
+            {isSupplier && (
+              <SidebarGroup>
+                {!collapsed && <SidebarGroupLabel>Seller workspace</SidebarGroupLabel>}
+                <SidebarGroupContent>{renderItems(SUPPLIER)}</SidebarGroupContent>
+              </SidebarGroup>
+            )}
+
+            {isSupplier && (
+              <SidebarGroup>
+                {!collapsed && <SidebarGroupLabel>Explore</SidebarGroupLabel>}
+                <SidebarGroupContent>{renderItems(SELLER_EXPLORE)}</SidebarGroupContent>
+              </SidebarGroup>
+            )}
+
+            {/* Profile / saved items for sellers (buyers already have these in Workspace) */}
+            {isSupplier && (
+              <SidebarGroup>
+                {!collapsed && <SidebarGroupLabel>Account</SidebarGroupLabel>}
+                <SidebarGroupContent>{renderItems(ACCOUNT)}</SidebarGroupContent>
+              </SidebarGroup>
+            )}
+
+            {!isSupplier && (
+              <SidebarGroup>
+                {!collapsed && <SidebarGroupLabel>Account</SidebarGroupLabel>}
+                <SidebarGroupContent>
+                  {renderItems([{ title: "Profile", url: "/profile", icon: User }] as const)}
+                </SidebarGroupContent>
+              </SidebarGroup>
+            )}
+          </>
         )}
       </SidebarContent>
       <SidebarFooter className="border-t border-sidebar-border">

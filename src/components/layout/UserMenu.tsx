@@ -7,7 +7,6 @@ import {
   LayoutDashboard,
   LogOut,
   Settings as SettingsIcon,
-  ShieldCheck,
   ShoppingCart,
   User as UserIcon,
 } from "lucide-react";
@@ -77,7 +76,7 @@ function ProvidedUserMenu() {
     return <GuestActions />;
   }
 
-  const isAdmin = !!account?.isAdmin;
+  // Admin console is reached via dedicated /admin login — not mixed into buyer/seller menus.
   const isSeller = sessionMode === "seller" || (sessionMode !== "buyer" && !!account?.isSeller);
   const handleSignOut = async () => {
     try {
@@ -144,13 +143,6 @@ function ProvidedUserMenu() {
         >
           <SettingsIcon className="mr-2 h-4 w-4" /> Settings
         </DropdownMenuItem>
-        {isAdmin && (
-          <DropdownMenuItem asChild>
-            <Link to="/admin" className="cursor-pointer">
-              <ShieldCheck className="mr-2 h-4 w-4" /> Admin console
-            </Link>
-          </DropdownMenuItem>
-        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-destructive focus:text-destructive">
           <LogOut className="mr-2 h-4 w-4" /> Sign out
