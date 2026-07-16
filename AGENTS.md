@@ -159,10 +159,27 @@
 - **Current Phase:** Seller verification + deferred OTP membership
 - **Current Branch:** N/A
 - **Current Module:** Auth OTP + Admin access
-- **Overall Progress:** salt-sugar, snacks-bakery, spices, tea-coffee (129 products) assigned to pending seller madhusethusagar576@gmail.com — hidden from buyers until verified. Remaining catalog stays on verified ugadiharshavardhan@gmail.com.
+- **Overall Progress:** Removed all `console.*` calls from `src/` application code.
 - **Last Updated:** 2026-07-16
 
 # Development History
+
+## 2026-07-16 - Remove all application console logs
+
+### Changes
+- Stripped `console.log/warn/error/info/debug` from all files under `src/`
+- Cleaned empty leftover `if` blocks; kept error UI/toasts intact
+
+## 2026-07-16 - OTP delivery diagnostics & clearer failures
+
+### Findings
+- SMTP (`harsha224684@gmail.com` via Gmail) verifies OK
+- OTP rows are created for both Gmail and `chaitanya.edu.in` — send path runs
+- Institutional domains often accept then filter Gmail into Spam or delay delivery
+
+### Changes
+- `src/server/authOtpHandler.ts` — richer SMTP logging, rejected-recipient errors, OTP rollback on send failure, spam hint for .edu
+- `src/components/auth/EmailOtpForm.tsx` — spam/junk note for college emails
 
 ## 2026-07-16 - Assign category products to pending seller (hidden from buyers)
 

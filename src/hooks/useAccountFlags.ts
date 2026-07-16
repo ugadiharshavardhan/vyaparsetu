@@ -28,9 +28,6 @@ export function useAccountFlags() {
         supabase.from("sellers").select("id").eq("id", userId).maybeSingle(),
         supabase.from("admins").select("id").eq("id", userId).maybeSingle(),
       ]);
-      if (buyer.error || seller.error || admin.error) {
-        console.warn("[account-flags]", buyer.error || seller.error || admin.error);
-      }
 
       const isBuyer = !!buyer.data;
       const isSeller = !!seller.data;

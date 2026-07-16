@@ -2,7 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type OtpPurpose = "signup" | "reset";
 
-type OtpResponse = {
+export type OtpResponse = {
   ok?: boolean;
   verified?: boolean;
   purpose?: OtpPurpose;
@@ -15,6 +15,7 @@ type OtpResponse = {
   exists?: boolean;
   confirmed?: boolean;
   hasRole?: boolean;
+  hint?: string;
 };
 
 async function invokeOtp(body: Record<string, unknown>): Promise<OtpResponse> {

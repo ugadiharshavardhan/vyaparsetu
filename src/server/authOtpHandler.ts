@@ -191,7 +191,6 @@ async function findAuthUserByEmail(email: string): Promise<User | null> {
   for (let page = 1; page <= 25; page++) {
     const { data, error } = await supabase.auth.admin.listUsers({ page, perPage: 200 });
     if (error) {
-      console.warn("[auth-otp] listUsers", error.message);
       break;
     }
     const users = data?.users ?? [];
@@ -207,7 +206,7 @@ async function sendSmtpEmail(to: string, subject: string, html: string, text: st
   const port = Number(env("SMTP_PORT", "465"));
   const user = env("SMTP_USER");
   const pass = env("SMTP_PASS").replace(/\s+/g, "");
-  const from = env("EMAIL_FROM") || user;
+  const fromAddress = env("EMAIL_FROM") || user;
 
   if (!user || !pass) {
     throw new Error("SMTP_USER / SMTP_PASS missing in .env (use your Gmail app password)");
@@ -218,9 +217,50 @@ async function sendSmtpEmail(to: string, subject: string, html: string, text: st
     port,
     secure: port === 465,
     auth: { user, pass },
+    connectionTimeout: 20_000,
+    greetingTimeout: 20_000,
+    socketTimeout: 30_000,
   });
 
-  await transporter.sendMail({ from, to, subject, html, text });
+  try {
+    const info = await transporter.sendMail({
+      from: `"VyaparSetu" <${fromAddress}>`,
+      to,
+      subject,
+      html,
+      text,
+      replyTo: fromAddress,
+      headers: {
+        "X-Priority": "1",
+        "X-Mailer": "VyaparSetu OTP",
+      },
+    });
+
+    const rejected = (info.rejected ?? []).map(String);
+    if (rejected.length > 0) {
+      throw new Error(
+        `Email provider rejected ${rejected.join(", ")}. Try a Gmail/Yahoo address, or check the spam folder.`,
+      );
+    }
+
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    // Common Gmail / institutional delivery failures
+    if (/invalid login|badcredentials|username and password/i.test(msg)) {
+      throw new Error("Email server login failed. Check SMTP_USER / SMTP_PASS (Gmail App Password).");
+    }
+    if (/daily.*limit|quota|too many/i.test(msg)) {
+      throw new Error("Daily email send limit reached. Try again later.");
+    }
+    if (/recipient|relay|blocked|rejected/i.test(msg)) {
+      throw new Error(
+        `Could not deliver to ${to}. Institutional emails (.edu) often block Gmail. Use a personal Gmail, or check Spam/Junk.`,
+      );
+    }
+    throw new Error(`Could not send verification email: ${msg}`);
+  } finally {
+    transporter.close();
+  }
 }
 
 function otpEmail(purpose: Purpose, code: string) {
@@ -245,10 +285,7 @@ function otpEmail(purpose: Purpose, code: string) {
 
 async function removeLegacyProfile(userId: string) {
   const supabase = adminClient();
-  const { error } = await supabase.from("profiles").delete().eq("id", userId);
-  if (error && !/profiles|schema cache|does not exist|Could not find/i.test(error.message)) {
-    console.warn("[auth-otp] legacy profile cleanup", error.message);
-  }
+  await supabase.from("profiles").delete().eq("id", userId);
 }
 
 async function upsertMembership(userId: string, email: string, role: Role, profile: RegisterProfile) {
@@ -353,9 +390,31 @@ async function handleSend(
   await insertOtp(email, purpose, hashOtp(code, email, purpose), expiresAt);
 
   const mail = otpEmail(purpose, code);
-  await sendSmtpEmail(email, mail.subject, mail.html, mail.text);
+  try {
+    await sendSmtpEmail(email, mail.subject, mail.html, mail.text);
+  } catch (e) {
+    // Roll back unused OTP so the user can retry immediately after fixing delivery.
+    try {
+      const row = await fetchActiveOtp(email, purpose);
+      if (row) await consumeOtp(row.id);
+    } catch {
+      /* ignore cleanup errors */
+    }
+    throw e;
+  }
 
-  return { status: 200, body: { ok: true, message: "Verification code sent", expiresInSec: 600 } };
+  const institutional = /\.(edu|ac)\.[a-z]{2,}$/i.test(email) || /\.edu$/i.test(email);
+  return {
+    status: 200,
+    body: {
+      ok: true,
+      message: institutional
+        ? "Verification code sent. If it does not arrive in 1–2 minutes, check Spam/Junk — college emails often delay Gmail."
+        : "Verification code sent",
+      expiresInSec: 600,
+      hint: institutional ? "check_spam" : undefined,
+    },
+  };
 }
 
 async function handleLoginHelp(emailRaw: string, role?: Role) {
@@ -567,7 +626,6 @@ async function handleVerify(
       email,
     });
     if (linkError || !linkData.properties?.hashed_token) {
-      console.warn("[auth-otp] generateLink failed", linkError?.message);
       return { status: 200, body: { ok: true, verified: true, purpose: "signup" } };
     }
     return {
@@ -652,7 +710,6 @@ export async function handleAuthOtpRequest(request: Request): Promise<Response> 
     }
     return Response.json({ error: "Unknown action" }, { status: 400, headers: cors });
   } catch (e) {
-    console.error("[auth-otp]", e);
     return Response.json(
       { error: e instanceof Error ? e.message : "Unexpected error" },
       { status: 500, headers: cors },

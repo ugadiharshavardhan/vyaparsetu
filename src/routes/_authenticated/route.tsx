@@ -45,7 +45,6 @@ export const Route = createFileRoute("/_authenticated")({
         ]);
 
         if (seller.error) {
-          console.warn("[onboarding-complete]", seller.error.message);
           return true;
         }
 

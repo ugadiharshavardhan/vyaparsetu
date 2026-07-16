@@ -151,7 +151,12 @@ function BuyerSignUp({ onBack }: { onBack?: () => void }) {
         return;
       }
       setPendingVerify({ email, password: values.password, userId: result.userId });
-      toast.success("We sent a 6-digit code to your email");
+      toast.success(
+        result.message ||
+          (/\.(edu|ac)\.[a-z]{2,}$/i.test(email)
+            ? "Code sent — check inbox and Spam/Junk (college mail often delays Gmail)"
+            : "We sent a 6-digit code to your email"),
+      );
     } catch (e) {
       showSignUpError(e instanceof Error ? e.message : "Could not create account");
     }
@@ -340,7 +345,12 @@ function SellerSignUp({ onBack }: { onBack?: () => void }) {
         logoFile: logoAsset.file,
         shopFile: shopAsset.file,
       });
-      toast.success("We sent a 6-digit code to your email");
+      toast.success(
+        result.message ||
+          (/\.(edu|ac)\.[a-z]{2,}$/i.test(email)
+            ? "Code sent — check inbox and Spam/Junk (college mail often delays Gmail)"
+            : "We sent a 6-digit code to your email"),
+      );
     } catch (e) {
       showSignUpError(e instanceof Error ? e.message : "Could not create account");
     }
@@ -575,7 +585,6 @@ function SignupOtpStep({
                       shopImage: shopFile,
                     });
                   } catch (uploadErr) {
-                    console.error(uploadErr);
                     toast.error(
                       uploadErr instanceof Error
                         ? uploadErr.message

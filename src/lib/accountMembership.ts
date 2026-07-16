@@ -2,13 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 /** Best-effort delete of legacy public.profiles row (table removed after migration). */
 export async function removeLegacyProfileRow(userId: string) {
-  const { error } = await supabase.from("profiles").delete().eq("id", userId);
-  if (
-    error &&
-    !/profiles|schema cache|does not exist|Could not find/i.test(error.message)
-  ) {
-    console.warn("[removeLegacyProfileRow]", error.message);
-  }
+  await supabase.from("profiles").delete().eq("id", userId);
 }
 
 /** Verify the auth user exists in the buyers or sellers table for the chosen sign-in role. */

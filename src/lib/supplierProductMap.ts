@@ -63,7 +63,6 @@ export async function resolveSubcategoryId(
     .eq("categories.slug", categorySlug)
     .maybeSingle();
   if (error) {
-    console.warn("[resolveSubcategoryId]", error.message);
     return null;
   }
   return data?.id ?? null;

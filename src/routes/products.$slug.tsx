@@ -133,7 +133,7 @@ function ProductPage() {
         title: product.name,
         text: product.description,
         url: window.location.href,
-      }).catch(console.error);
+      }).catch(() => undefined);
     } else {
       navigator.clipboard.writeText(window.location.href);
       toast.success("Product link copied to clipboard!");

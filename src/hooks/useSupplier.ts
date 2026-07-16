@@ -220,10 +220,8 @@ export function useSupplierProducts() {
       seller_id: user.id,
       product_id: id,
     } as never);
-    if (linkErr) {
-      // Ownership table may not be migrated yet — products.seller_id still scopes the catalog
-      console.warn("[seller_products insert]", linkErr.message);
-    }
+    // Ownership table may not be migrated yet — products.seller_id still scopes the catalog
+    void linkErr;
 
     await invalidate();
     return id;

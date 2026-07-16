@@ -190,7 +190,6 @@ export function useCart() {
           // Do not auto-open cart drawer — badge / toast is enough
         }
       } catch (e) {
-        console.warn("[cart-post-login]", e);
         if (!cancelled) {
           toast.error(e instanceof Error ? e.message : "Could not add item to cart");
         }

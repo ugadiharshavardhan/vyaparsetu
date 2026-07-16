@@ -43,7 +43,6 @@ export const Route = createFileRoute("/_authenticated/buyer")({
         { onConflict: "id" },
       );
       if (!error) return;
-      console.warn("[buyer-gate] ensure buyer failed", error.message);
     }
 
     throw redirect({ to: "/unauthorized" });

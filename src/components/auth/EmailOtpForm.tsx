@@ -74,12 +74,18 @@ export function EmailOtpForm({
   const resend = async () => {
     setResending(true);
     try {
-      await sendEmailOtp(email, purpose, {
+      const result = await sendEmailOtp(email, purpose, {
         userId,
         force: true,
       });
       setCode("");
-      toast.success("A new code was sent to your email");
+      const institutional = /\.(edu|ac)\.[a-z]{2,}$/i.test(email) || /\.edu$/i.test(email);
+      toast.success(
+        result.message ||
+          (institutional
+            ? "New code sent — check inbox and Spam/Junk (college mail often delays Gmail)"
+            : "A new code was sent to your email"),
+      );
       onResent?.();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not resend code");
@@ -104,6 +110,9 @@ export function EmailOtpForm({
         />
         <p className="mt-1.5 text-xs text-muted-foreground">
           Sent to <span className="font-medium text-foreground">{email}</span>. Expires in 10 minutes.
+          {/\.(edu|ac)\.[a-z]{2,}$/i.test(email) || /\.edu$/i.test(email) ? (
+            <> Also check <span className="font-medium text-foreground">Spam / Junk</span> — college emails often delay Gmail.</>
+          ) : null}
         </p>
       </div>
       <Button

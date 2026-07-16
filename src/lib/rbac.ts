@@ -20,7 +20,6 @@ export async function getUserRole(userId: string): Promise<AppRole | null> {
     
     return null;
   } catch (error) {
-    console.error("Error fetching user role", error);
     return null;
   }
 }

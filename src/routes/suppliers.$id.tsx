@@ -71,7 +71,6 @@ async function resolveSupplier(id: string): Promise<Supplier | null> {
       }
     }
   } catch (e) {
-    console.warn("[resolveSupplier]", e);
   }
   return null;
 }
