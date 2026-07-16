@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": false,
+  "Description": "Polish Pill component status badges with subtle borders and cleaner text styling.",
+  "EndLine": 21,
+  "Instruction": "Update Pill styling to support soft borders and premium text details.",
+  "ReplacementContent": "const map: Record<Tone, string> = {\n  default: \"bg-brand-soft/40 border-brand/20 text-brand\",\n  success: \"bg-success-soft/40 border-success/20 text-success\",\n  warning: \"bg-warning-soft/40 border-warning/20 text-warning\",\n  danger: \"bg-destructive/10 border-destructive/20 text-destructive\",\n  info: \"bg-info-soft/40 border-info/20 text-info\",\n  muted: \"bg-muted/40 border-muted-foreground/15 text-muted-foreground\",\n};\n\nexport function Pill({ tone = \"default\", children, className }: { tone?: Tone; children: React.ReactNode; className?: string }) {\n  return (\n    <span className={cn(\"inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium tracking-wide\", map[tone], className)}>\n      {children}\n    </span>\n  );\n}",
+  "StartLine": 5,
+  "TargetContent": "const map: Record<Tone, string> = {\n  default: \"bg-brand-soft text-brand\",\n  success: \"bg-success-soft text-success\",\n  warning: \"bg-warning-soft text-warning\",\n  danger: \"bg-destructive/10 text-destructive\",\n  info: \"bg-info-soft text-info\",\n  muted: \"bg-muted text-muted-foreground\",\n};\n\nexport function Pill({ tone = \"default\", children, className }: { tone?: Tone; children: React.ReactNode; className?: string }) {\n  return (\n    <span className={cn(\"inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold\", map[tone], className)}>\n      {children}\n    </span>\n  );\n}",
+  "TargetFile": "c:\\Users\\nanda\\Downloads\\vyaparsetu\\src\\components\\supplier\\Pill.tsx",
+  "toolAction": "Adding border and text styling adjustments to Pill.tsx",
+  "toolSummary": "Edit Pill.tsx"
+}

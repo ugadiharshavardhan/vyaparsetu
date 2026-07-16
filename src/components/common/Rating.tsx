@@ -1,6 +1,14 @@
 import { Star } from "lucide-react";
 
 export function Rating({ value, count, size = 14 }: { value: number; count?: number; size?: number }) {
+  if (value === 0) {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground">
+        No ratings yet
+      </span>
+    );
+  }
+
   return (
     <span className="inline-flex items-center gap-1 text-xs font-medium text-foreground">
       <Star className="fill-warning text-warning" style={{ width: size, height: size }} />

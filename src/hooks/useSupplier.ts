@@ -438,14 +438,71 @@ export function useSupplierNotifications() {
 
 /* ---------- Reviews ---------- */
 export function useSupplierReviews() {
-  const [store, update] = useStore();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  const query = useQuery({
+    queryKey: ["supplier-reviews", user?.id ?? "anon"],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("product_reviews")
+        .select(`
+          id,
+          product_id,
+          buyer_id,
+          rating,
+          comment,
+          reply,
+          created_at,
+          updated_at,
+          products!inner(
+            name,
+            seller_id
+          ),
+          buyers (
+            full_name
+          )
+        `)
+        .eq("products.seller_id", user!.id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      return (data || []).map((row: any) => ({
+        id: row.id,
+        productId: row.product_id,
+        productName: row.products?.name ?? "Product",
+        customer: row.buyers?.full_name ?? "Retailer",
+        rating: row.rating,
+        comment: row.comment ?? "",
+        reply: row.reply,
+        createdAt: row.created_at,
+      }));
+    },
+  });
+
+  const replyMutation = useMutation({
+    mutationFn: async (vars: { id: string; reply: string }) => {
+      const { error } = await supabase
+        .from("product_reviews")
+        .update({ reply: vars.reply } as any)
+        .eq("id", vars.id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["supplier-reviews", user?.id] });
+    },
+  });
+
   return {
-    reviews: store.reviews,
-    reply: (id: string, text: string) =>
-      update((s) => ({
-        ...s,
-        reviews: s.reviews.map((r) => (r.id === id ? { ...r, reply: text } : r)),
-      })),
+    reviews: query.data ?? [],
+    isLoading: query.isLoading,
+    error: query.error,
+    reply: async (id: string, text: string) => {
+      await replyMutation.mutateAsync({ id, reply: text });
+    },
   };
 }
 
@@ -582,6 +639,8 @@ async function fetchSellerOrders(sellerId: string): Promise<SupplierOrder[]> {
       expectedDelivery: order?.estimated_delivery ? String(order.estimated_delivery) : undefined,
       destination: destinationFromAddress(order?.shipping_address),
       paymentStatus: paymentStatus === "success" || paymentStatus === "paid" ? "paid" : "pending",
+      gstRate: snap.gstRate != null ? Number(snap.gstRate) : (snap.gst_rate != null ? Number(snap.gst_rate) : 18),
+      gstIncluded: snap.gstIncluded != null ? Boolean(snap.gstIncluded) : (snap.gst_included != null ? Boolean(snap.gst_included) : true),
       porterName: order?.delivery_partner ? String(order.delivery_partner) : undefined,
       vehicleDetails: order?.tracking_number ? `Track: ${String(order.tracking_number)}` : undefined,
     } satisfies SupplierOrder;

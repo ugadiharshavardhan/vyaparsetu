@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": false,
+  "Description": "Pass embedded={true} to DataTable in products list to align its borders and corners cleanly with the outer SectionCard.",
+  "EndLine": 275,
+  "Instruction": "Add embedded={true} to the DataTable prop list.",
+  "ReplacementContent": "        {/* Data Table */}\n        <DataTable<SupplierProduct>\n          rows={filtered}\n          selectable={true}\n          selectedIds={selectedIds}\n          onSelectChange={setSelectedIds}\n          pageSize={10}\n          page={page}\n          onPageChange={setPage}\n          embedded={true}\n          bulkActions={",
+  "StartLine": 263,
+  "TargetContent": "        {/* Data Table */}\n        <DataTable<SupplierProduct>\n          rows={filtered}\n          selectable={true}\n          selectedIds={selectedIds}\n          onSelectChange={setSelectedIds}\n          pageSize={10}\n          page={page}\n          onPageChange={setPage}\n          bulkActions={",
+  "TargetFile": "c:\\Users\\nanda\\Downloads\\vyaparsetu\\src\\routes\\_authenticated\\supplier.products.index.tsx",
+  "toolAction": "Passing embedded={true} to DataTable in list page",
+  "toolSummary": "Update products list route"
+}

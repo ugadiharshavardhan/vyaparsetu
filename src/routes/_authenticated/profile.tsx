@@ -209,7 +209,6 @@ function SellerOrFullProfilePage() {
   const { data: account } = useAccountFlags();
   const update = useUpdateProfile();
   const [form, setForm] = useState<Partial<Profile>>({});
-  const { data: saved = [], isLoading: savedLoading } = useWishlist();
   const cartCount = useCartCount();
 
   useEffect(() => {
@@ -348,8 +347,6 @@ function SellerOrFullProfilePage() {
               </div>
             </div>
           </form>
-
-          <SavedItemsSection saved={saved} savedLoading={savedLoading} />
         </div>
       </div>
     </div>

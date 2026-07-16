@@ -156,13 +156,22 @@
 
 # Current Project State
 
-- **Current Phase:** Hero banners + testimonial layout fix
+- **Current Phase:** Merge resolved — landing redesign + seller rating system
 - **Current Branch:** N/A
-- **Current Module:** Public marketing / home
-- **Overall Progress:** Hero shows pre-designed `/hero-banner1-3.png` (no overlay text); testimonial name no longer overlaps the portrait.
+- **Current Module:** Public marketing / home + seller ratings
+- **Overall Progress:** Kept green Hyperpure footer/landing work; retained holistic seller/product ratings from the incoming branch. Merge conflicts in `Footer.tsx` and `AGENTS.md` resolved.
 - **Last Updated:** 2026-07-17
 
 # Development History
+
+## 2026-07-17 - Resolve merge conflicts (Footer + AGENTS.md)
+
+### Why
+Branch merge left 4 conflict markers across `Footer.tsx` and `AGENTS.md`.
+
+### Changes
+- `Footer.tsx` — kept HEAD green Hyperpure footer (LinkedIn/Instagram/YouTube + store badges); dropped older placeholder social icon set
+- `AGENTS.md` — kept both landing-page and seller-rating development histories; updated Current Project State
 
 ## 2026-07-17 - Green footer + brand store icons
 
@@ -488,6 +497,104 @@ Operator requested a full landing UI redesign matching a clean B2B food-supply l
 - `FeaturedProducts.tsx` — horizontal product carousels (featured + top 3 DB categories)
 - `DeliveryModels.tsx`, `ImpactSection.tsx` — solid brand/foreground blocks (no gradients)
 - `Testimonials.tsx`, `FaqSection.tsx`, `CtaBanner.tsx` — restyled to match layout; CTA uses solid `bg-brand`
+
+## 2026-07-17 - Holistic Seller Rating System
+
+### Why
+Build a dynamic, secure, and aggregated review & rating system for sellers and products based on authentic buyer transactions, displaying live rating counts and average ratings across the platform.
+
+### Changes
+- `supabase/migrations/20260717024000_holistic_seller_rating_system.sql` — Created migration file adding rating columns to sellers table, creating the product_reviews table, defining the purchase check helper, setting up RLS, and creating rating calculation and propagation triggers.
+- `scripts/apply-rating-migration.mjs` — Added node pg database migration applier script.
+- `src/hooks/useProductReviews.ts` — Implemented React hooks to query, submit, and delete product reviews and check purchase status.
+- `src/hooks/useSupplier.ts` — Updated `useSupplierReviews` hook to fetch reviews from the database for the active seller and save review replies to Supabase.
+- `src/types/index.ts` — Added `reviewCount` to the Supplier type definition.
+- `src/lib/catalogMap.ts` — Updated `asSupplier` parsing helper to parse `reviewCount` from the database payload.
+- `src/components/common/Rating.tsx` & `RatingBadge.tsx` — Modified rating components to render a neutral "No ratings yet" label when rating or count is 0.
+- `src/components/marketplace/SupplierCard.tsx` — Updated search card to display live supplier rating and count.
+- `src/routes/suppliers.$id.tsx` — Modified resolveSupplier loader to fetch dynamic rating profiles via `get_public_supplier` RPC.
+- `src/routes/products.$slug.tsx` — Rendered live product reviews and supplier rating metrics.
+- `src/routes/_authenticated/orders.$id.tsx` — Added review dialog/star selector allowing buyers to submit, edit, or delete reviews from their order details page.
+
+## 2026-07-16 - Preserve Complete Product List State After Editing a Product
+
+### Why
+Improve the seller workflow UX by retaining filters, pagination page, search queries, sorting order, and scroll position on the Product Management page when returning from editing or deleting a product, rather than resetting everything back to defaults.
+
+### Changes
+- `src/components/supplier/DataTable.tsx` — Added optional `page` and `onPageChange` props to allow controlled pagination from the URL query string.
+- `src/routes/_authenticated/supplier.products.index.tsx` — Registered a Zod typed search validation schema `productSearchSchema` on the route, bound UI filters to `Route.useSearch()`, and added sessionStorage sync, load/restore, and scroll position restoration hooks.
+
+## 2026-07-16 - Premium UI Polish for Seller Product Management
+
+### Why
+Refine and polish the visual details of the Seller Product Management index page and related components (DataTable and Pill) to make them look clean, spacious, and production-ready, without structural or layout alterations.
+
+### Changes
+- `src/routes/_authenticated/supplier.products.index.tsx` — Styled header buttons, fully rounded search input, select dropdown inputs, category tags, price formatting, thinner progress bars, and icon hover effects.
+- `src/components/supplier/DataTable.tsx` — Styled bulk actions wrapper, moved table footer/pagination inside the card container with a soft bg and border, increased row padding, and styled pagination buttons to be fully rounded.
+- `src/components/supplier/Pill.tsx` — Added borders matching tones, updated typography to smaller uppercase medium-weight style.
+
+## 2026-07-16 - Remove Dispatch from Seller UI
+
+### Why
+Clean up the Seller interface by removing the Dispatch feature on the frontend, keeping the dashboard and selection screens concise.
+
+### Changes
+- `src/components/dashboard/DashboardSidebar.tsx` — Removed Dispatch from the seller sidebar array.
+- `src/routes/_authenticated/seller.dashboard.tsx` — Removed "Ready for pickup" StatCard, "Dispatch orders" QuickAction, updated layout to grid-5/grid-3 columns, and refined header text.
+- `src/components/auth/RoleSelect.tsx` — Changed "Dispatch" to "Sales analytics" (with `TrendingUp` icon) in the features overview list for sellers.
+- Deleted `src/routes/_authenticated/supplier.dispatch.tsx`.
+
+## 2026-07-16 - Remove Quotations, Suppliers, and Saved Items from Seller UI
+
+### Why
+Clean up the Seller interface by removing features (Quotations, Suppliers, Saved Items) strictly on the frontend, leaving the buyer features and the backend logic intact.
+
+### Changes
+- `src/components/dashboard/DashboardSidebar.tsx` — Removed Quotations and Saved items from the seller sidebar arrays, deleted the empty explore group rendering.
+- `src/components/layout/UserMenu.tsx` — Wrapped Saved items option to only render when the user is not a seller (`!isSeller`).
+- `src/routes/_authenticated/profile.tsx` — Removed Saved Items section and related `useWishlist` query/variables from the seller profile view (`SellerOrFullProfilePage`).
+- Deleted `src/routes/_authenticated/supplier.rfqs.tsx` and `src/routes/_authenticated/supplier.rfqs.$id.tsx` (seller quotations page routes).
+## 2026-07-16 - Category Card & Product Card Styling updates (Requirement 13)
+
+### Why
+Category icons were uncolored or generic and required dynamic semantic coloring, sizing improvements, and flat aesthetics. Product cards needed larger images and absolute flattening (no shadows or scale animations).
+
+### Changes
+- `categoryIconMap.ts` [NEW] — Created a central helper mapping categories to semantic Lucide icons, complementary colors, and background highlights, featuring deterministic fallbacks for new categories.
+- `CategoryCard.tsx` — Redesigned category cards and tiles to use the new central theme mapping with larger icons, removing all shadows, transitions, and hover-lifts.
+- `marketplace.tsx` — Integrated the new categories styling on the home page view and removed old hardcoded icon maps.
+- `ProductCard.tsx` — Maximized product image aspect box container space, reduced empty paddings, and removed all card hover elevations/shadows.
+
+## 2026-07-16 - Zepto-style product cards, logo marketplace nav, buyer dashboard removal
+
+### Why
+Product cards were too detailed for browse-mode, showing supplier info, GST, stock counts, and delivery on the grid. The logo pointed to the landing page instead of the marketplace. Buyers had a Dashboard link that served no unique purpose.
+
+### Changes
+- `ProductCard.tsx` — complete rewrite to Zepto-compact layout: image-dominant square, overlaid ADD button, compact price+discount row, 2-line name, MOQ, and inline star rating. Removed supplier, GST, stock, delivery, and save/view buttons from the card (moved to product detail page).
+- `ProductGrid.tsx` — denser grid (2→3→4→5→6 columns) to show more products at once.
+- `Logo.tsx` — changed `to="/"` to `to="/marketplace"` so clicking the brand returns to the marketplace from any page.
+- `UserMenu.tsx` — buyers now see "Marketplace" instead of "Dashboard" in their account dropdown. Sellers keep "Seller Dashboard" link.
+- `AGENTS.md` — documented these changes.
+
+## 2026-07-16 - Completely remove buyer sidebar, redesign top search bar, & fix navigation dead ends
+
+### Why
+The buyer-facing workspace required a more spacious, full-width design without a left sidebar, along with a prominent, modern, and responsive top search bar inspired by Swiggy's clean header layout. Additionally, removing the sidebar introduced potential navigation dead ends for pages like `/orders`, `/wishlist`, or `/profile`; hence, a comprehensive header navigation audit was conducted.
+
+### Changes
+- `DashboardLayout.tsx` — conditionally bypassed the `SidebarProvider`/`SidebarInset`/`DashboardSidebar` wrapper structure for buyer-facing workspaces to span full viewport width without side margins.
+- `DashboardTopbar.tsx` — added `isBuyerLayout` prop support. For buyers, the sidebar toggle/collapse button is removed, the VyaparSetu logo is placed on the left, the search bar is redesigned into a prominent, wide, rounded container in the middle that triggers the `SearchDialog`, and cart/notifications/user actions are aligned on the right. Added desktop navigation links (`Marketplace`, `Orders`, `Saved Items`) next to the logo, and a responsive mobile nav drawer (`Sheet` menu) for tablets/mobile screens to resolve navigation dead ends. Added responsive logo sizing (compact icon on mobile). Bypassed standalone "Suppliers" link from both desktop and mobile header systems to focus on a product-first marketplace experience. Implemented real-time search synchronization between the header input and marketplace view using URL search query parameters (`q`).
+- `marketplace.tsx` — redesigned the page into a Zepto-inspired product-first layout. Removed the redundant page-level search bar, and added category-grouped shelf displays. When no search queries or filters are active, products are grouped into dynamic, clean horizontal shelves with a "View All" redirection button. Incorporated modern responsive promotional B2B banners (bulk offers, supplier trust flags, shipping benefits) before the product listing shelves. Shuffled the category-grouped product arrays on initial render to dynamically vary the displayed selection on page refresh. Hides the subcategory list and promotional banners automatically when a search query is active to present a dedicated, clutter-free search results view. Added a brand new "Shop by Category" section featuring clean individual cards, custom mapped semantic icons (e.g. Wheat, Droplets, Cookie) from `lucide-react`, and a "View All Categories" redirection link. Configured the cards to wrap gracefully into rows via `flex-wrap` rather than displaying a horizontal scrollbar. Removed the redundant `CategoryNavBar` strip and `AllSubcategoriesStrip` (Shop by wholesale subcategory) from the marketplace landing page to streamline header spacing and flow. Styled both the "Shop by Category" section and each dynamic product shelf wrapper as container cards with rounded corners, subtle borders, padding, and soft hover shadows to make the layout feel cohesive and premium.
+- `CategoryNavBar.tsx` — removed from both the marketplace homepage and category-specific details pages to optimize layout real estate and avoid duplicate category paths.
+- `AllSubcategoriesStrip.tsx` — refactored the "Shop by wholesale subcategory" strip. Rather than hardcoded images/subcategories, the list is dynamically filtered to show only subcategories that contain active products in the database, mapping a real product image as the subcategory's visual asset. Added keyword filters (excluding "back", "label", "nutrition", "barcode", etc.) to search both primary and secondary product images and select a clear front-facing representative product packaging image. Removed from the main Marketplace homepage to show subcategories only after selecting a main category.
+- `useCatalog.ts` — refactored `fetchCategories` hook to dynamically fetch and map front-facing representative product packaging images from the products table for any category listing (on `/categories`) that lacks custom graphics.
+- `categories.$slug.tsx` — completely redesigned the category details browsing layout to use the Zepto split-screen experience. Built a vertical subcategory sidebar navigation panel on the left (showing subcategory icons/images and active category highlights) and aligned category title, breadcrumb pathways, a horizontal filters row (In Stock, GST, Sorts), and a dense responsive B2B product card grid on the right. Refactored the TanStack router loader query to explicitly join and select nested relational subcategories from the database rather than selecting `*`.
+- `postLoginRedirect.ts` — updated the default redirect for sellers to land on the `/marketplace` rather than `/seller/dashboard`.
+- `DashboardSidebar.tsx` — added a link to the `/marketplace` under the `SELLER_EXPLORE` group in the seller sidebar to allow sellers to easily transition from dashboard view to public buying views.
+- `AGENTS.md` — documented these changes.
 
 ## 2026-07-16 - Hide admin nav from buyer/seller workspaces
 
@@ -930,7 +1037,8 @@ Fix the "TrendingUp is not defined" error when accessing the Seller Product Mana
 ### Files Modified
 - `src/routes/_authenticated/supplier.products.index.tsx`
 - `AGENTS.md`
-# #   2 0 2 6 - 0 7 - 1 4   ? ?    P r o d u c t i o n   M a r k e t p l a c e   T r a n s f o r m a t i o n   P h a s e 
+# #   2 0 2 6 - 0 7 - 1 4   ? ? 
+   P r o d u c t i o n   M a r k e t p l a c e   T r a n s f o r m a t i o n   P h a s e 
  
  
  
@@ -1253,3 +1361,137 @@ All sellers had `onboarding_completed = false`, so authenticated routes redirect
 ### Changes
 - Migration `20260716160000_mark_sellers_onboarding_complete.sql`
 - `src/routes/_authenticated/route.tsx` ? established sellers (business name / GST) skip the gate
+
+## 2026-07-17 — Fix Product List State Preservation After Edit/Create/Delete
+
+### Why
+After editing, creating, or deleting a product, the seller was navigated to `/supplier/products` with no search params, resetting all filters, pagination, sort order, search text, and scroll position.
+
+### Root Cause
+`supplier.products.$id.tsx` and `supplier.products.new.tsx` both called `navigate({ to: "/supplier/products" })` without passing the current URL search params. This overwrote the URL state that the list page relies on for filters/pagination/sort.
+
+### Changes
+- `src/routes/_authenticated/supplier.products.$id.tsx` — Added `goBackToList()` helper that reads saved search state from sessionStorage and navigates with those params, preserving filters, pagination, sort, and search. Fallback to `router.history.back()` or plain navigate.
+- `src/routes/_authenticated/supplier.products.new.tsx` — Same `goBackToList()` pattern applied.
+- `src/routes/_authenticated/supplier.products.index.tsx` — Added `useRef` guards to prevent double-firing of sessionStorage restore and scroll position restore effects. Improved `hasParamsInUrl` condition to properly handle optional/default values. Added `hasSavedState` check to avoid unnecessary navigate calls.
+
+### No Backend Changes
+This was a pure frontend fix. No Supabase, database, or API changes were needed.
+
+## 2026-07-17 — Premium UI Polish for Seller Dashboard Sidebar
+
+### Why
+Modernize the seller sidebar to match the premium design language of the polished Product Management page and other dashboard components.
+
+### Changes
+- `src/components/dashboard/DashboardSidebar.tsx` — Added `cn` utility import. Refined `renderItems` with larger hit targets (h-9), brand-colored active state with inset left accent indicator (`shadow-[inset_3px_0_0_0_var(--color-brand)]`), improved icon-to-text gap (gap-3), conditional icon color transitions, refined typography (13px, semibold active vs medium inactive, tight tracking). Section group labels now use 10px uppercase with 0.08em letter-spacing and 40% opacity for maximum subtlety. Header and footer borders softened to 60% opacity with adjusted padding. Logo link has hover state. Sign-out button uses destructive hover color. Badge count uses tabular-nums and shadow-sm.
+
+### No Backend Changes
+UI-only. No navigation logic, routes, permissions, Supabase, or backend changes.
+
+## 2026-07-17 — Polish Product Edit Wizard, Fix Back Navigation, and Improve Product List Container UI
+
+### Why
+Enhance the Product edit/new wizard UI with a modern stepper design and smooth connector transitions, fix the non-functional/disabled back button when on step 0, and fix visual overlap / double borders between Search & Filters and Products Table.
+
+### Changes
+- `src/components/supplier/ProductForm.tsx` — Redesigned step indicator: custom step circle states (completed, current, upcoming) using Check icon, thin absolute horizontal connector line centered at `top-[18px]` with smooth width transition (`duration-300 ease-in-out`), and properly aligned label typography. Added `onCancel` callback prop; updated back button on step 0 to invoke `onCancel` instead of being disabled. Allowed navigation clicking on previously completed steps.
+- `src/routes/_authenticated/supplier.products.$id.tsx` — Passed `onCancel={goBackToList}` to ProductForm to ensure clicking "Back" on step 0 returns to the product list with full browsing context (filters, pagination, sort, search, scroll position).
+- `src/routes/_authenticated/supplier.products.new.tsx` — Passed `onCancel={goBackToList}` to ProductForm.
+- `src/components/supplier/DataTable.tsx` — Added optional `embedded` boolean prop. When `embedded={true}`, it hides the outer card border, background, and shadow, preventing double borders and nested curves inside other card wrappers. Rounds the bottom corners of the pagination footer to visually match the parent container.
+- `src/routes/_authenticated/supplier.products.index.tsx` — Passed `embedded={true}` to the DataTable rendering to integrate it seamlessly into the main outer card container.
+
+### No Backend Changes
+All fixes are implemented on the frontend. Existing business rules, API queries, database schema, and server endpoints are untouched.
+
+## 2026-07-17 — Dynamic and Premium Seller Payments Page
+
+### Why
+Remove all hardcoded mock figures and offsets from the Payments & Settlements page, connect stats and transaction tables to live Supabase data, and improve the UI styling (spacing, hover effects, page padding, nested card double-borders) to look high-end and premium.
+
+### Changes
+- `src/types/supplier.ts` — Added optional `gstRate?: number` and `gstIncluded?: boolean` to the `SupplierOrder` type.
+- `src/hooks/useSupplier.ts` — Updated `fetchSellerOrders` to read `gstRate` and `gstIncluded` from the order item's `product_snapshot` JSON and pass them into the mapped `SupplierOrder`.
+- `src/components/dashboard/StatCard.tsx` — Upgraded stat cards globally: adjusted height to `h-9` for the icon container, added smooth hover translations (`hover:-translate-y-0.5 hover:shadow-[0_6px_16px_rgba(0,0,0,0.06)] hover:border-border/80`), refined border radius, and polished font weights/margins. Added `"default"` tone.
+- `src/routes/_authenticated/supplier.payments.tsx` — Completely decoupled from mock stats. Dynamic calculations computed straight from the seller's active orders:
+  - *Total Revenue*: sum of valid order line amounts.
+  - *Pending Payments*: sum of valid orders awaiting settlement (`paymentStatus === "pending"`).
+  - *Released Payments*: `totalRevenue - pendingPayments`.
+  - *GST Collected*: dynamically computed for each line based on inclusive/exclusive settings (`gstIncluded` vs `gstRate`).
+  - *Next Settlement*: set to the pending payments amount.
+  - *Transaction History*: populated with real order lines and their exact GST amounts. Added `embedded={true}` to `DataTable` to prevent card-nesting double borders. Added premium loading skeleton loaders, a custom styled empty state, and an error boundary with reload capability. Refined `DataTable` to show a clean borderless layout for the empty state when `embedded` is true, avoiding double nested dashed borders.
+
+
+### Backend & Database Changes
+- Created a PostgreSQL migration `supabase/migrations/20260717000000_fix_orders_rls_recursion.sql` to resolve an infinite recursion loop in Supabase Row-Level Security (RLS) policies.
+- The loop occurred because the select/update RLS policies on `orders` and `order_items` (and the helper `seller_orders` table policies) queried each other directly.
+- Added `SECURITY DEFINER` helper functions `public.buyer_owns_order(order_id, user_id)` and `public.seller_owns_order_item(order_id, seller_id)`, and `public.seller_owns_seller_order(order_id, seller_id)`. These functions run with postgres bypass privileges, preventing recursive RLS execution.
+- Updated `orders`, `order_items`, and `seller_orders` RLS policies to use these helper functions, breaking the loops.
+- Created `scripts/apply-fix-orders-rls.mjs` to connect to pooler port `6543` and execute the migration SQL.
+- Verified that authenticated queries now execute successfully without errors.
+
+## 2026-07-17 - Premium Seller Workspace Header
+
+### Why
+The shared `DashboardTopbar` showed buyer-oriented elements (marketplace search bar, cart icon) on seller routes, making the seller workspace feel like a storefront rather than a professional dashboard.
+
+### Changes
+- `src/components/dashboard/DashboardTopbar.tsx` — Split into two rendering paths: the original buyer topbar (unchanged) and a new `SellerTopbar` component. The seller header removes marketplace search and cart, adds a workspace title derived from `business_name` with a subtle "Seller" badge, vertical dividers between sections, and improved spacing/padding matching the polished seller design system.
+- `src/components/layout/UserMenu.tsx` — Wrapped the "Cart" dropdown menu item with `!isSeller` so sellers don't see cart in their profile menu (matching the existing "Saved items" pattern).
+
+### Design
+- Workspace title shows business name (up to 3 words) + a subtle brand-colored "Seller" pill
+- Thin vertical dividers separate sidebar trigger, workspace title, and right-side actions
+- Improved horizontal padding (px-5 on sm+) for better breathing room
+- All changes scoped to `/seller/*` and `/supplier/*` routes only
+- Buyer/Admin topbars remain completely unchanged
+
+## 2026-07-17 - Logo Subtitle Clipping Fix in Sidebar
+
+### Why
+The Logo's "B2B Marketplace" subtitle text was wrapping and getting clipped at the sidebar border on screens larger than `sm` due to limited horizontal workspace width in the sidebar container.
+
+### Changes
+- `src/components/common/Logo.tsx` — Added a `hideSubtitle?: boolean` prop that conditionally omits the "B2B Marketplace" text.
+- `src/components/dashboard/DashboardSidebar.tsx` — Passed `hideSubtitle` to the `Logo` component when rendering the sidebar header.
+
+## 2026-07-17 - Header Bottom Line Alignment Fix
+
+### Why
+The bottom border of the `SidebarHeader` (64px) did not align vertically with the bottom border of the topbar header (56px) because their heights were different, creating an uneven split-line appearance.
+
+### Changes
+- `src/components/dashboard/DashboardTopbar.tsx` — Changed both default and Seller topbar container heights to `h-16` (64px) so that the bottom borders of the sidebar header and topbar header are at the exact same level.
+
+## 2026-07-17 - Verify and Fix Buyer to Seller Order Flow
+
+### Why
+1. A PL/pgSQL variable reference ambiguity error in the `buyer_owns_order` helper function caused `INSERT INTO public.order_items` queries to fail and roll back for buyers, leaving orders created with zero items.
+2. The `DROP FUNCTION ... CASCADE` in the previous session's migration accidentally deleted the RLS policies depending on the helper functions.
+3. The `useOrders` query selected a non-existent column (`tax_total`), causing database query failures on order history list.
+
+### Changes
+- `supabase/migrations/20260717013200_fix_ambiguous_rls_variables.sql` — Prefixed input argument names of helper functions (`buyer_owns_order`, `seller_owns_order_item`, `seller_owns_seller_order`) with an underscore (`_`) to eliminate column name ambiguity, and explicitly recreated all of the cascaded RLS policies on `orders`, `order_items`, and `seller_orders` to restore security configuration.
+- `src/hooks/useOrders.ts` — Updated the select columns in `useOrders` query to fetch the correct `gst_total` column instead of the non-existent `tax_total`.
+
+## 2026-07-17 - Round Off Output Tax GST Value
+
+### Why
+The GST Collected output tax stat card displayed unrounded decimals (e.g. `₹4.71428571428572`) instead of a rounded integer value.
+
+### Changes
+- `src/lib/format.ts` — Modified `compactInr` utility function to wrap the returned value in `Math.round()` for values less than 1,000. This rounds the displayed tax to clean whole rupees.
+
+## 2026-07-17 - Spacing & Padding Polish on Supplier Reports Page
+
+### Why
+The Business Reports grid cards had zero padding because `SectionCard` did not apply padding by default when no title or action header props were passed. This left elements glued directly to the edges of the cards.
+
+- `src/routes/_authenticated/supplier.reports.tsx` — Added a clean `p-6` padding class to the `SectionCard` elements inside the Business Reports grid.
+
+## 2026-07-17 - Professional Progress Stepper for Product Wizard
+
+### Why
+Improve the supplier product creation/edit wizard UX by introducing animated segmented progress lines between circles and styling step indicators following high-fidelity design standards.
+
+- `src/components/supplier/ProductForm.tsx` — Replaced the single background line with dynamically filled progress segment elements using performant CSS `scaleX` transforms, enhanced circle states (completed checkmark, current highlighted scale-105, and light gray upcoming steps), and aligned label typography weights and spacing. Fixed CSS stacking context issues by changing line z-index to `z-0` and parent container to `relative z-0` (so lines are not hidden behind card backgrounds).

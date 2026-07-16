@@ -23,6 +23,7 @@ export type Supplier = {
   location: string;
   verified: boolean;
   rating: number;
+  reviewCount?: number;
   yearsActive: number;
   logo?: string;
   description?: string;

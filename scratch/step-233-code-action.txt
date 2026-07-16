@@ -1,0 +1,15 @@
+Created At: 2026-07-16T18:36:13Z
+Completed At: 2026-07-16T18:36:13Z
+The following changes were made by the replace_file_content tool to: C:\Users\nanda\.gemini\antigravity-ide\brain\78cd280e-89ee-439c-b294-889e2462532f\task.md. If relevant, proactively run terminal commands to execute this code for the USER. Don't ask for permission.
+[diff_block_start]
+@@ -1,5 +1,5 @@
+-- [ ] Add controlled pagination support to `DataTable.tsx`
+-- [ ] Implement search params schema, storage save/restore hooks, and scroll restoration in `supplier.products.index.tsx`
++- [x] Add controlled pagination support to `DataTable.tsx`
++- [/] Implement search params schema, storage save/restore hooks, and scroll restoration in `supplier.products.index.tsx`
+ - [ ] Verify project builds successfully
+ - [ ] Update `AGENTS.md` with the new changes
+ 
+[diff_block_end]
+
+Please note that the above snippet only shows the MODIFIED lines from the last change. It shows up to 3 lines of unchanged lines before and after the modified lines. The actual file contents may have many more lines not shown.

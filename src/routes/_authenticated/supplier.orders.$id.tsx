@@ -71,7 +71,7 @@ function OrderDetailsPage() {
   return (
     <div className="container-page space-y-8 py-8">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild className="-ml-2 shrink-0">
+        <Button variant="ghost" size="icon" asChild className="h-10 w-10 rounded-full border border-border/40 hover:bg-muted/30 shrink-0">
           <Link to="/supplier/orders"><ArrowLeft className="h-5 w-5" /></Link>
         </Button>
         <div className="flex-1">
@@ -80,18 +80,18 @@ function OrderDetailsPage() {
             description={`Placed on ${new Date(order.createdAt).toLocaleString()}`}
             action={
               <div className="flex items-center gap-2">
-                <Button variant="outline" onClick={() => toast.info("Printing invoice...")}><Printer className="mr-1.5 h-4 w-4" /> Print Invoice</Button>
+                <Button variant="outline" className="rounded-full border-border/60 hover:bg-muted/40 h-10 px-5 text-sm" onClick={() => toast.info("Printing invoice...")}><Printer className="mr-1.5 h-4 w-4" /> Print Invoice</Button>
                 {order.status === "pending" && (
                   <>
-                    <Button variant="destructive" onClick={() => { updateStatus(order.id, "cancelled"); toast.success("Order rejected"); }}>Reject</Button>
-                    <Button className="bg-brand hover:bg-brand/90" onClick={() => { updateStatus(order.id, "accepted"); toast.success("Order accepted"); }}>Accept Order</Button>
+                    <Button variant="destructive" className="rounded-full h-10 px-5 text-sm font-semibold" onClick={() => { updateStatus(order.id, "cancelled"); toast.success("Order rejected"); }}>Reject</Button>
+                    <Button className="bg-brand hover:bg-brand/90 rounded-full h-10 px-5 shadow-brand text-white text-sm font-semibold" onClick={() => { updateStatus(order.id, "accepted"); toast.success("Order accepted"); }}>Accept Order</Button>
                   </>
                 )}
                 {order.status === "accepted" && (
-                  <Button className="bg-brand hover:bg-brand/90" onClick={() => { updateStatus(order.id, "packing"); toast.success("Started packing"); }}><Package className="mr-1.5 h-4 w-4" /> Start Packing</Button>
+                  <Button className="bg-brand hover:bg-brand/90 rounded-full h-10 px-5 shadow-brand text-white text-sm font-semibold" onClick={() => { updateStatus(order.id, "packing"); toast.success("Started packing"); }}><Package className="mr-1.5 h-4 w-4" /> Start Packing</Button>
                 )}
                 {order.status === "packing" && (
-                  <Button className="bg-success hover:bg-success/90" onClick={() => { updateStatus(order.id, "ready"); toast.success("Marked ready"); }}><CheckCircle2 className="mr-1.5 h-4 w-4" /> Ready for Pickup</Button>
+                  <Button className="bg-success hover:bg-success/90 rounded-full h-10 px-5 shadow-brand text-white text-sm font-semibold" onClick={() => { updateStatus(order.id, "ready"); toast.success("Marked ready"); }}><CheckCircle2 className="mr-1.5 h-4 w-4" /> Ready for Pickup</Button>
                 )}
               </div>
             }
@@ -107,8 +107,8 @@ function OrderDetailsPage() {
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
-          <SectionCard title="Products Ordered">
-            <div className="flex items-center justify-between py-3 border-b border-border last:border-0">
+          <SectionCard title="Products Ordered" className="border-border/50 shadow-soft">
+            <div className="flex items-center justify-between py-3 border-b border-border/50 last:border-0">
               <div className="flex items-center gap-4">
                 <div className="h-16 w-16 rounded-lg bg-muted flex items-center justify-center">
                   <Package className="h-6 w-6 text-muted-foreground" />
@@ -125,7 +125,7 @@ function OrderDetailsPage() {
             </div>
           </SectionCard>
 
-          <SectionCard title="Order Timeline">
+          <SectionCard title="Order Timeline" className="border-border/50 shadow-soft">
             <div className="relative pl-6 space-y-8 py-2">
               <div className="absolute left-[11px] top-3 bottom-3 w-px bg-border"></div>
               {TIMELINE_STAGES.map((stage, i) => {
@@ -167,7 +167,7 @@ function OrderDetailsPage() {
 
         {/* Sidebar */}
         <div className="space-y-6">
-          <SectionCard title="Retailer Information" className="text-sm">
+          <SectionCard title="Retailer Information" className="text-sm border-border/50 shadow-soft">
             <div className="flex items-center gap-3 mb-4">
               <div className="h-10 w-10 rounded-full bg-brand-soft text-brand flex items-center justify-center font-bold">
                 {order.customer.charAt(0)}
@@ -186,7 +186,7 @@ function OrderDetailsPage() {
             </div>
           </SectionCard>
 
-          <SectionCard title="Delivery Address" className="text-sm">
+          <SectionCard title="Delivery Address" className="text-sm border-border/50 shadow-soft">
             <div className="flex gap-2">
               <MapPin className="h-4 w-4 shrink-0 text-muted-foreground mt-0.5" />
               <div>
@@ -196,7 +196,7 @@ function OrderDetailsPage() {
             </div>
           </SectionCard>
 
-          <SectionCard title="Payment Information" className="text-sm">
+          <SectionCard title="Payment Information" className="text-sm border-border/50 shadow-soft">
             <div className="flex gap-2 mb-4">
               <CreditCard className="h-4 w-4 shrink-0 text-muted-foreground mt-0.5" />
               <div>
@@ -205,7 +205,7 @@ function OrderDetailsPage() {
               </div>
             </div>
 
-            <div className="border-t border-border pt-4 space-y-2">
+            <div className="border-t border-border/50 pt-4 space-y-2">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Subtotal</span>
                 <span>{inr(order.amount * 0.82)}</span>
@@ -218,7 +218,7 @@ function OrderDetailsPage() {
                 <span className="text-muted-foreground">Shipping</span>
                 <span>{inr(0)}</span>
               </div>
-              <div className="flex justify-between font-bold pt-2 border-t border-border">
+              <div className="flex justify-between font-bold pt-2 border-t border-border/50">
                 <span>Total</span>
                 <span>{inr(order.amount)}</span>
               </div>

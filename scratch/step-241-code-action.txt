@@ -1,0 +1,83 @@
+Created At: 2026-07-16T18:36:28Z
+Completed At: 2026-07-16T18:36:30Z
+The following changes were made by the replace_file_content tool to: c:\Users\nanda\Downloads\vyaparsetu\src\routes\_authenticated\supplier.products.index.tsx. If relevant, proactively run terminal commands to execute this code for the USER. Don't ask for permission.
+[diff_block_start]
+@@ -57,13 +57,68 @@
+   // Selection
+   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+ 
+-  // Filters
+-  const [q, setQ] = useState("");
+-  const [cat, setCat] = useState("all");
+-  const [status, setStatus] = useState("all");
+-  const [stock, setStock] = useState("all");
+-  const [brand, setBrand] = useState("all");
+-  const [sortBy, setSortBy] = useState("newest");
++  const search = Route.useSearch();
++  const navigate = useNavigate();
++
++  const q = search.q ?? "";
++  const cat = search.cat ?? "all";
++  const status = search.status ?? "all";
++  const stock = search.stock ?? "all";
++  const brand = search.brand ?? "all";
++  const sortBy = search.sortBy ?? "newest";
++  const page = search.page ?? 1;
++
++  const setQ = (val: string) => navigate({ search: (prev) => ({ ...prev, q: val || undefined, page: 1 }), replace: true });
++  const setCat = (val: string) => navigate({ search: (prev) => ({ ...prev, cat: val !== "all" ? val : undefined, page: 1 }) });
++  const setStatus = (val: string) => navigate({ search: (prev) => ({ ...prev, status: val !== "all" ? val : undefined, page: 1 }) });
++  const setStock = (val: string) => navigate({ search: (prev) => ({ ...prev, stock: val !== "all" ? val : undefined, page: 1 }) });
++  const setBrand = (val: string) => navigate({ search: (prev) => ({ ...prev, brand: val !== "all" ? val : undefined, page: 1 }) });
++  const setSortBy = (val: string) => navigate({ search: (prev) => ({ ...prev, sortBy: val !== "newest" ? val : undefined }) });
++  const setPage = (p: number) => navigate({ search: (prev) => ({ ...prev, page: p }) });
++
++  // Restore query parameters from sessionStorage on mount if URL has no active params
++  useEffect(() => {
++    const savedSearch = sessionStorage.getItem("vs:supplier:products:search");
++    if (savedSearch) {
++      try {
++        const parsed = JSON.parse(savedSearch);
++        const hasParamsInUrl = Boolean(search.q || search.cat !== "all" || search.status !== "all" || search.stock !== "all" || search.brand !== "all" || search.sortBy !== "newest" || (search.page && search.page > 1));
++
++        if (!hasParamsInUrl) {
++          navigate({ search: parsed, replace: true });
++        }
++      } catch {
++        // Ignore
++      }
++    }
++  }, []);
++
++  // Save query parameters to sessionStorage when they change
++  useEffect(() => {
++    sessionStorage.setItem("vs:supplier:products:search", JSON.stringify(search));
++  }, [search]);
++
++  // Track and save scroll position
++  useEffect(() => {
++    const handleScroll = () => {
++      if (window.scrollY > 0) {
++        sessionStorage.setItem("vs:supplier:products:scroll", String(window.scrollY));
++      }
++    };
++    window.addEventListener("scroll", handleScroll, { passive: true });
++    return () => window.removeEventListener("scroll", handleScroll);
++  }, []);
++
++  // Restore scroll position after loading products
++  useEffect(() => {
++    const savedScroll = sessionStorage.getItem("vs:supplier:products:scroll");
++    if (savedScroll && products.length > 0) {
++      const timer = setTimeout(() => {
++        window.scrollTo({ top: Number(savedScroll), behavior: "instant" as any });
++      }, 100);
++      return () => clearTimeout(timer);
++    }
++  }, [products]);
+ 
+   const categories = useMemo(() => Array.from(new Set(products.map((p) => p.category))), [products]);
+   const brands = useMemo(() => Array.from(new Set(products.map((p) => p.brand).filter(Boolean))), [products]);
+[diff_block_end]
+
+Please note that the above snippet only shows the MODIFIED lines from the last change. It shows up to 3 lines of unchanged lines before and after the modified lines. The actual file contents may have many more lines not shown.

@@ -3,17 +3,15 @@ import { cn } from "@/lib/utils";
 
 export function Logo({
   compact = false,
-  variant = "default",
   className,
 }: {
   compact?: boolean;
-  variant?: "default" | "onBrand";
   className?: string;
 }) {
   const onBrand = variant === "onBrand";
   return (
     <Link
-      to="/"
+      to="/marketplace"
       className={cn(
         "group inline-flex shrink-0 flex-nowrap items-center gap-2.5 whitespace-nowrap",
         compact && "justify-center",
@@ -40,12 +38,7 @@ export function Logo({
           >
             VyaparSetu
           </span>
-          <span
-            className={cn(
-              "mt-0.5 text-[10px] font-medium uppercase tracking-[0.14em]",
-              onBrand ? "text-white/70" : "text-muted-foreground",
-            )}
-          >
+          <span className="hidden text-[10px] uppercase tracking-[0.16em] text-muted-foreground sm:inline">
             B2B Marketplace
           </span>
         </span>

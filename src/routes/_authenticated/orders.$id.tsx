@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Download, HelpCircle, Package, RotateCcw, Truck, XCircle } from "lucide-react";
+import { useState } from "react";
+import { ArrowLeft, Download, HelpCircle, Package, RotateCcw, Truck, XCircle, Star, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { OrderTimeline } from "@/components/orders/OrderTimeline";
@@ -8,6 +9,9 @@ import { useRepeatOrder } from "@/hooks/useCart";
 import { inr } from "@/lib/format";
 import { STATUS_LABELS } from "@/lib/commerce";
 import { toast } from "sonner";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { useProductReviews, useSubmitReview, useDeleteReview } from "@/hooks/useProductReviews";
 
 export const Route = createFileRoute("/_authenticated/orders/$id")({
   head: () => ({ meta: [{ title: "Order details — VyaparSetu" }] }),
@@ -136,6 +140,11 @@ function OrderDetailPage() {
                         Supplier: {it.product_snapshot.supplierName} · {it.quantity} × {inr(it.unit_price)}
                       </div>
                       <div className="text-[11px] text-muted-foreground">GST {it.gst_rate}% · {inr(it.gst_amount)}</div>
+                      {!["pending", "cancelled"].includes(order.status) && (
+                        <div className="mt-2">
+                          <ProductReviewButton productId={it.product_id} productName={it.product_snapshot.name} />
+                        </div>
+                      )}
                     </div>
                     <div className="text-right">
                       <div className="text-sm font-semibold">{inr(it.line_total)}</div>
@@ -206,5 +215,157 @@ function Row({ label, value, muted, accent, bold }: { label: string; value: stri
       <span className={muted ? "text-muted-foreground" : "text-foreground"}>{label}</span>
       <span className={`${bold ? "font-bold text-base" : "font-medium"} ${accent ? "text-emerald-600" : ""}`}>{value}</span>
     </div>
+  );
+}
+
+function ProductReviewButton({ productId, productName }: { productId: string; productName: string }) {
+  const { user } = useAuth();
+  const { data: reviews, isLoading } = useProductReviews(productId);
+  const submitReview = useSubmitReview();
+  const deleteReview = useDeleteReview();
+
+  const [isOpen, setIsOpen] = useState(false);
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState("");
+  const [hoverRating, setHoverRating] = useState<number | null>(null);
+
+  const myReview = reviews?.find((r) => r.buyerId === user?.id);
+
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open);
+    if (open && myReview) {
+      setRating(myReview.rating);
+      setComment(myReview.comment ?? "");
+    } else if (open) {
+      setRating(5);
+      setComment("");
+    }
+  };
+
+  const handleSubmit = async () => {
+    try {
+      await submitReview.mutateAsync({
+        productId,
+        rating,
+        comment: comment.trim() || null,
+      });
+      toast.success("Review submitted successfully");
+      setIsOpen(false);
+    } catch (e: any) {
+      toast.error(e.message || "Failed to submit review");
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!myReview) return;
+    try {
+      await deleteReview.mutateAsync({
+        reviewId: myReview.id,
+        productId,
+      });
+      toast.success("Review deleted successfully");
+      setIsOpen(false);
+    } catch (e: any) {
+      toast.error(e.message || "Failed to delete review");
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <Button variant="ghost" size="sm" disabled className="h-8 px-2 text-xs">
+        <Loader2 className="h-3 w-3 animate-spin mr-1" /> Loading…
+      </Button>
+    );
+  }
+
+  return (
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+      <DialogTrigger asChild>
+        {myReview ? (
+          <Button variant="outline" size="sm" className="h-8 px-3 rounded-full text-xs font-semibold border-amber-500/20 text-amber-600 hover:bg-amber-50 transition-colors cursor-pointer">
+            ★ {myReview.rating} · Edit Review
+          </Button>
+        ) : (
+          <Button variant="ghost" size="sm" className="h-8 px-3 rounded-full text-xs font-semibold text-brand hover:bg-brand-soft/20 transition-colors cursor-pointer">
+            Write a Review
+          </Button>
+        )}
+      </DialogTrigger>
+      <DialogContent className="rounded-2xl max-w-md bg-card border-border shadow-elevated">
+        <DialogHeader>
+          <DialogTitle>Review {productName}</DialogTitle>
+          <DialogDescription>
+            Share your experience to help other retailers make informed wholesale purchases.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-4">
+          <div className="flex flex-col items-center gap-2">
+            <div className="text-sm font-semibold text-muted-foreground">Overall Rating</div>
+            <div className="flex gap-1.5">
+              {Array.from({ length: 5 }).map((_, i) => {
+                const starVal = i + 1;
+                const active = hoverRating !== null ? starVal <= hoverRating : starVal <= rating;
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setRating(starVal)}
+                    onMouseEnter={() => setHoverRating(starVal)}
+                    onMouseLeave={() => setHoverRating(null)}
+                    className="cursor-pointer transition-transform duration-100 hover:scale-110 focus:outline-none"
+                  >
+                    <Star
+                      className={`h-8 w-8 ${
+                        active ? "fill-warning text-warning" : "text-muted-foreground/30"
+                      }`}
+                    />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Feedback Comments</label>
+            <Textarea
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              placeholder="How was the product quality, packaging, and supplier dispatch timeline? (Optional)"
+              rows={4}
+              className="resize-none rounded-xl bg-background border-border"
+            />
+          </div>
+        </div>
+
+        <DialogFooter className="flex flex-row sm:justify-between items-center gap-2">
+          {myReview ? (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={handleDelete}
+              disabled={deleteReview.isPending}
+              className="text-destructive hover:bg-destructive/10 rounded-full h-10 px-4 mr-auto cursor-pointer"
+            >
+              <Trash2 className="h-4 w-4 mr-1.5" /> Delete
+            </Button>
+          ) : (
+            <div />
+          )}
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setIsOpen(false)} className="rounded-full h-10 px-5 cursor-pointer">
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={submitReview.isPending}
+              className="rounded-full h-10 px-5 bg-brand hover:bg-brand-dark text-white font-semibold cursor-pointer"
+            >
+              {submitReview.isPending ? "Saving…" : "Submit Review"}
+            </Button>
+          </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

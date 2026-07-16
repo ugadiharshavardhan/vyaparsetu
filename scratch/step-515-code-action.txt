@@ -1,0 +1,28 @@
+Created At: 2026-07-16T19:15:45Z
+Completed At: 2026-07-16T19:15:47Z
+The following changes were made by the replace_file_content tool to: c:\Users\nanda\Downloads\vyaparsetu\AGENTS.md. If relevant, proactively run terminal commands to execute this code for the USER. Don't ask for permission.
+[diff_block_start]
+@@ -997,4 +997,20 @@
+ ### No Backend Changes
+ UI-only. No navigation logic, routes, permissions, Supabase, or backend changes.
+ 
++## 2026-07-17 — Polish Product Edit Wizard, Fix Back Navigation, and Improve Product List Container UI
++
++### Why
++Enhance the Product edit/new wizard UI with a modern stepper design and smooth connector transitions, fix the non-functional/disabled back button when on step 0, and fix visual overlap / double borders between Search & Filters and Products Table.
++
++### Changes
++- `src/components/supplier/ProductForm.tsx` — Redesigned step indicator: custom step circle states (completed, current, upcoming) using Check icon, thin absolute horizontal connector line centered at `top-[18px]` with smooth width transition (`duration-300 ease-in-out`), and properly aligned label typography. Added `onCancel` callback prop; updated back button on step 0 to invoke `onCancel` instead of being disabled. Allowed navigation clicking on previously completed steps.
++- `src/routes/_authenticated/supplier.products.$id.tsx` — Passed `onCancel={goBackToList}` to ProductForm to ensure clicking "Back" on step 0 returns to the product list with full browsing context (filters, pagination, sort, search, scroll position).
++- `src/routes/_authenticated/supplier.products.new.tsx` — Passed `onCancel={goBackToList}` to ProductForm.
++- `src/components/supplier/DataTable.tsx` — Added optional `embedded` boolean prop. When `embedded={true}`, it hides the outer card border, background, and shadow, preventing double borders and nested curves inside other card wrappers. Rounds the bottom corners of the pagination footer to visually match the parent container.
++- `src/routes/_authenticated/supplier.products.index.tsx` — Passed `embedded={true}` to the DataTable rendering to integrate it seamlessly into the main outer card container.
++
++### No Backend Changes
++All fixes are implemented on the frontend. Existing business rules, API queries, database schema, and server endpoints are untouched.
++
++
+ 
+[diff_block_end]
+
+Please note that the above snippet only shows the MODIFIED lines from the last change. It shows up to 3 lines of unchanged lines before and after the modified lines. The actual file contents may have many more lines not shown.

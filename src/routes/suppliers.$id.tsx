@@ -29,6 +29,20 @@ async function resolveSupplier(id: string): Promise<Supplier | null> {
   const normalized = id.trim();
   if (!normalized) return null;
 
+  try {
+    const { data: dbSupplier, error: rpcErr } = await supabase.rpc("get_public_supplier", {
+      _identifier: normalized
+    });
+    if (!rpcErr && dbSupplier) {
+      const supplier = asSupplier(dbSupplier);
+      return {
+        ...supplier,
+        description: supplier.description ?? `${supplier.name} — verified wholesale partner on VyaparSetu.`,
+      };
+    }
+  } catch (e) {
+  }
+
   const fromDirectory =
     getSupplierById(normalized) ||
     SUPPLIERS.find((s) => s.id.toLowerCase() === normalized.toLowerCase()) ||
@@ -180,7 +194,7 @@ function SupplierProfile() {
                 <MapPin className="h-3.5 w-3.5" />
                 {supplier.location}
               </span>
-              <Rating value={supplier.rating} />
+              <Rating value={supplier.rating} count={supplier.reviewCount} />
               <span className="inline-flex items-center gap-1">
                 <Calendar className="h-3.5 w-3.5" />
                 {supplier.yearsActive}+ yrs

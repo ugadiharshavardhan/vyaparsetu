@@ -127,6 +127,8 @@ export type SupplierOrder = {
   destination: string;
   paymentStatus: "paid" | "pending";
   gstDetails?: string;
+  gstRate?: number;
+  gstIncluded?: boolean;
   porterName?: string;
   porterContact?: string;
   vehicleDetails?: string;

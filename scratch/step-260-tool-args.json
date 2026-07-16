@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": false,
+  "Description": "Remove duplicate navigate declaration.",
+  "EndLine": 63,
+  "Instruction": "Remove line 61 containing duplicate navigate.",
+  "ReplacementContent": "  const search = Route.useSearch();",
+  "StartLine": 59,
+  "TargetContent": "  const search = Route.useSearch();\n  const navigate = useNavigate();",
+  "TargetFile": "c:\\Users\\nanda\\Downloads\\vyaparsetu\\src\\routes\\_authenticated\\supplier.products.index.tsx",
+  "toolAction": "Removing duplicate navigate declaration in supplier.products.index.tsx",
+  "toolSummary": "Edit supplier.products.index.tsx"
+}

@@ -1,0 +1,15 @@
+Created At: 2026-07-16T18:37:04Z
+Completed At: 2026-07-16T18:37:07Z
+The following changes were made by the replace_file_content tool to: c:\Users\nanda\Downloads\vyaparsetu\src\routes\_authenticated\supplier.products.index.tsx. If relevant, proactively run terminal commands to execute this code for the USER. Don't ask for permission.
+[diff_block_start]
+@@ -58,7 +58,6 @@
+   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+ 
+   const search = Route.useSearch();
+-  const navigate = useNavigate();
+ 
+   const q = search.q ?? "";
+   const cat = search.cat ?? "all";
+[diff_block_end]
+
+Please note that the above snippet only shows the MODIFIED lines from the last change. It shows up to 3 lines of unchanged lines before and after the modified lines. The actual file contents may have many more lines not shown.

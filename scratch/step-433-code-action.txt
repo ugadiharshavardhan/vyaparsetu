@@ -1,0 +1,32 @@
+Created At: 2026-07-16T18:57:06Z
+Completed At: 2026-07-16T18:57:17Z
+The following changes were made by the replace_file_content tool to: c:\Users\nanda\Downloads\vyaparsetu\AGENTS.md. If relevant, proactively run terminal commands to execute this code for the USER. Don't ask for permission.
+[diff_block_start]
+@@ -969,4 +969,20 @@
+ ### Changes
+ - Migration `20260716160000_mark_sellers_onboarding_complete.sql`
+ - `src/routes/_authenticated/route.tsx` ? established sellers (business name / GST) skip the gate
++
++## 2026-07-17 — Fix Product List State Preservation After Edit/Create/Delete
++
++### Why
++After editing, creating, or deleting a product, the seller was navigated to `/supplier/products` with no search params, resetting all filters, pagination, sort order, search text, and scroll position.
++
++### Root Cause
++`supplier.products.$id.tsx` and `supplier.products.new.tsx` both called `navigate({ to: "/supplier/products" })` without passing the current URL search params. This overwrote the URL state that the list page relies on for filters/pagination/sort.
++
++### Changes
++- `src/routes/_authenticated/supplier.products.$id.tsx` — Added `goBackToList()` helper that reads saved search state from sessionStorage and navigates with those params, preserving filters, pagination, sort, and search. Fallback to `router.history.back()` or plain navigate.
++- `src/routes/_authenticated/supplier.products.new.tsx` — Same `goBackToList()` pattern applied.
++- `src/routes/_authenticated/supplier.products.index.tsx` — Added `useRef` guards to prevent double-firing of sessionStorage restore and scroll position restore effects. Improved `hasParamsInUrl` condition to properly handle optional/default values. Added `hasSavedState` check to avoid unnecessary navigate calls.
++
++### No Backend Changes
++This was a pure frontend fix. No Supabase, database, or API changes were needed.
+ 
+[diff_block_end]
+
+Please note that the above snippet only shows the MODIFIED lines from the last change. It shows up to 3 lines of unchanged lines before and after the modified lines. The actual file contents may have many more lines not shown.
+
+You had inaccuracies in your replacement chunks, so you should review the file contents before making further edits. It is important that you get the target content EXACTLY right, otherwise you will make more mistakes.
+
+We did our best to apply changes despite some inaccuracies. Double check if the edit applied is what you intended.

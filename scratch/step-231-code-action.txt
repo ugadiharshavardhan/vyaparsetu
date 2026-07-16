@@ -1,0 +1,50 @@
+Created At: 2026-07-16T18:36:08Z
+Completed At: 2026-07-16T18:36:10Z
+The following changes were made by the replace_file_content tool to: c:\Users\nanda\Downloads\vyaparsetu\src\components\supplier\DataTable.tsx. If relevant, proactively run terminal commands to execute this code for the USER. Don't ask for permission.
+[diff_block_start]
+@@ -22,6 +22,8 @@
+   onSelectChange,
+   bulkActions,
+   pageSize = 10,
++  page: externalPage,
++  onPageChange: externalOnPageChange,
+ }: {
+   columns: Column<T>[];
+   rows: T[];
+@@ -31,12 +31,31 @@
+   onSelectChange?: (ids: string[]) => void;
+   bulkActions?: ReactNode;
+   pageSize?: number;
++  page?: number;
++  onPageChange?: (page: number) => void;
+ }) {
+-  const [page, setPage] = useState(1);
++  const [internalPage, setInternalPage] = useState(1);
++  const isControlledPage = externalPage !== undefined && externalOnPageChange !== undefined;
++  const page = isControlledPage ? externalPage : internalPage;
++  const setPage = (p: number | ((prev: number) => number)) => {
++    const nextVal = typeof p === "function" ? p(page) : p;
++    if (isControlledPage) {
++      externalOnPageChange(nextVal);
++    } else {
++      setInternalPage(nextVal);
++    }
++  };
++
+   const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
+   
+   // Reset page if data length changes drastically
+-  if (page > totalPages) setPage(totalPages);
++  if (page > totalPages) {
++    if (isControlledPage) {
++      externalOnPageChange(totalPages);
++    } else {
++      setInternalPage(totalPages);
++    }
++  }
+ 
+   const paginatedRows = rows.slice((page - 1) * pageSize, page * pageSize);
+ 
+[diff_block_end]
+
+Please note that the above snippet only shows the MODIFIED lines from the last change. It shows up to 3 lines of unchanged lines before and after the modified lines. The actual file contents may have many more lines not shown.

@@ -1,0 +1,120 @@
+Created At: 2026-07-16T20:37:32Z
+Completed At: 2026-07-16T20:37:33Z
+
+				The command completed successfully.
+				Output:
+				<truncated 258 lines>
++                  </div>
+                   <div className="min-w-0">
+-                    <div className="truncate font-semibold text-foreground">{p.name}</div>
+-                    <div className="text-xs text-muted-foreground font-mono mt-0.5">{p.sku}</div>
++                    <div className="font-semibold text-sm text-foreground/90 break-words leading-tight">{p.name}</div>
++                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-mono mt-1">{p.sku}</div>
+                   </div>
+                 </div>
+               ),
+@@ -212,22 +300,22 @@ function SupplierProductsPage() {
+               key: "category_brand",
+               header: "Category & Brand",
+               cell: (p) => (
+-                <div className="flex flex-col gap-1">
+-                  <span className="text-sm font-medium">{p.brand || "—"}</span>
+-                  <span className="inline-flex w-fit items-center rounded-full bg-info-soft px-2 py-0.5 text-[10px] font-semibold capitalize text-info">
++                <div className="flex flex-col gap-1.5">
++                  <span className="text-sm font-medium text-foreground/90">{p.brand || "—"}</span>
++                  <span className="inline-flex w-fit items-center rounded-full bg-info-soft/40 border border-info-soft/10 px-2 py-0.5 text-[10px] font-semibold capitalize text-info">
+                     {p.category.replace("-", " ")}
+                   </span>
+                 </div>
+               ),
+             },
+-            { key: "moq", header: "MOQ", cell: (p) => <span className="text-sm font-medium">{p.moq} {p.unit}</span> },
++            { key: "moq", header: "MOQ", cell: (p) => <span className="text-sm font-medium text-foreground/80">{p.moq} {p.unit}</span> },
+             {
+               key: "price_gst",
+               header: "Price & GST",
+               cell: (p) => (
+                 <div className="flex flex-col">
+-                  <span className="font-semibold">{inr(p.wholesalePrice)}</span>
+-                  <span className="text-[11px] text-muted-foreground">GST: {p.gstRate}%</span>
++                  <span className="font-semibold text-foreground">{inr(p.wholesalePrice)}</span>
++                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground/70 mt-0.5">GST {p.gstRate}%</span>
+                 </div>
+               ),
+             },
+@@ -237,15 +325,14 @@ function SupplierProductsPage() {
+               cell: (p) => {
+                 const band = stockBand(p);
+                 const s = bandStyles[band];
+-                // Full bar when any stock is available; empty only when out of stock
+                 const pct = p.stock <= 0 ? 0 : 100;
+                 return (
+-                  <div className="min-w-[120px] space-y-1.5">
++                  <div className="min-w-[120px] space-y-1">
+                     <div className="flex items-center justify-between text-xs">
+-                      <span className={cn("font-semibold", s.text)}>{p.stock === 0 ? "Out of Stock" : `${p.stock} ${p.unit}`}</span>
++                      <span className={cn("font-medium", s.text)}>{p.stock === 0 ? "Out of Stock" : `${p.stock} ${p.unit}`}</span>
+                     </div>
+-                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+-                      <div className={cn("h-full rounded-full", s.bar)} style={{ width: `${pct}%` }} />
++                    <div className="h-1 w-full overflow-hidden rounded-full bg-muted/60">
++                      <div className={cn("h-full rounded-full transition-all duration-300", s.bar)} style={{ width: `${pct}%` }} />
+                     </div>
+                   </div>
+                 );
+@@ -263,22 +350,22 @@ function SupplierProductsPage() {
+             {
+               key: "updatedAt",
+               header: "Last Updated",
+-              cell: (p) => <span className="text-xs text-muted-foreground">{new Date(p.updatedAt).toLocaleDateString()}</span>,
++              cell: (p) => <span className="text-xs text-muted-foreground/80">{new Date(p.updatedAt).toLocaleDateString()}</span>,
+             },
+             {
+               key: "actions",
+               header: "",
+               className: "text-right",
+               cell: (p) => (
+-                <div className="flex items-center justify-end gap-1">
+-                  <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); navigate({ to: "/supplier/products/$id", params: { id: p.id } }); }}><Edit3 className="h-4 w-4" /></Button>
++                <div className="flex items-center justify-end gap-1.5">
++                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-colors" onClick={(e) => { e.stopPropagation(); navigate({ to: "/supplier/products/$id", params: { id: p.id } }); }}><Edit3 className="h-4 w-4" /></Button>
+                   <DropdownMenu>
+                     <DropdownMenuTrigger asChild>
+-                      <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
++                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-colors" onClick={(e) => e.stopPropagation()}>
+                         <MoreVertical className="h-4 w-4" />
+                       </Button>
+                     </DropdownMenuTrigger>
+-                    <DropdownMenuContent align="end">
++                    <DropdownMenuContent align="end" className="rounded-xl border-border/80 shadow-elevated">
+                       <DropdownMenuItem onClick={() => { navigate({ to: "/supplier/products/$id", params: { id: p.id } }); }}>
+                         <Search className="mr-2 h-3.5 w-3.5" /> View details
+                       </DropdownMenuItem>
+@@ -289,7 +376,7 @@ function SupplierProductsPage() {
+                         <RefreshCcw className="mr-2 h-3.5 w-3.5" /> {p.status === "archived" ? "Unarchive" : "Archive"}
+                       </DropdownMenuItem>
+                       <DropdownMenuSeparator />
+-                      <DropdownMenuItem className="text-destructive" onClick={() => { void remove(p.id).then(() => toast.success("Deleted")).catch((e: Error) => toast.error(e.message)); }}>
++                      <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => { void remove(p.id).then(() => toast.success("Deleted")).catch((e: Error) => toast.error(e.message)); }}>
+                         <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete
+                       </DropdownMenuItem>
+                     </DropdownMenuContent>
+@@ -317,12 +404,12 @@ function SupplierProductsPage() {
+ 
+ function SummaryCard({ title, value, icon: Icon, tint }: { title: string; value: number | string; icon: React.ComponentType<{ className?: string }>; tint: string }) {
+   return (
+-    <div className="rounded-2xl border border-border bg-card p-5 shadow-soft transition-all hover:shadow-md">
+-      <div className="flex items-center gap-3 mb-2">
+-        <span className={cn("grid h-8 w-8 place-items-center rounded-lg", tint)}><Icon className="h-4 w-4" /></span>
+-        <span className="text-sm font-medium text-muted-foreground">{title}</span>
++    <div className="rounded-2xl border border-border/50 bg-card p-6 shadow-[0_2px_8px_rgba(0,0,0,0.02)] transition-all duration-200 ease-in-out hover:shadow-[0_6px_16px_rgba(0,0,0,0.06)] hover:border-border/80 hover:-translate-y-0.5">
++      <div className="flex items-center gap-3.5 mb-3">
++        <span className={cn("grid h-9 w-9 place-items-center rounded-xl transition-colors", tint)}><Icon className="h-4 w-4" /></span>
++        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/80">{title}</span>
+       </div>
+-      <div className="text-2xl font-display font-bold">{value}</div>
++      <div className="text-3xl font-display font-bold tracking-tight text-foreground">{value}</div>
+     </div>
+   );
+ }
+

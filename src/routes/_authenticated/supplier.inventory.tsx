@@ -85,15 +85,16 @@ function InventoryPage() {
         </TabsList>
 
         <TabsContent value="stock" className="m-0 space-y-6">
-          <SectionCard className="p-0 overflow-visible">
-            <div className="p-4 border-b border-border flex items-center bg-muted/10">
+          <SectionCard className="p-0 overflow-hidden border-border/50 shadow-soft">
+            <div className="px-6 py-5 border-b border-border flex items-center bg-muted/5 rounded-t-2xl">
               <div className="relative w-full max-w-sm">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input className="pl-9 bg-background" placeholder="Search by Product Name or SKU..." value={q} onChange={(e) => setQ(e.target.value)} />
+                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/80" />
+                <Input className="pl-9.5 bg-background rounded-full border-border/70 h-10 shadow-sm" placeholder="Search by Product Name or SKU..." value={q} onChange={(e) => setQ(e.target.value)} />
               </div>
             </div>
             <DataTable<SupplierProduct>
               rows={filteredProducts}
+              embedded={true}
               pageSize={10}
               columns={[
                 {
@@ -152,9 +153,14 @@ function InventoryPage() {
         </TabsContent>
 
         <TabsContent value="alerts" className="m-0 space-y-6">
-          <SectionCard title="Low Stock Alerts" description="Products that have fallen below their minimum required reorder level." className="p-0 overflow-visible">
+          <SectionCard className="p-0 overflow-hidden border-border/50 shadow-soft">
+            <div className="px-6 py-5 border-b border-border bg-muted/5">
+              <h3 className="font-semibold text-base text-foreground">Low Stock Alerts</h3>
+              <p className="text-xs text-muted-foreground mt-1">Products that have fallen below their minimum required reorder level.</p>
+            </div>
             <DataTable<SupplierProduct>
               rows={[...out, ...low]}
+              embedded={true}
               columns={[
                 {
                   key: "product",
@@ -211,9 +217,14 @@ function InventoryPage() {
         </TabsContent>
 
         <TabsContent value="warehouses" className="m-0 space-y-6">
-          <SectionCard title="Warehouse Management" description="Manage storage locations and capacity." className="p-0 overflow-visible">
+          <SectionCard className="p-0 overflow-hidden border-border/50 shadow-soft">
+            <div className="px-6 py-5 border-b border-border bg-muted/5">
+              <h3 className="font-semibold text-base text-foreground">Warehouse Management</h3>
+              <p className="text-xs text-muted-foreground mt-1">Manage storage locations and capacity.</p>
+            </div>
             <DataTable<Warehouse>
               rows={warehouses}
+              embedded={true}
               columns={[
                 {
                   key: "name",

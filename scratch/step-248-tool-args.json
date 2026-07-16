@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": false,
+  "Description": "Pass page and onPageChange props to DataTable to make pagination controlled by the URL state.",
+  "EndLine": 262,
+  "Instruction": "Pass page={page} and onPageChange={setPage} to DataTable component in supplier.products.index.tsx.",
+  "ReplacementContent": "        <DataTable<SupplierProduct>\n          rows={filtered}\n          selectable={true}\n          selectedIds={selectedIds}\n          onSelectChange={setSelectedIds}\n          pageSize={10}\n          page={page}\n          onPageChange={setPage}\n          bulkActions={",
+  "StartLine": 254,
+  "TargetContent": "        <DataTable<SupplierProduct>\n          rows={filtered}\n          selectable={true}\n          selectedIds={selectedIds}\n          onSelectChange={setSelectedIds}\n          pageSize={10}\n          bulkActions={",
+  "TargetFile": "c:\\Users\\nanda\\Downloads\\vyaparsetu\\src\\routes\\_authenticated\\supplier.products.index.tsx",
+  "toolAction": "Linking DataTable pagination state to URL search parameters",
+  "toolSummary": "Edit supplier.products.index.tsx"
+}

@@ -115,28 +115,40 @@ function ProvidedUserMenu() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link to={isSeller ? "/seller/dashboard" : "/buyer/dashboard"} className="cursor-pointer">
-            <LayoutDashboard className="mr-2 h-4 w-4" /> Dashboard
-          </Link>
-        </DropdownMenuItem>
+        {isSeller ? (
+          <DropdownMenuItem asChild>
+            <Link to="/seller/dashboard" className="cursor-pointer">
+              <LayoutDashboard className="mr-2 h-4 w-4" /> Seller Dashboard
+            </Link>
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem asChild>
+            <Link to="/marketplace" className="cursor-pointer">
+              <LayoutDashboard className="mr-2 h-4 w-4" /> Marketplace
+            </Link>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem asChild>
           <Link to="/profile" className="cursor-pointer">
             <UserIcon className="mr-2 h-4 w-4" /> Profile
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem
-          className="cursor-pointer"
-          onSelect={(e) => {
-            e.preventDefault();
-            void navigate({ to: "/wishlist" });
-          }}
-        >
-          <Heart className="mr-2 h-4 w-4" /> Saved items
-        </DropdownMenuItem>
-        <DropdownMenuItem className="cursor-pointer" onSelect={() => openCartSheet()}>
-          <ShoppingCart className="mr-2 h-4 w-4" /> Cart
-        </DropdownMenuItem>
+        {!isSeller && (
+          <DropdownMenuItem
+            className="cursor-pointer"
+            onSelect={(e) => {
+              e.preventDefault();
+              void navigate({ to: "/wishlist" });
+            }}
+          >
+            <Heart className="mr-2 h-4 w-4" /> Saved items
+          </DropdownMenuItem>
+        )}
+        {!isSeller && (
+          <DropdownMenuItem className="cursor-pointer" onSelect={() => openCartSheet()}>
+            <ShoppingCart className="mr-2 h-4 w-4" /> Cart
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem
           className="cursor-pointer"
           onSelect={() => navigate({ to: "/settings" })}
