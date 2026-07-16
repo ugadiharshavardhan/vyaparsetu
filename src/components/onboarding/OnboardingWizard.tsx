@@ -83,7 +83,7 @@ export function OnboardingWizard() {
     if (step === 0) return !!(form.business_name && form.owner_name && form.business_type && form.business_category && form.gst_number);
     if (step === 1) return !!(form.address && form.city && form.state && form.pincode);
     if (step === 2) return !!(form.phone && form.business_email);
-    if (step === 3) return true; // uploads optional but recommended
+    if (step === 3) return !!(form.logo_url && form.shop_image_url);
     return true;
   }, [step, form]);
 
@@ -187,8 +187,8 @@ export function OnboardingWizard() {
               {step === 3 && (
                 <div className="grid gap-4 sm:grid-cols-2">
                   <UploadDropzone label="GST Certificate" hint="Required for verification" value={form.gst_certificate_url ?? null} onChange={(url) => set("gst_certificate_url", url)} />
-                  <UploadDropzone label="Business Logo" hint="Square, min 400px" value={form.logo_url ?? null} onChange={(url) => set("logo_url", url)} />
-                  <UploadDropzone label="Shop Image" hint="Outside/inside photo" value={form.shop_image_url ?? null} onChange={(url) => set("shop_image_url", url)} />
+                  <UploadDropzone label="Business Logo" hint="Required · Square, min 400px" value={form.logo_url ?? null} onChange={(url) => set("logo_url", url)} />
+                  <UploadDropzone label="Shop Image" hint="Required · Outside/inside photo" value={form.shop_image_url ?? null} onChange={(url) => set("shop_image_url", url)} />
                   <UploadDropzone label="PAN Document" hint="Optional" value={form.pan_document_url ?? null} onChange={(url) => set("pan_document_url", url)} />
                 </div>
               )}

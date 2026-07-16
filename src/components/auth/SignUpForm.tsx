@@ -14,6 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { EmailOtpForm } from "@/components/auth/EmailOtpForm";
+import { LocalAssetDropzone, type LocalAsset } from "@/components/auth/LocalAssetDropzone";
+import { attachSellerBrandAssets } from "@/lib/sellerBrandAssets";
 import type { BusinessRole } from "./RoleSelect";
 
 const passwordSchema = {
@@ -282,10 +284,15 @@ function BuyerSignUp({ onBack }: { onBack?: () => void }) {
 
 function SellerSignUp({ onBack }: { onBack?: () => void }) {
   const [show, setShow] = useState(false);
+  const [logoAsset, setLogoAsset] = useState<LocalAsset | null>(null);
+  const [shopAsset, setShopAsset] = useState<LocalAsset | null>(null);
+  const [assetError, setAssetError] = useState<string | null>(null);
   const [pendingVerify, setPendingVerify] = useState<{
     email: string;
     password: string;
     userId: string;
+    logoFile: File | null;
+    shopFile: File | null;
   } | null>(null);
   const form = useForm<SellerFormValues>({
     resolver: zodResolver(sellerSchema),
@@ -302,6 +309,12 @@ function SellerSignUp({ onBack }: { onBack?: () => void }) {
   });
 
   const submit = async (values: SellerFormValues) => {
+    if (!logoAsset || !shopAsset) {
+      setAssetError("Business logo and shop image are required for verification");
+      toast.error("Please upload your business logo and shop image");
+      return;
+    }
+    setAssetError(null);
     const email = values.email.trim().toLowerCase();
     try {
       const result = await registerWithOtp({
@@ -320,7 +333,13 @@ function SellerSignUp({ onBack }: { onBack?: () => void }) {
         toast.error("Could not start email verification. Please try again.");
         return;
       }
-      setPendingVerify({ email, password: values.password, userId: result.userId });
+      setPendingVerify({
+        email,
+        password: values.password,
+        userId: result.userId,
+        logoFile: logoAsset.file,
+        shopFile: shopAsset.file,
+      });
       toast.success("We sent a 6-digit code to your email");
     } catch (e) {
       showSignUpError(e instanceof Error ? e.message : "Could not create account");
@@ -334,6 +353,8 @@ function SellerSignUp({ onBack }: { onBack?: () => void }) {
         password={pendingVerify.password}
         userId={pendingVerify.userId}
         role="seller"
+        logoFile={pendingVerify.logoFile}
+        shopFile={pendingVerify.shopFile}
         onBack={() => setPendingVerify(null)}
       />
     );
@@ -427,6 +448,32 @@ function SellerSignUp({ onBack }: { onBack?: () => void }) {
           />
         </div>
 
+        <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
+          <h3 className="font-display text-base font-semibold">Brand assets</h3>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Required for admin verification. Your products stay hidden from buyers until approved.
+          </p>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <LocalAssetDropzone
+              label="Business Logo"
+              value={logoAsset}
+              onChange={(asset) => {
+                setLogoAsset(asset);
+                setAssetError(null);
+              }}
+            />
+            <LocalAssetDropzone
+              label="Shop Image"
+              value={shopAsset}
+              onChange={(asset) => {
+                setShopAsset(asset);
+                setAssetError(null);
+              }}
+            />
+          </div>
+          {assetError && <p className="mt-2 text-xs text-destructive">{assetError}</p>}
+        </div>
+
         <PasswordFields
           show={show}
           setShow={setShow}
@@ -481,12 +528,16 @@ function SignupOtpStep({
   password,
   userId,
   role,
+  logoFile,
+  shopFile,
   onBack,
 }: {
   email: string;
   password: string;
   userId: string;
   role: BusinessRole;
+  logoFile?: File | null;
+  shopFile?: File | null;
   onBack: () => void;
 }) {
   const search = useSearch({ strict: false }) as { redirect?: string };
@@ -511,13 +562,33 @@ function SignupOtpStep({
             submitLabel="Verify & continue"
             onVerified={async ({ token_hash }) => {
               try {
-                await establishSessionAfterSignup({
+                const session = await establishSessionAfterSignup({
                   email,
                   password,
                   tokenHash: token_hash,
                 });
+                if (role === "seller") {
+                  try {
+                    await attachSellerBrandAssets({
+                      userId: session.userId || userId,
+                      logo: logoFile,
+                      shopImage: shopFile,
+                    });
+                  } catch (uploadErr) {
+                    console.error(uploadErr);
+                    toast.error(
+                      uploadErr instanceof Error
+                        ? uploadErr.message
+                        : "Account created, but brand assets failed to upload. Add them from Profile.",
+                    );
+                  }
+                }
                 setSessionMode(role === "seller" ? "seller" : "buyer");
-                toast.success("Account verified — you're signed in!");
+                toast.success(
+                  role === "seller"
+                    ? "Account verified — pending admin approval"
+                    : "Account verified — you're signed in!",
+                );
                 const pending = peekPendingCartAdd();
                 const next =
                   search.redirect ||

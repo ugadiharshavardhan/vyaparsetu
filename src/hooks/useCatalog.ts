@@ -40,7 +40,14 @@ async function fetchProductList(options?: {
   featured?: boolean;
   supplierId?: string;
   limit?: number;
+  /** When true (default), rely on RLS verified-seller gate for buyer marketplace. */
+  marketplaceOnly?: boolean;
 }): Promise<Product[]> {
+  // Do NOT join sellers here — sellers RLS only allows own/admin reads, so
+  // sellers!inner returns zero rows for buyers/anon. Visibility is enforced by
+  // products RLS via is_verified_seller().
+  void options?.marketplaceOnly;
+
   let q = supabase
     .from("products")
     .select(PRODUCT_LIST_COLUMNS)
@@ -100,10 +107,10 @@ export function useProducts(options?: { limit?: number; enabled?: boolean }) {
 /** Uncapped projected catalog for seller/admin management screens. */
 export function useAllProducts(options?: { enabled?: boolean }) {
   return useQuery({
-    queryKey: [...PRODUCTS_KEY, "all"],
+    queryKey: [...PRODUCTS_KEY, "all", "admin"],
     enabled: options?.enabled ?? true,
     staleTime: 5 * 60_000,
-    queryFn: () => fetchProductList(),
+    queryFn: () => fetchProductList({ marketplaceOnly: false }),
   });
 }
 
@@ -122,6 +129,7 @@ export function useProductBySlug(slug: string | undefined) {
     enabled: !!slug,
     staleTime: 5 * 60_000,
     queryFn: async (): Promise<Product | null> => {
+      // Visibility for unverified sellers is enforced by products RLS (is_verified_seller).
       const { data, error } = await supabase
         .from("products")
         .select("*")

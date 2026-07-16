@@ -208,11 +208,6 @@ export function useSupplierProducts() {
       (row as Record<string, unknown>).subcategory_id = subcategoryId;
     }
     let { error } = await supabase.from("products").insert(row as never);
-    if (error && String(error.message).includes("seller_id")) {
-      const { seller_id: _drop, ...withoutSellerId } = row as Record<string, unknown>;
-      void _drop;
-      ({ error } = await supabase.from("products").insert(withoutSellerId as never));
-    }
     if (error && String(error.message).includes("subcategory_id")) {
       const { subcategory_id: _dropSub, ...withoutSub } = row as Record<string, unknown>;
       void _dropSub;

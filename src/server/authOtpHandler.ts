@@ -425,7 +425,7 @@ async function handleRegister(input: {
     const member = await hasMembership(user.id, role);
     const confirmed = !!user.email_confirmed_at;
 
-    // Fully registered for this role → block
+    // Fully registered for this role (verified email + membership row) → block
     if (member && confirmed) {
       return {
         status: 400,
@@ -433,7 +433,7 @@ async function handleRegister(input: {
       };
     }
 
-    // Orphan / unverified / missing role row → reclaim with new password + metadata
+    // Incomplete signup (no membership yet, or email not verified) → reclaim
     const { error: updateError } = await supabase.auth.admin.updateUserById(user.id, {
       password,
       email_confirm: false,
@@ -483,14 +483,8 @@ async function handleRegister(input: {
     return { status: 500, body: { error: "Could not create account" } };
   }
 
-  try {
-    await upsertMembership(user.id, email, role, profile);
-  } catch (e) {
-    return {
-      status: 500,
-      body: { error: e instanceof Error ? e.message : "Could not create profile" },
-    };
-  }
+  // Do NOT write buyers/sellers until email OTP is verified (see handleVerify).
+  // Profile fields stay in auth.users.user_metadata until then.
 
   const sendResult = await handleSend(email, "signup", user.id, { force: true });
   if (sendResult.status >= 400) {
@@ -547,6 +541,26 @@ async function handleVerify(
     }
     const { error } = await supabase.auth.admin.updateUserById(user.id, updates);
     if (error) return { status: 500, body: { error: error.message || "Could not verify account" } };
+
+    // Create buyers/sellers row ONLY after successful email OTP verification.
+    const meta = (user.user_metadata ?? {}) as Record<string, string | undefined>;
+    const roleRaw = String(meta.account_type || meta.business_role || "").toLowerCase();
+    const role: Role = roleRaw === "seller" ? "seller" : "buyer";
+    try {
+      await upsertMembership(user.id, email, role, {
+        full_name: meta.full_name || meta.owner_name,
+        business_name: meta.business_name,
+        phone: meta.phone,
+        whatsapp: meta.whatsapp || meta.phone,
+        address: meta.address,
+        gst_number: meta.gst_number,
+      });
+    } catch (e) {
+      return {
+        status: 500,
+        body: { error: e instanceof Error ? e.message : "Could not create profile after verification" },
+      };
+    }
 
     const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
       type: "magiclink",

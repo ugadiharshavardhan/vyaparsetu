@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { AuthLayout } from "@/components/auth/AuthLayout";
 import { SignInForm } from "@/components/auth/SignInForm";
 import { SignUpForm } from "@/components/auth/SignUpForm";
+import { AdminSignInForm } from "@/components/auth/AdminSignInForm";
 import { RoleSelect, type BusinessRole } from "@/components/auth/RoleSelect";
 import { resolvePostLoginPath } from "@/lib/postLoginRedirect";
 import { peekPendingCartAdd } from "@/lib/pendingCart";
@@ -14,20 +15,37 @@ const searchSchema = z.object({
   redirect: z.string().optional(),
 });
 
+function isAdminRedirect(redirect?: string) {
+  return !!redirect && (redirect === "/admin" || redirect.startsWith("/admin/"));
+}
+
 export const Route = createFileRoute("/auth")({
   validateSearch: searchSchema,
   beforeLoad: async ({ search }) => {
     if (typeof window === "undefined") return;
     const { data } = await supabase.auth.getSession();
-    if (data.session) {
-      const pendingReturn = peekPendingCartAdd()?.returnTo;
-      const dest = search.redirect || pendingReturn;
-      if (dest && dest.startsWith("/")) {
+    if (!data.session) return;
+
+    const pendingReturn = peekPendingCartAdd()?.returnTo;
+    const dest = search.redirect || pendingReturn;
+
+    // If returning to admin, only continue when this session is actually an admin.
+    if (dest && (dest === "/admin" || dest.startsWith("/admin/"))) {
+      const { data: isAdmin } = await supabase.rpc("is_admin", {
+        _user_id: data.session.user.id,
+      });
+      if (isAdmin) {
         throw redirect({ to: dest });
       }
-      const path = await resolvePostLoginPath(data.session.user.id);
-      throw redirect({ to: path });
+      await supabase.auth.signOut();
+      return;
     }
+
+    if (dest && dest.startsWith("/")) {
+      throw redirect({ to: dest });
+    }
+    const path = await resolvePostLoginPath(data.session.user.id);
+    throw redirect({ to: path });
   },
   head: () => ({
     meta: [
@@ -42,20 +60,24 @@ function AuthPage() {
   const search = Route.useSearch();
   const navigate = useNavigate();
   const mode = search.mode ?? "signin";
+  const adminLogin = isAdminRedirect(search.redirect);
   const [role, setRole] = useState<BusinessRole | null>(null);
   const [step, setStep] = useState<"role" | "form">("role");
   const [pendingProduct, setPendingProduct] = useState(false);
 
-  // Guest clicked Add → bring them here; prefer Customer account for cart
   useEffect(() => {
     const pending = peekPendingCartAdd();
-    if (!pending) return;
+    if (!pending || adminLogin) return;
     setPendingProduct(true);
     setRole("buyer");
     setStep("form");
-  }, []);
+  }, [adminLogin]);
 
   const switchMode = (m: "signin" | "signup") => {
+    if (adminLogin) {
+      navigate({ to: "/auth", search: { mode: "signin", redirect: search.redirect } });
+      return;
+    }
     const pending = peekPendingCartAdd();
     if (pending) {
       setRole("buyer");
@@ -68,6 +90,28 @@ function AuthPage() {
     }
     navigate({ to: "/auth", search: { mode: m, redirect: search.redirect } });
   };
+
+  if (adminLogin) {
+    return (
+      <AuthLayout
+        eyebrow="Admin access"
+        title="Sign in to admin dashboard"
+        subtitle="Use the platform admin credentials to manage sellers and verifications."
+      >
+        <AdminSignInForm />
+        <p className="mt-6 text-center text-sm text-muted-foreground">
+          Not an admin?{" "}
+          <button
+            type="button"
+            onClick={() => navigate({ to: "/auth", search: { mode: "signin" } })}
+            className="font-semibold text-brand hover:underline"
+          >
+            Customer / Seller sign in
+          </button>
+        </p>
+      </AuthLayout>
+    );
+  }
 
   const isRoleStep = step === "role";
 

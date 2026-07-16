@@ -1,201 +1,270 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
-  Activity, AlertTriangle, Bell, Boxes, Building2, CheckCircle2, Clock,
-  Package, ReceiptText, ShieldCheck, ShoppingBag, TrendingUp, Users, Wallet,
-  Sparkles, TrendingUp as TrendingIcon, Box,
+  Box,
+  Boxes,
+  Building2,
+  CheckCircle2,
+  Clock,
+  Loader2,
+  Package,
+  ShoppingBag,
+  Users,
 } from "lucide-react";
-import {
-  Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer,
-  Tooltip, XAxis, YAxis,
-} from "recharts";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { AdminTable, type AdminColumn } from "@/components/admin/AdminTable";
 import { PageHeader } from "@/components/common/PageHeader";
 import { SectionCard } from "@/components/dashboard/SectionCard";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { Pill } from "@/components/supplier/Pill";
 import { Button } from "@/components/ui/button";
-import { compactInr, inr } from "@/lib/format";
+import { inr } from "@/lib/format";
+import { useAllProducts } from "@/hooks/useCatalog";
 import {
-  adminOrders, adminTickets, adminUsers, auditLogs,
-  refundQueue, revenueDaily, verificationQueue,
-} from "@/data/admin";
-import { useProducts } from "@/hooks/useCatalog";
+  useAdminBuyers,
+  useAdminSellers,
+  type AdminBuyer,
+  type AdminSeller,
+} from "@/hooks/useAdminSellers";
+import type { Product } from "@/types";
 
 export const Route = createFileRoute("/_authenticated/admin/")({
   head: () => ({ meta: [{ title: "Admin Overview — VyaparSetu" }] }),
   component: AdminOverview,
 });
 
+function statusTone(status: string) {
+  if (status === "verified") return "success" as const;
+  if (status === "rejected") return "danger" as const;
+  if (status === "under_review") return "warning" as const;
+  return "info" as const;
+}
+
 function AdminOverview() {
-  const { data: catalogProducts = [] } = useProducts();
-  const totalUsers = adminUsers.length;
-  const activeUsers = adminUsers.filter((u) => u.status === "active").length;
-  const retailers = adminUsers.filter((u) => u.role === "retailer").length;
-  const manufacturers = adminUsers.filter((u) => u.role === "manufacturer").length;
-  const wholesalers = adminUsers.filter((u) => u.role === "wholesaler").length;
-  const distributors = adminUsers.filter((u) => u.role === "distributor").length;
-  const verified = adminUsers.filter((u) => u.gstVerified).length;
-  const pendingVer = verificationQueue.filter((v) => v.status === "pending").length;
-  const totalProducts = catalogProducts.length;
-  const pendingProd = catalogProducts.filter((p) => !p.inStock).length;
-  const today = new Date().toDateString();
-  const ordersToday = adminOrders.filter((o) => new Date(o.createdAt).toDateString() === today).length;
-  const monthlyRev = adminOrders.reduce((s, o) => s + o.amount, 0);
-  const commission = Math.round(monthlyRev * 0.08);
-  const cancelled = adminOrders.filter((o) => o.status === "cancelled").length;
-  const openTickets = adminTickets.filter((t) => t.status === "open" || t.status === "escalated").length;
-  const pendingRefunds = refundQueue.filter((r) => r.status === "pending").length;
+  const { data: sellers = [], isLoading: sellersLoading, error: sellersError } = useAdminSellers();
+  const { data: buyers = [], isLoading: buyersLoading, error: buyersError } = useAdminBuyers();
+  const { data: products = [], isLoading: productsLoading, error: productsError } = useAllProducts();
+
+  const loading = sellersLoading || buyersLoading || productsLoading;
+  const verified = sellers.filter((s) => s.verification_status === "verified").length;
+  const pendingVer = sellers.filter(
+    (s) => s.verification_status === "pending" || s.verification_status === "under_review",
+  ).length;
+  const inStock = products.filter((p) => p.inStock).length;
+
+  const sellerColumns: AdminColumn<AdminSeller>[] = [
+    {
+      key: "business",
+      header: "Seller",
+      render: (s) => (
+        <div className="min-w-0">
+          <div className="truncate font-semibold">{s.business_name || "—"}</div>
+          <div className="truncate text-xs text-muted-foreground">
+            {s.owner_name || s.full_name || s.email || "—"}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "contact",
+      header: "Contact",
+      render: (s) => (
+        <div className="min-w-0 text-sm">
+          <div className="truncate">{s.email || "—"}</div>
+          <div className="truncate text-xs text-muted-foreground">{s.phone || "—"}</div>
+        </div>
+      ),
+    },
+    {
+      key: "gst",
+      header: "GSTIN",
+      render: (s) => <span className="font-mono text-xs">{s.gst_number || "—"}</span>,
+    },
+    {
+      key: "status",
+      header: "Status",
+      render: (s) => (
+        <Pill tone={statusTone(s.verification_status)}>
+          {s.verification_status === "under_review" ? "under review" : s.verification_status}
+        </Pill>
+      ),
+    },
+  ];
+
+  const buyerColumns: AdminColumn<AdminBuyer>[] = [
+    {
+      key: "name",
+      header: "Buyer",
+      render: (b) => (
+        <div className="min-w-0">
+          <div className="truncate font-semibold">{b.full_name || "—"}</div>
+          <div className="truncate text-xs text-muted-foreground">{b.business_name || "—"}</div>
+        </div>
+      ),
+    },
+    {
+      key: "contact",
+      header: "Contact",
+      render: (b) => (
+        <div className="min-w-0 text-sm">
+          <div className="truncate">{b.email || "—"}</div>
+          <div className="truncate text-xs text-muted-foreground">{b.phone || "—"}</div>
+        </div>
+      ),
+    },
+    {
+      key: "address",
+      header: "Address",
+      render: (b) => (
+        <span className="line-clamp-2 text-sm text-muted-foreground">{b.address || "—"}</span>
+      ),
+    },
+  ];
+
+  const productColumns: AdminColumn<Product>[] = [
+    {
+      key: "product",
+      header: "Product",
+      render: (p) => (
+        <div className="flex min-w-0 items-center gap-3">
+          {p.image ? (
+            <img src={p.image} alt="" className="h-10 w-10 rounded-lg object-cover" />
+          ) : (
+            <div className="grid h-10 w-10 place-items-center rounded-lg bg-muted">
+              <Box className="h-4 w-4 text-muted-foreground" />
+            </div>
+          )}
+          <div className="min-w-0">
+            <div className="truncate font-semibold">{p.name}</div>
+            <div className="truncate text-xs text-muted-foreground">{p.brand || p.sku || "—"}</div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "category",
+      header: "Category",
+      render: (p) => <span className="text-sm text-muted-foreground">{p.category || "—"}</span>,
+    },
+    {
+      key: "price",
+      header: "Wholesale",
+      render: (p) => <span className="text-sm font-medium">{inr(p.wholesalePrice)}</span>,
+    },
+    {
+      key: "stock",
+      header: "Stock",
+      render: (p) => (
+        <Pill tone={p.inStock ? "success" : "danger"}>{p.inStock ? `${p.stockCount}` : "Out"}</Pill>
+      ),
+    },
+  ];
 
   return (
     <AdminLayout>
       <PageHeader
-        title="Platform overview"
-        description="Real-time snapshot of VyaparSetu's operations, users and finance."
+        title="Admin dashboard"
+        description="Live sellers, buyers and catalog products from the database."
         action={
-          <div className="flex gap-2">
-            <Button variant="outline" asChild><Link to="/admin/reports">Reports</Link></Button>
-            <Button asChild><Link to="/admin/analytics">Analytics</Link></Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" asChild>
+              <Link to="/admin/verifications">Seller verifications</Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link to="/admin/users">All users</Link>
+            </Button>
+            <Button asChild>
+              <Link to="/admin/products">Products</Link>
+            </Button>
           </div>
         }
       />
 
+      {(sellersError || buyersError || productsError) && (
+        <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          {sellersError instanceof Error
+            ? sellersError.message
+            : buyersError instanceof Error
+              ? buyersError.message
+              : productsError instanceof Error
+                ? productsError.message
+                : "Failed to load admin data"}
+        </div>
+      )}
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Total users" value={String(totalUsers)} hint="All roles" icon={Users} tone="brand" />
-        <StatCard label="Active users" value={String(activeUsers)} hint="Last 30 days" icon={Activity} tone="success" delay={0.05} />
-        <StatCard label="Verified businesses" value={String(verified)} hint="GST cleared" icon={CheckCircle2} tone="success" delay={0.1} />
-        <StatCard label="Pending verifications" value={String(pendingVer)} hint="Action needed" icon={Clock} tone="warning" delay={0.15} />
-
-        <StatCard label="Retailers" value={String(retailers)} hint="Buyers" icon={ShoppingBag} tone="info" delay={0.2} />
-        <StatCard label="Wholesalers" value={String(wholesalers)} hint="Suppliers" icon={Building2} tone="info" delay={0.25} />
-        <StatCard label="Manufacturers" value={String(manufacturers)} hint="Suppliers" icon={Building2} tone="info" delay={0.3} />
-        <StatCard label="Distributors" value={String(distributors)} hint="Suppliers" icon={Building2} tone="info" delay={0.35} />
-
-        <StatCard label="Total products" value={String(totalProducts)} hint="Catalog" icon={Boxes} tone="brand" delay={0.4} />
-        <StatCard label="Pending approvals" value={String(pendingProd)} hint="Review" icon={Package} tone="warning" delay={0.45} />
-        <StatCard label="Orders today" value={String(ordersToday)} hint="Live" icon={ReceiptText} tone="brand" delay={0.5} />
-        <StatCard label="Monthly revenue" value={compactInr(monthlyRev)} hint="Gross GMV" icon={TrendingUp} tone="success" delay={0.55} />
-
-        <StatCard label="Platform commission" value={compactInr(commission)} hint="This month" icon={Wallet} tone="success" delay={0.6} />
-        <StatCard label="Cancelled orders" value={String(cancelled)} hint="Last 30 days" icon={AlertTriangle} tone="warning" delay={0.65} />
-        <StatCard label="Open tickets" value={String(openTickets)} hint="Support" icon={Bell} tone="warning" delay={0.7} />
-        <StatCard label="Pending refunds" value={String(pendingRefunds)} hint="Finance" icon={ShieldCheck} tone="info" delay={0.75} />
+        <StatCard label="Sellers" value={String(sellers.length)} hint="All seller accounts" icon={Building2} tone="brand" />
+        <StatCard label="Buyers" value={String(buyers.length)} hint="Retailer accounts" icon={ShoppingBag} tone="info" delay={0.05} />
+        <StatCard label="Products" value={String(products.length)} hint={`${inStock} in stock`} icon={Boxes} tone="brand" delay={0.1} />
+        <StatCard label="Verified sellers" value={String(verified)} hint={`${pendingVer} awaiting review`} icon={CheckCircle2} tone="success" delay={0.15} />
+        <StatCard label="Pending review" value={String(pendingVer)} hint="Open verifications" icon={Clock} tone="warning" delay={0.2} />
+        <StatCard label="Total accounts" value={String(sellers.length + buyers.length)} hint="Buyers + sellers" icon={Users} tone="info" delay={0.25} />
+        <StatCard label="Catalog items" value={String(products.length)} hint="All products" icon={Package} tone="brand" delay={0.3} />
+        <StatCard label="Out of stock" value={String(products.length - inStock)} hint="Need restock" icon={Box} tone="warning" delay={0.35} />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <SectionCard title="Revenue — last 30 days" description="Daily gross merchandise value" className="lg:col-span-2">
-          <div className="h-72">
-            <ResponsiveContainer>
-              <AreaChart data={revenueDaily}>
-                <defs>
-                  <linearGradient id="ov-rev" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="hsl(var(--brand))" stopOpacity={0.4} />
-                    <stop offset="100%" stopColor="hsl(var(--brand))" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" />
-                <XAxis dataKey="day" tickLine={false} axisLine={false} className="text-xs" />
-                <YAxis tickLine={false} axisLine={false} className="text-xs" tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-                <Tooltip formatter={(v: number) => inr(v)} contentStyle={{ borderRadius: 12, border: "1px solid hsl(var(--border))" }} />
-                <Area type="monotone" dataKey="revenue" stroke="hsl(var(--brand))" strokeWidth={2} fill="url(#ov-rev)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </SectionCard>
-
-        <SectionCard title="System health" description="All services nominal">
-          <div className="space-y-3">
-            <HealthRow label="API gateway" tone="success" hint="99.98% uptime" />
-            <HealthRow label="Database" tone="success" hint="42ms p95" />
-            <HealthRow label="Payments" tone="success" hint="Razorpay OK" />
-            <HealthRow label="Search" tone="warning" hint="Reindexing" />
-            <HealthRow label="Email delivery" tone="success" hint="98% delivered" />
-            <HealthRow label="Storage" tone="success" hint="63% capacity" />
-          </div>
-        </SectionCard>
-      </div>
-
-      {/* AI Business Insights */}
-      <div>
-        <div className="mb-4 flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-brand" />
-          <h2 className="text-xl font-bold font-display">AI Business Insights</h2>
+      {loading ? (
+        <div className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin" /> Loading platform data…
         </div>
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="rounded-2xl border border-brand/20 bg-brand-soft/20 p-5 shadow-soft">
-            <div className="mb-3 flex items-center gap-2 text-brand">
-              <TrendingIcon className="h-5 w-5" />
-              <h3 className="font-semibold">Marketplace Growth</h3>
-            </div>
-            <p className="text-sm text-foreground/80 mb-4">
-              Platform GMV is up 18% week-over-week, primarily driven by <strong>Food & FMCG</strong> bulk orders from Tier 2 cities.
-            </p>
-            <Button size="sm" variant="outline" className="border-brand/40 text-brand hover:bg-brand hover:text-white" asChild>
-              <Link to="/admin/analytics">View Analytics</Link>
-            </Button>
-          </div>
+      ) : (
+        <div className="space-y-8">
+          <SectionCard
+            title="Seller accounts"
+            description={`${sellers.length} sellers — approve pending ones under Verifications`}
+            action={
+              <Button size="sm" variant="outline" asChild>
+                <Link to="/admin/verifications">Review</Link>
+              </Button>
+            }
+          >
+            <AdminTable
+              rows={sellers}
+              columns={sellerColumns}
+              getRowId={(s) => s.id}
+              searchable={(s) =>
+                `${s.business_name} ${s.owner_name} ${s.full_name} ${s.email} ${s.gst_number} ${s.phone}`
+              }
+              searchPlaceholder="Search sellers…"
+            />
+          </SectionCard>
 
-          <div className="rounded-2xl border border-info/20 bg-info/10 p-5 shadow-soft">
-            <div className="mb-3 flex items-center gap-2 text-info">
-              <Box className="h-5 w-5" />
-              <h3 className="font-semibold">Top Categories</h3>
-            </div>
-            <p className="text-sm text-foreground/80 mb-4">
-              <strong>Electronics</strong> category has the highest cart abandonment rate (22%) due to high minimum order quantities.
-            </p>
-            <Button size="sm" variant="outline" className="border-info/40 text-info hover:bg-info hover:text-white" asChild>
-              <Link to="/admin/reports">Generate Report</Link>
-            </Button>
-          </div>
+          <SectionCard
+            title="Buyer accounts"
+            description={`${buyers.length} retailer / buyer accounts`}
+            action={
+              <Button size="sm" variant="outline" asChild>
+                <Link to="/admin/users">View all</Link>
+              </Button>
+            }
+          >
+            <AdminTable
+              rows={buyers}
+              columns={buyerColumns}
+              getRowId={(b) => b.id}
+              searchable={(b) => `${b.full_name} ${b.business_name} ${b.email} ${b.phone} ${b.address}`}
+              searchPlaceholder="Search buyers…"
+            />
+          </SectionCard>
+
+          <SectionCard
+            title="Catalog products"
+            description={`${products.length} items across the marketplace`}
+            action={
+              <Button size="sm" variant="outline" asChild>
+                <Link to="/admin/products">Manage</Link>
+              </Button>
+            }
+          >
+            <AdminTable
+              rows={products}
+              columns={productColumns}
+              getRowId={(p) => p.id}
+              searchable={(p) => `${p.name} ${p.brand} ${p.sku} ${p.category} ${p.supplier?.name ?? ""}`}
+              searchPlaceholder="Search products…"
+            />
+          </SectionCard>
         </div>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-3">
-        <SectionCard title="Orders by status" description="Last 30 days" className="lg:col-span-2">
-          <div className="h-64">
-            <ResponsiveContainer>
-              <BarChart data={statusBuckets()}>
-                <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" />
-                <XAxis dataKey="status" tickLine={false} axisLine={false} className="text-xs" />
-                <YAxis tickLine={false} axisLine={false} className="text-xs" />
-                <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid hsl(var(--border))" }} />
-                <Bar dataKey="count" fill="hsl(var(--brand))" radius={[8, 8, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </SectionCard>
-
-        <SectionCard title="Recent activity" description="Audit log">
-          <ul className="space-y-2">
-            {auditLogs.slice(0, 6).map((log) => (
-              <li key={log.id} className="flex gap-3 rounded-xl border border-border p-3 text-sm">
-                <span className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-brand" />
-                <div className="min-w-0 flex-1">
-                  <div className="truncate font-semibold">{log.action}</div>
-                  <div className="text-xs text-muted-foreground">{log.actor} · {log.target}</div>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </SectionCard>
-      </div>
+      )}
     </AdminLayout>
-  );
-}
-
-function statusBuckets() {
-  const counts = new Map<string, number>();
-  for (const o of adminOrders) counts.set(o.status, (counts.get(o.status) ?? 0) + 1);
-  return Array.from(counts.entries()).map(([status, count]) => ({ status, count }));
-}
-
-function HealthRow({ label, tone, hint }: { label: string; tone: "success" | "warning" | "danger"; hint: string }) {
-  return (
-    <div className="flex items-center justify-between rounded-xl border border-border bg-muted/20 px-3 py-2 text-sm">
-      <span className="font-medium">{label}</span>
-      <span className="flex items-center gap-2">
-        <Pill tone={tone}>{tone === "success" ? "Healthy" : tone === "warning" ? "Degraded" : "Down"}</Pill>
-        <span className="text-xs text-muted-foreground">{hint}</span>
-      </span>
-    </div>
   );
 }

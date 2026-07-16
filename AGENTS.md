@@ -156,13 +156,135 @@
 
 # Current Project State
 
-- **Current Phase:** Catalog import from public/ image tree
+- **Current Phase:** Seller verification + deferred OTP membership
 - **Current Branch:** N/A
-- **Current Module:** `scripts/upload-product-images.mjs`
-- **Overall Progress:** Script matches `public/<category-slug>/<subcategory-slug>/<item>/` to DB taxonomy and creates products with Storage images. Subcategories migration must be applied first.
+- **Current Module:** Auth OTP + Admin access
+- **Overall Progress:** salt-sugar, snacks-bakery, spices, tea-coffee (129 products) assigned to pending seller madhusethusagar576@gmail.com — hidden from buyers until verified. Remaining catalog stays on verified ugadiharshavardhan@gmail.com.
 - **Last Updated:** 2026-07-16
 
 # Development History
+
+## 2026-07-16 - Assign category products to pending seller (hidden from buyers)
+
+### Why
+Operator requested Salt & Sugar, Snacks & Bakery, Spices, Tea & Coffee products under `madhusethusagar576@gmail.com` (pending) so buyers cannot see them until admin verifies.
+
+### Changes
+- SQL / `scripts/assign-categories-to-pending-seller.mjs`
+- Categories: `salt-sugar`, `snacks-bakery`, `spices`, `tea-coffee`
+- Updates `products.seller_id`, `supplier` JSON, `seller_products`; seller kept `pending`
+- Marketplace RLS already hides non-verified seller products
+
+## 2026-07-16 - Fix verified seller products not showing + assign all to primary seller
+
+### Why
+Marketplace returned zero products: products RLS called `is_admin()` without EXECUTE for `anon`, and catalog queries used `sellers!inner` which buyers cannot read under sellers RLS.
+
+### Changes
+- Granted `EXECUTE` on `is_admin` / `is_verified_seller` to `anon`
+- Assigned all products + supplier JSON + seller_products to `ugadiharshavardhan@gmail.com` (verified)
+- Removed `sellers!inner` from `useCatalog.ts` marketplace queries (RLS gate remains)
+
+### Verify
+Anon product count should be 409; all owned by primary verified seller.
+
+## 2026-07-16 - Strict verified-seller product visibility for buyers
+
+### Why
+Products with `seller_id IS NULL` were still publicly readable, and marketplace queries did not explicitly require `verification_status = verified`.
+
+### Changes
+- Migration / `scratch/APPLY_STRICT_VERIFIED_PRODUCTS.sql` — assign orphan products to verified primary seller; drop NULL seller public read
+- `src/hooks/useCatalog.ts` — marketplace queries use `sellers!inner` + `verification_status = verified`; admin `useAllProducts` bypasses that filter
+- `src/hooks/useSupplier.ts` — no longer inserts products without `seller_id`
+
+### Rule
+Until admin sets seller to `verified`, that seller's products are hidden from buyers/marketplace.
+
+## 2026-07-16 - Fix admin crash + live sellers/buyers/products
+
+### Why
+Admin overview crashed with `Box is not defined` and still used mock stats instead of DB data.
+
+### Changes
+- `src/routes/_authenticated/admin.index.tsx` — fixed `Box` import; live sellers/buyers/products tables + stats
+- `src/routes/_authenticated/admin.users.tsx` — live buyers + sellers list
+- `src/hooks/useAdminSellers.ts` — added `useAdminBuyers`
+
+## 2026-07-16 - Dedicated admin login (no buyer/seller chooser)
+
+### Why
+Visiting `/admin` while logged out sent users to Customer/Seller role select, blocking admin access.
+
+### Changes
+- `src/components/auth/AdminSignInForm.tsx` — admin-only email/password form
+- `src/routes/auth.tsx` — when `redirect` is `/admin`, show admin form only
+- `src/routes/_authenticated/admin.tsx` — non-admin sessions signed out, then admin login
+- `scripts/set-admin-password.mjs` — sets password `123456` for `ugadiharshavardhan@gmail.com`
+
+### Admin credentials
+- Email: `ugadiharshavardhan@gmail.com`
+- Password: `123456`
+- URL: `/admin`
+
+## 2026-07-16 - Defer buyers/sellers until email OTP verified
+
+### Why
+Signup wrote `buyers`/`sellers` immediately (via `handleRegister` + `handle_new_user` trigger), and `auto_confirm_auth_user` marked emails confirmed before OTP — so unverified accounts appeared in the DB.
+
+### Changes
+- `src/server/authOtpHandler.ts` — register only creates/updates `auth.users` + metadata + sends OTP; `upsertMembership` runs in `handleVerify` after successful OTP
+- Migration `20260716210000_defer_membership_until_otp.sql` — drop auto-confirm trigger; noop `handle_new_user`; promote `ugadiharshavardhan@gmail.com` to `public.admins`
+- Apply: `node scripts/apply-defer-membership-otp.mjs`
+
+### Admin path
+- Sign in as `ugadiharshavardhan@gmail.com` → open `/admin` (or `/admin/verifications`)
+
+## 2026-07-16 - Seller verification gate & admin approval
+
+### Feature/Task Name
+Admin seller verification with brand-asset signup and buyer catalog gating.
+
+### Why
+Unverified sellers' products were publicly visible; admin Verifications page used mock data; seller signup lacked logo/shop image uploads required for review.
+
+### Files Created
+- `supabase/migrations/20260716200000_seller_verification_gate.sql`
+- `scratch/APPLY_SELLER_VERIFICATION.sql`
+- `scripts/apply-seller-verification.mjs`
+- `src/hooks/useAdminSellers.ts`
+- `src/components/auth/LocalAssetDropzone.tsx`
+- `src/lib/sellerBrandAssets.ts`
+
+### Files Modified
+- `src/routes/_authenticated/admin.verifications.tsx` — live sellers list, detail dialog, approve/reject
+- `src/routes/_authenticated/admin.index.tsx` — live verified/pending seller counts
+- `src/components/auth/SignUpForm.tsx` — required Brand assets (logo + shop image)
+- `src/components/onboarding/OnboardingWizard.tsx` — logo/shop required on Documents step
+- `AGENTS.md`
+
+### Database
+- `is_verified_seller(uuid)` SECURITY DEFINER helper
+- Products SELECT RLS: buyers/anon only see verified sellers' products (sellers see own; admins see all)
+- Trigger protects `verification_status` (sellers may only move pending/rejected → under_review)
+- Backfilled existing product-owning sellers to `verified`
+
+### Apply
+```bash
+node scripts/apply-seller-verification.mjs
+# or run scratch/APPLY_SELLER_VERIFICATION.sql in Supabase SQL Editor
+```
+
+### Next
+- Ensure admin account exists in `public.admins` to use `/admin/verifications`
+- New sellers stay under_review until admin approves
+
+## 2026-07-16 - Ran catalog image upload for dry-fruits-nuts and personal-care
+
+### Changes
+- Executed `node scripts/upload-product-images.mjs --seller-email ugadiharshavardhan@gmail.com`
+- Result: Created 52, Updated 0, Errors 0; skipped `Raw Peanuts` (no images)
+- Images uploaded to Storage bucket `product-images`; products linked via category_slug + subcategory_id
 
 ## 2026-07-16 ? Create products from public/ slug image folders
 

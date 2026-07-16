@@ -10,7 +10,10 @@ export const Route = createFileRoute("/_authenticated")({
     if (!user) {
       throw redirect({
         to: "/auth",
-        search: { mode: "signin", redirect: location.href },
+        search: {
+          mode: "signin",
+          redirect: location.pathname.startsWith("/admin") ? "/admin" : location.pathname,
+        },
       });
     }
 
