@@ -1123,6 +1123,23 @@ export type Database = {
         Args: Record<string, never>
         Returns: Json
       }
+      get_seller_buyers: {
+        Args: Record<string, never>
+        Returns: {
+          buyer_id: string
+          name: string | null
+          business: string | null
+          email: string | null
+          phone: string | null
+          gst_number: string | null
+          city: string | null
+          address: string | null
+          orders: number | null
+          spent: number | null
+          last_order_at: string | null
+          favorite_product: string | null
+        }[]
+      }
     }
     Enums: {
       address_type: "home" | "business" | "warehouse"

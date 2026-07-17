@@ -169,7 +169,7 @@ export function DashboardSidebar() {
         <Link
           to={homeTo}
           className={cn(
-            "flex h-14 items-center rounded-lg transition-colors duration-150 hover:bg-sidebar-accent/50",
+            "flex h-16 items-center rounded-lg transition-colors duration-150 hover:bg-sidebar-accent/50",
             collapsed ? "justify-center px-0" : "gap-2.5 px-1.5"
           )}
         >
@@ -177,7 +177,7 @@ export function DashboardSidebar() {
             asLink={false}
             compact={collapsed}
             hideSubtitle
-            imgClassName={collapsed ? undefined : "h-12"}
+            imgClassName={collapsed ? undefined : "h-16"}
           />
         </Link>
       </SidebarHeader>

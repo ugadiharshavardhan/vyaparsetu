@@ -156,12 +156,105 @@
 
 # Current Project State
 
-- **Current Phase:** Seller Buyers = real order data + bigger navbar logo
-- **Current Module:** `get_seller_buyers()` RPC, `useSupplierCustomers`, `supplier.customers*`, `Logo`
-- **Overall Progress:** Seller "Buyers" now shows the real retailers who ordered that seller's items (orders, lifetime value, last order, favorite product, contact/GST). New sellers still auto-own the default catalog categories. Navbar/sidebar logo enlarged.
+- **Current Phase:** Seller Buyers detail page fixed + Order Timeline removed
+- **Current Module:** `supplier.customers.tsx` / `supplier.customers.index.tsx` / `supplier.customers.$id.tsx`
+- **Overall Progress:** Seller Buyers "View" now opens a real buyer profile (Outlet routing fix). Profile shows business name, contact name, phone, email, address, GST, and that buyer's orders with this seller only. Order Timeline removed from seller order detail. Razorpay Pay Later amount-cap recovery remains in place.
 - **Last Updated:** 2026-07-18
 
 # Development History
+
+## 2026-07-18 - Fix seller Buyers "View" not opening + show buyer details & seller-scoped orders; remove Order Timeline
+
+### Why
+Clicking "View" on a buyer in the seller Buyers list never opened a detail page — same Outlet bug as seller/buyer orders. The buyer profile also needed clear name/business/phone/email and the orders that buyer placed with *this* seller. Operator also asked to remove the Order Timeline block from seller order details.
+
+### Root cause (routing)
+`supplier.customers.tsx` rendered the full Buyers list with no `<Outlet/>`, while `supplier.customers.$id.tsx` is a child of `/supplier/customers`. Navigation to `/supplier/customers/$id` kept showing the list.
+
+### Changes
+- `src/routes/_authenticated/supplier.customers.tsx` — thin layout (`<Outlet />`).
+- `src/routes/_authenticated/supplier.customers.index.tsx` [NEW] — previous Buyers list; Contact column shows phone + email.
+- `src/routes/_authenticated/supplier.customers.$id.tsx` — loading skeleton + errorComponent; profile shows business name, contact name, clickable phone/email, address, GST; "Orders with you" lists only `order_items` for this buyer+seller, grouped by parent `orderId` (multi-line orders collapse to one row with combined products/qty/amount); View opens the seller order detail.
+- `src/routes/_authenticated/supplier.orders.$id.tsx` — removed the entire Order Timeline section (and unused timeline helpers/imports).
+
+### Verification
+`npx vite build --mode development` regenerated `routeTree.gen.ts`: `/supplier/customers` now has both `AuthenticatedSupplierCustomersIdRoute` and `AuthenticatedSupplierCustomersIndexRoute` as children.
+
+## 2026-07-18 - Razorpay: Pay Later "amount exceeds maximum" no longer aborts checkout
+
+### Why
+Paying with the test "Pay Later" option failed with "Payment could not be completed — Amount exceeds maximum amount allowed", and checkout then dead-ended.
+
+### Root cause
+Pay Later providers have a low per-transaction cap, so large B2B orders exceed it (this is a Razorpay method limit, not an amount bug — the client passes `breakup.grandTotal` in rupees and the server converts to paise exactly once). But `openRazorpayCheckout`'s `payment.failed` handler treated a single method attempt as **terminal**: it set `settled = true` and `reject()`-ed, closing our flow and ignoring any subsequent successful payment the buyer made in the still-open Razorpay modal.
+
+### Changes
+- `src/lib/razorpay.ts` — `payment.failed` no longer settles/rejects the promise. It shows a `sonner` toast (tailored "This method has a maximum amount limit. Please pay with UPI, Card, or Net Banking." when the failure is an amount-limit error) and leaves the modal open so the buyer can complete with another method. Only `handler` (success) or `ondismiss` (cancel) settles the promise. Terminal errors (script load failure, `open()` throw) still reject and are caught by checkout.
+
+### Result
+Pay Later hitting its cap is now a recoverable, clearly-explained hiccup; switching to UPI/Card/Net Banking in the same modal completes and finalizes the order. Pure frontend; no server/amount changes.
+
+## 2026-07-18 - Fix seller order "View" not opening + show buyer contact & full item list on order detail
+
+### Why
+Clicking "View" on a seller order never opened a detail page — it just reflashed the orders list. Additionally, the seller order detail page didn't show the buyer's business name/phone/email, and only ever showed a single product line even when an order had multiple items from that seller.
+
+### Root cause (routing)
+`supplier.orders.tsx` rendered the full orders-list page directly as a leaf component (no `<Outlet/>`). `supplier.orders.$id.tsx` is registered as a **child** route of `/supplier/orders` (`getParentRoute: () => AuthenticatedSupplierOrdersRoute` in `routeTree.gen.ts`). Without an `<Outlet/>` in the parent, TanStack Router had no slot to render the child into, so navigating to `/supplier/orders/$id` kept showing the parent's list component. This is the exact same bug previously fixed for buyer `/orders` (`orders.tsx` → layout + `orders.index.tsx`).
+
+### Changes
+- `src/routes/_authenticated/supplier.orders.tsx` — now a thin layout (`component: () => <Outlet />`), same pattern as `orders.tsx`.
+- `src/routes/_authenticated/supplier.orders.index.tsx` [NEW] — the previous full orders-list page content, registered at `/_authenticated/supplier/orders/` (index child). Retailer column now prefers `buyerBusiness` over the shipping-address fallback name.
+- `src/types/supplier.ts` — `SupplierOrder` gained `orderId` (parent `orders.id`, so multiple `order_items` lines from the same order can be grouped), `buyerName`, `buyerBusiness`, `buyerPhone`, `buyerEmail`.
+- `src/hooks/useSupplier.ts` — `fetchSellerOrders` now also calls the existing `get_seller_buyers()` RPC (SECURITY DEFINER; sellers can't read `buyers` directly under RLS) in parallel with the `order_items` query, and merges buyer name/business/phone/email onto each mapped `SupplierOrder` by `buyed_id`. Also stamps `orderId` from the parent `orders.id`.
+- `src/integrations/supabase/types.ts` — added the `get_seller_buyers` RPC signature to `Database["public"]["Functions"]` (was missing, causing a pre-existing `supabase.rpc("get_seller_buyers")` type error at the existing `useSupplierCustomers` call site too).
+- `src/routes/_authenticated/supplier.orders.$id.tsx` — "Retailer Information" now shows the buyer's business name (falls back to contact name), a secondary contact-name line when different, and clickable `tel:`/`mailto:` phone/email (with "not available" fallbacks instead of the old static "Contact info available in profile" placeholder). "Products Ordered" now lists **every** `order_items` line sharing the same `orderId` (title shows the count when >1), and the Payment Information subtotal/GST/total are computed by summing all of those lines instead of hardcoding a single 18% GST line.
+- `src/lib/invoice/buildSellerInvoiceDocument.ts` — now accepts an optional `items: SupplierOrder[]` so the generated invoice lists every product line in the order (previously always one line); buyer name prefers `buyerBusiness`, buyer phone now populated from `buyerPhone` (was always `null`).
+- `src/lib/invoice/downloadSellerInvoice.ts` — passes the optional `items` array through to the builder.
+
+### Verification
+- `npx tsc --noEmit` shows zero new errors introduced by these files (the remaining reported errors — `useSupplier.ts:391/449/488`, `useProductReviews.ts`, `suppliers.$id.tsx` — are pre-existing and untouched by this change).
+- `npx vite build --mode development` regenerated `routeTree.gen.ts` cleanly: `/supplier/orders` now has both `AuthenticatedSupplierOrdersIdRoute` and `AuthenticatedSupplierOrdersIndexRoute` as children (mirrors the buyer `/orders` tree shape).
+
+### No backend/migration changes
+Reused the existing `get_seller_buyers()` SECURITY DEFINER RPC (already applied) instead of adding a new one.
+
+## 2026-07-18 - Map-first shipping address with auto-fill from pin
+
+### Why
+Buyers had to type the whole address. Requirement: show the map first, let the buyer search/pin a location, and auto-fill the address form from that pin's lat/long to reduce typing.
+
+### Context
+The map picker already existed (Leaflet + OSM Nominatim, lat/long persisted to `shipping_addresses` + `buyers.shipping_address`), but it sat below the form as "optional" and only filled empty fields. Confirmed the live DB has `shipping_addresses.latitude/longitude` (double precision), so coordinates persist.
+
+### Changes
+- `src/components/address/AddressForm.tsx` — reordered the dialog to be map-first: step 1 "Find your location on the map" (`AddressMapPicker`), step 2 "Confirm & complete the address" (auto-filled fields + contact details). `applyMapResult` now reliably fills `line1/city/state/pincode/country` from each pin (overwrites geo fields, keeps manual fields like contact/phone/line2/landmark/GSTIN) and clears any validation errors on those fields. Line 2 relabeled "Flat / house / floor no." with a placeholder to guide minimal typing.
+- `src/components/address/AddressMapPicker.tsx` — added a "Use my location" button (browser geolocation → center + drop pin + reverse-geocode); search bar and button share a row.
+- `src/lib/geocode.ts` — `parseNominatim` builds a richer `line1` (road + house no. + local area; falls back to the leading display-name segments minus the city/state/pincode/country tail) so the auto-filled street line is meaningful. Verified against live Nominatim (Hyderabad → "Research Street Bridge, Kothaguda / Hyderabad / Telangana / 500032").
+
+### Notes
+- Pure frontend; no schema change (coords columns already present). Used by both checkout (add) and `/addresses` (add + edit). Free stack: Leaflet + OSM tiles + Nominatim (no API key).
+
+### Follow-up — City/State/Pincode locked to the map pin
+- Per request, City, State, and Pincode are now **read-only** and can only be set by the map pin (City/Pincode inputs are `readOnly` + muted/`cursor-not-allowed`; State `Select` is `disabled`). Labels show "(from map pin)" and the step-2 hint explains adjusting the pin changes them. `emptyValues` state default changed from `"Maharashtra"` to `""` so it reflects the pin (or the existing value when editing) instead of a wrong pre-fill; schema still requires all three, so a buyer must pin a location to submit.
+
+## 2026-07-18 - Seller Buyers show real data + larger navbar logo
+
+## 2026-07-18 - Seller orders: reliable detail page, real status updates, invoice download; smaller landing navbar; bigger seller logo
+
+### Why
+Landing navbar elements were oversized; the seller order detail page seemed not to open; accept/cancel status changes didn't reflect; seller payments had placeholder invoice buttons; seller sidebar logo was small.
+
+### Changes
+- `components/layout/Header.tsx` — reduced landing navbar sizes: header height (`h-16 sm:h-[4.5rem]`), logo (`h-10 sm:h-12`), location picker (text-xs/sm, smaller icons), nav links (`text-sm xl:text-base`, tighter padding), search button (`h-10`, `text-sm`, narrower), Login/Signup button (`h-10`, `text-sm`).
+- `components/dashboard/DashboardSidebar.tsx` — seller/buyer sidebar logo enlarged (`imgClassName` `h-12` → `h-16`, header row `h-14` → `h-16`).
+- `routes/_authenticated/supplier.orders.$id.tsx` — added a loading skeleton (so it no longer flashes "Order not found" while the seller-orders query loads) and a route `errorComponent`. Status actions now `await updateStatus` and surface failures via toast; "Print Invoice" replaced with a real **Download Invoice** (client-side GST invoice).
+- `routes/_authenticated/supplier.orders.tsx` — row + bulk status actions now `await updateStatus` with try/catch so real DB updates reflect and RLS/errors surface (was firing success toasts without awaiting). Row "Print Invoice" → **Download Invoice**.
+- `routes/_authenticated/supplier.payments.tsx` — "Download Invoice"/"Download GST Invoice" now generate and download a real invoice for the order line (was toast-only).
+- `lib/invoice/buildSellerInvoiceDocument.ts` [NEW] + `lib/invoice/downloadSellerInvoice.ts` [NEW] — build a one-line GST `InvoiceDocument` from a `SupplierOrder` (taxable/CGST/SGST/IGST from `gstRate`/`gstIncluded`, interstate inferred from destination state vs Telangana) and render/download via the existing `renderInvoiceHtml`/`downloadInvoiceHtml`.
+
+### Notes
+- Order status mapping (`useSupplier.ts`) already targets the valid `order_status` enum (`confirmed/processing/packed/...`); the fix was awaiting the mutation + surfacing errors, plus the detail-page loading guard. Payment status stays read-only for sellers (it's buyer/checkout-driven); a freshly placed buyer order shows as **Pending** in the seller dashboard by default.
 
 ## 2026-07-18 - Buyer navbar spacing fix + shorter height
 

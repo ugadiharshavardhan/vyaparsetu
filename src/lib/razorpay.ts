@@ -1,3 +1,5 @@
+import { toast } from "sonner";
+
 const CHECKOUT_SRC = "https://checkout.razorpay.com/v1/checkout.js";
 
 let scriptPromise: Promise<boolean> | null = null;
@@ -131,16 +133,22 @@ export async function openRazorpayCheckout(
       },
     });
 
-    // Surface gateway-side failures (e.g. Pay Later declines, expired VPA, bank timeouts)
-    // instead of leaving the user stuck on the modal with no feedback.
+    // A single method attempt failing (e.g. Pay Later "amount exceeds maximum",
+    // expired VPA, bank timeout) is NOT terminal — Razorpay keeps the modal open
+    // so the buyer can pick another method. So we only surface a toast here and
+    // leave the promise unsettled; `handler` (success) or `ondismiss` (cancel)
+    // resolves it. Previously we rejected here, which killed the checkout and
+    // ignored any subsequent successful payment in the same modal.
     rzp.on("payment.failed", (payload: RazorpayFailure) => {
       if (settled) return;
-      settled = true;
-      const description =
-        payload?.error?.description ||
-        payload?.error?.reason ||
-        "Payment failed or was declined. Please try another method.";
-      reject(new Error(description));
+      const err = payload?.error;
+      const raw = err?.description || err?.reason || "";
+      const isAmountLimit = /maximum amount|exceeds|amount allowed/i.test(raw);
+      toast.error(
+        isAmountLimit
+          ? "This method has a maximum amount limit. Please pay with UPI, Card, or Net Banking."
+          : raw || "That payment method failed. Please try another method.",
+      );
     });
 
     try {

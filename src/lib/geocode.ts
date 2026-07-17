@@ -31,15 +31,34 @@ type NominatimResult = {
 
 function parseNominatim(item: NominatimResult): GeocodeResult {
   const a = item.address ?? {};
+  const city = a.city || a.town || a.village || a.county || undefined;
+  const state = a.state || a.state_district || undefined;
   const street = [a.house_number, a.road].filter(Boolean).join(" ");
   const locality = a.neighbourhood || a.suburb || "";
+
+  // Build a useful street/area line. Prefer road (+ house number) and the local
+  // area; fall back to the leading part of the full display name (dropping the
+  // city/state/pincode/country tail so line1 isn't a duplicate of those).
+  let line1 = [street, locality].filter(Boolean).join(", ");
+  if (!line1) {
+    const tail = new Set(
+      [city, state, a.postcode, a.country].filter(Boolean).map((v) => String(v).toLowerCase()),
+    );
+    line1 = item.display_name
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s && !tail.has(s.toLowerCase()))
+      .slice(0, 2)
+      .join(", ");
+  }
+
   return {
     lat: Number(item.lat),
     lng: Number(item.lon),
     displayName: item.display_name,
-    line1: street || locality || undefined,
-    city: a.city || a.town || a.village || a.county || undefined,
-    state: a.state || a.state_district || undefined,
+    line1: line1 || undefined,
+    city,
+    state,
     pincode: a.postcode?.replace(/\s+/g, "") || undefined,
     country: a.country || "India",
   };

@@ -42,7 +42,7 @@ function emptyValues(initial?: ShippingAddress | null): AddressInput {
     line2: initial?.line2 ?? "",
     landmark: initial?.landmark ?? "",
     city: initial?.city ?? "",
-    state: initial?.state ?? "Maharashtra",
+    state: initial?.state ?? "",
     pincode: initial?.pincode ?? "",
     country: initial?.country ?? "India",
     gst_number: initial?.gst_number ?? "",
@@ -85,18 +85,29 @@ export function AddressFormDialog({
   const set = <K extends keyof AddressInput>(k: K, v: AddressInput[K]) =>
     setValues((s) => ({ ...s, [k]: v }));
 
+  // The map is the primary input: pinning/searching fills the address fields
+  // (line1, city, state, pincode, country) so the buyer barely types. We
+  // overwrite the geo-derived fields from each pin, but keep manual fields
+  // (contact name, phone, house/flat no. in line2, landmark, GSTIN) untouched.
   const applyMapResult = (geo: GeocodeResult) => {
     setValues((s) => ({
       ...s,
       latitude: geo.lat,
       longitude: geo.lng,
-      line1: s.line1?.trim() ? s.line1 : geo.line1 || s.line1,
+      line1: geo.line1 || s.line1,
       city: geo.city || s.city,
       state: matchIndianState(geo.state) || s.state,
       pincode: geo.pincode && /^[1-9]\d{5}$/.test(geo.pincode) ? geo.pincode : s.pincode,
       country: geo.country || s.country || "India",
-      landmark: s.landmark?.trim() ? s.landmark : geo.displayName?.split(",")[0] || s.landmark,
     }));
+    setErrors((e) => {
+      const next = { ...e };
+      delete next.line1;
+      delete next.city;
+      delete next.state;
+      delete next.pincode;
+      return next;
+    });
   };
 
   const submit = () => {
@@ -145,11 +156,34 @@ export function AddressFormDialog({
             submit();
           }}
         >
-          <section className="space-y-3">
+          <section className="space-y-2">
             <div>
-              <h4 className="text-sm font-semibold">Address details</h4>
+              <h4 className="text-sm font-semibold">1. Find your location on the map</h4>
               <p className="text-xs text-muted-foreground">
-                Fill the form below (main). You can also pin the location on the map.
+                Search your area, tap <span className="font-medium">Use my location</span>, or click/drag the
+                pin. The address fields below fill in automatically from the pin.
+              </p>
+            </div>
+            {open && (
+              <AddressMapPicker
+                key={initial?.id ?? "new-address-map"}
+                latitude={values.latitude ?? null}
+                longitude={values.longitude ?? null}
+                onPinned={applyMapResult}
+                onClearPin={() => {
+                  set("latitude", null);
+                  set("longitude", null);
+                }}
+              />
+            )}
+          </section>
+
+          <section className="space-y-3 border-t border-border pt-4">
+            <div>
+              <h4 className="text-sm font-semibold">2. Confirm &amp; complete the address</h4>
+              <p className="text-xs text-muted-foreground">
+                City, State &amp; Pincode are set from the map pin and can't be typed — adjust the pin to
+                change them. Add your contact details and any flat/house number.
               </p>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -184,21 +218,39 @@ export function AddressFormDialog({
               <Field label="Address line 1" error={errors.line1} className="sm:col-span-2">
                 <Input value={values.line1} onChange={(e) => set("line1", e.target.value)} />
               </Field>
-              <Field label="Address line 2 (optional)" error={errors.line2} className="sm:col-span-2">
-                <Input value={values.line2 ?? ""} onChange={(e) => set("line2", e.target.value)} />
+              <Field label="Flat / house / floor no. (optional)" error={errors.line2} className="sm:col-span-2">
+                <Input
+                  value={values.line2 ?? ""}
+                  onChange={(e) => set("line2", e.target.value)}
+                  placeholder="e.g. Shop 4, 2nd floor"
+                />
               </Field>
               <Field label="Landmark (optional)" error={errors.landmark}>
                 <Input value={values.landmark ?? ""} onChange={(e) => set("landmark", e.target.value)} />
               </Field>
-              <Field label="Pincode" error={errors.pincode}>
-                <Input value={values.pincode} onChange={(e) => set("pincode", e.target.value)} maxLength={6} />
+              <Field label="Pincode (from map pin)" error={errors.pincode}>
+                <Input
+                  value={values.pincode}
+                  readOnly
+                  tabIndex={-1}
+                  aria-readonly
+                  placeholder="Set from map pin"
+                  className="cursor-not-allowed bg-muted/50 text-muted-foreground focus-visible:ring-0"
+                />
               </Field>
-              <Field label="City" error={errors.city}>
-                <Input value={values.city} onChange={(e) => set("city", e.target.value)} />
+              <Field label="City (from map pin)" error={errors.city}>
+                <Input
+                  value={values.city}
+                  readOnly
+                  tabIndex={-1}
+                  aria-readonly
+                  placeholder="Set from map pin"
+                  className="cursor-not-allowed bg-muted/50 text-muted-foreground focus-visible:ring-0"
+                />
               </Field>
-              <Field label="State" error={errors.state}>
-                <Select value={values.state} onValueChange={(v) => set("state", v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+              <Field label="State (from map pin)" error={errors.state}>
+                <Select value={values.state} onValueChange={(v) => set("state", v)} disabled>
+                  <SelectTrigger className="cursor-not-allowed bg-muted/50 text-muted-foreground"><SelectValue placeholder="Set from map pin" /></SelectTrigger>
                   <SelectContent>
                     {INDIAN_STATES.map((s) => (
                       <SelectItem key={s} value={s}>{s}</SelectItem>
@@ -214,27 +266,6 @@ export function AddressFormDialog({
                 Set as default shipping address
               </label>
             </div>
-          </section>
-
-          <section className="space-y-2 border-t border-border pt-4">
-            <div>
-              <h4 className="text-sm font-semibold">Pin on map (optional)</h4>
-              <p className="text-xs text-muted-foreground">
-                Search a place to move the map, then click or drag the pin. Fields above are filled from the pin when empty.
-              </p>
-            </div>
-            {open && (
-              <AddressMapPicker
-                key={initial?.id ?? "new-address-map"}
-                latitude={values.latitude ?? null}
-                longitude={values.longitude ?? null}
-                onPinned={applyMapResult}
-                onClearPin={() => {
-                  set("latitude", null);
-                  set("longitude", null);
-                }}
-              />
-            )}
           </section>
 
           <div className="mt-2 flex justify-end gap-2 border-t border-border pt-4">

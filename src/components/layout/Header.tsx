@@ -46,12 +46,12 @@ function LocationPicker({
             "flex shrink-0 items-start gap-2 rounded-lg px-2.5 py-1.5 text-left transition hover:bg-secondary"
           }
         >
-          <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-brand" />
+          <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
           <span className="min-w-0">
-            <span className="block text-sm leading-none text-muted-foreground">Delivery in</span>
-            <span className="mt-1.5 flex items-center gap-1 text-lg font-semibold leading-none text-foreground">
+            <span className="block text-xs leading-none text-muted-foreground">Delivery in</span>
+            <span className="mt-1 flex items-center gap-1 text-sm font-semibold leading-none text-foreground">
               {detecting ? "Detecting…" : location ?? "Select Location"}
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
             </span>
           </span>
         </button>
@@ -118,9 +118,9 @@ export function Header() {
         scrolled ? "bg-card/95 backdrop-blur-sm" : "bg-card"
       }`}
     >
-      <div className="mx-auto flex h-[5.25rem] w-full max-w-[100rem] items-center gap-3 px-4 sm:h-[5.75rem] sm:px-6 lg:gap-5 lg:px-10 xl:px-12">
+      <div className="mx-auto flex h-16 w-full max-w-[100rem] items-center gap-3 px-4 sm:h-[4.5rem] sm:px-6 lg:gap-5 lg:px-10 xl:px-12">
         <div className="flex shrink-0 items-center gap-3 sm:gap-4 lg:gap-5">
-          <Logo className="shrink-0" imgClassName="h-14 sm:h-16" />
+          <Logo className="shrink-0" imgClassName="h-10 sm:h-12" />
           <div className="hidden sm:block">
             <LocationPicker
               location={location}
@@ -137,7 +137,7 @@ export function Header() {
               key={l.label}
               to={l.to}
               hash={"hash" in l ? l.hash : undefined}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-2 text-base font-semibold text-foreground/85 transition-colors hover:bg-secondary hover:text-foreground xl:px-3.5 xl:text-lg"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-semibold text-foreground/85 transition-colors hover:bg-secondary hover:text-foreground xl:px-3 xl:text-base"
             >
               {l.label}
               {"badge" in l && l.badge ? (
@@ -153,10 +153,10 @@ export function Header() {
           <button
             type="button"
             onClick={() => setSearchOpen(true)}
-            className="hidden h-12 items-center gap-2.5 rounded-full border border-border bg-secondary/70 px-5 text-base text-muted-foreground transition hover:border-brand/30 hover:bg-secondary md:inline-flex lg:w-[200px] xl:w-[280px]"
+            className="hidden h-10 items-center gap-2.5 rounded-full border border-border bg-secondary/70 px-4 text-sm text-muted-foreground transition hover:border-brand/30 hover:bg-secondary md:inline-flex lg:w-[180px] xl:w-[240px]"
             aria-label="Search items or categories"
           >
-            <Search className="h-5 w-5 shrink-0 text-brand" />
+            <Search className="h-4 w-4 shrink-0 text-brand" />
             <span className="truncate">Search items or categories</span>
           </button>
           <button
@@ -169,7 +169,7 @@ export function Header() {
           </button>
 
           <Button
-            className="hidden h-12 rounded-full bg-brand px-7 text-base font-semibold text-brand-foreground hover:bg-brand/90 sm:inline-flex"
+            className="hidden h-10 rounded-full bg-brand px-5 text-sm font-semibold text-brand-foreground hover:bg-brand/90 sm:inline-flex"
             onClick={goLoginOrDashboard}
           >
             Login / Signup
