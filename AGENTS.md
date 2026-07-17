@@ -156,12 +156,169 @@
 
 # Current Project State
 
-- **Current Phase:** Seller Buyers detail page fixed + Order Timeline removed
-- **Current Module:** `supplier.customers.tsx` / `supplier.customers.index.tsx` / `supplier.customers.$id.tsx`
-- **Overall Progress:** Seller Buyers "View" now opens a real buyer profile (Outlet routing fix). Profile shows business name, contact name, phone, email, address, GST, and that buyer's orders with this seller only. Order Timeline removed from seller order detail. Razorpay Pay Later amount-cap recovery remains in place.
+- **Current Phase:** Seller can toggle payment status (pending ↔ completed)
+- **Current Module:** `useSupplier.updatePaymentStatus`, seller orders list + detail
+- **Overall Progress:** The Payment pill in the seller orders list and on the order detail header is now a click-to-toggle: pending → completed → pending, persisted to `orders.payment_status` (`success`/`pending`). Order-wise grouped list, Pending-on-placement, Mark-as-Delivered, invoice download, and the sample loop remain in place.
 - **Last Updated:** 2026-07-18
 
 # Development History
+
+## 2026-07-18 - Seller payment-status toggle (click pill: pending ↔ completed)
+
+### Why
+Buyer orders (esp. COD) show payment "pending" in the seller dashboard with no way for the seller to record that payment was received. Operator wants clicking the pill to flip pending → completed, and clicking again to flip back.
+
+### Changes
+- `src/hooks/useSupplier.ts` — `useSupplierOrders` now also returns `updatePaymentStatus(lineId, "paid" | "pending")`: resolves the parent order from the seller's own `order_items` row (same pattern as `updateStatus`) and updates `orders.payment_status` (`paid` → `success`, else `pending`), then invalidates seller orders. Uses the existing seller UPDATE RLS on `orders`.
+- `src/routes/_authenticated/supplier.orders.index.tsx` — Payment column pill is now a button (stopPropagation so the row click still opens the detail page): shows **completed** (green) / **pending** (amber), toggles on click with success/error toasts and a hover tooltip.
+- `src/routes/_authenticated/supplier.orders.$id.tsx` — the payment pill in the detail header has the same click-to-toggle behavior (COMPLETED/PENDING); the Payment Information sidebar reflects the change via query invalidation.
+
+### Notes
+Payment records/`payment_records` untouched — this is the seller's manual settlement flag on the order, mirroring how COD payments get collected on delivery.
+
+## 2026-07-18 - Seller orders list shows one row per ORDER (items revealed on click)
+
+### Why
+Each `order_items` line rendered as its own table row, so a buyer order with 3 products appeared as 3 separate "orders" in the seller dashboard. Operator wants an order-wise list first, with the items shown when opening the order.
+
+### Changes
+- `src/routes/_authenticated/supplier.orders.index.tsx` —
+ - New `SellerOrderGroup` (`SupplierOrder & { lines }`) + `groupByOrder()`: groups fetched lines by parent `orderId` (fallback line id); base fields from the first line, `qty`/`amount` summed across lines. Row `id` = first line id, so existing `updateStatus` (which resolves the parent order from any line id), row selection, bulk actions, and `/supplier/orders/$id` navigation keep working unchanged.
+ - Summary cards + status/payment filters + search now operate on grouped orders (search matches order number, retailer, and **every** product name in the order).
+ - Products column → "Items": shows `N items · Qty total`, first 2 product names with per-line qty, "+N more items", and **aggregated** sample badges (counts of requested / awaiting approval / approved / declined across all lines).
+ - Row invoice download uses `o.lines` directly (all items on one invoice).
+- Detail page (`supplier.orders.$id.tsx`) already lists every item of the parent order — no change needed there.
+
+### Verification
+`npx tsc --noEmit` + lints — zero errors in the touched file.
+
+## 2026-07-18 - Orders start Pending, seller Mark-as-Delivered button, invoice download fix
+
+### Why
+1. New buyer orders were inserted with `status: "confirmed"`, which maps to **Accepted** in the seller dashboard — operator wants every fresh order to arrive as **Pending** with a direct way to mark it **Delivered**.
+2. "Download Invoice" on the seller order details page did not download the file.
+
+### Root cause (invoice)
+`downloadInvoiceHtml` called `URL.revokeObjectURL(url)` synchronously right after `anchor.click()`. Chromium can abort the blob download if the URL is revoked before the save begins, so the click appeared to do nothing.
+
+### Changes
+- `src/hooks/useOrders.ts` — `usePlaceOrder` now inserts orders with `status: "pending"` (was `confirmed`); `status_history` starts with "Order created" and adds a "Payment received" note (still status `pending`) only for non-COD payments. Payment status is unchanged (Razorpay → success/Paid, COD → pending).
+- `src/lib/invoice/downloadInvoice.ts` — anchor is hidden and blob-URL cleanup (`remove()` + `revokeObjectURL`) is deferred by 2s so the download reliably starts. Fixes seller *and* buyer invoice downloads.
+- `src/routes/_authenticated/supplier.orders.$id.tsx` — new **Mark as Delivered** header button (visible for any non-delivered/cancelled/returned status); invoice error toast now surfaces the real error message.
+- `src/routes/_authenticated/supplier.orders.index.tsx` — row dropdown gained **Mark as Delivered** (same visibility rule); row-level "Download Invoice" now aggregates **all** lines of the same parent order (was single-line) and surfaces real error messages.
+
+### Notes
+- Status pipeline unchanged otherwise: seller Accept → confirmed, packing → processing, ready → packed, delivered → delivered (existing `mapSupplierStatusToDb`). Buyer sees `pending` until the seller acts; sample-approval (`Requests`) can still bump status to confirmed on buyer approval.
+
+## 2026-07-18 - Fix buyer navbar search (typed text getting cleared / not filtering)
+
+### Why
+Typing in the buyer topbar search behaved erratically — characters were dropped/cleared and results didn't reliably update.
+
+### Root cause
+The topbar read `useRouterState({ select: (r) => r.location.search })` — the whole search **object**, whose reference changes on every router tick (pending states, background navigations, loaders). The effect `setSearchVal(search.q)` was keyed on that object, so it re-ran constantly and reset the input to the (stale) URL value mid-typing. The live-filter navigate effect also had no guard, re-firing on unrelated transitions.
+
+### Changes
+- `src/components/dashboard/DashboardTopbar.tsx` —
+  - Select the URL query as a **primitive string** (`urlQuery`) instead of the search object, so the sync effect only runs when `q` actually changes.
+  - Guard the URL→input sync so it never overwrites the field while it's focused (`document.activeElement === searchInputRef.current`), preventing keystroke clobbering.
+  - Guard the marketplace live-filter navigate effect (`if ((nextQ ?? "") === urlQuery) return;`) so it doesn't emit redundant navigations.
+  - Attached a `ref` to the search `Input`; trim the query on Enter and when live-filtering.
+
+### Result
+The navbar search types smoothly, live-filters on the marketplace, and Enter (from any page) navigates to `/marketplace?q=…`. Pure frontend fix.
+
+## 2026-07-18 - Product card shows the same first image as the detail page
+
+### Why
+On the marketplace a product card showed a different cover than the "main" image on that product's detail page.
+
+### Root cause
+The card renders `getProductDisplayImage()` → `images[0]`, but the marketplace list query fetches only the lightweight `products.image` (cover) column (not the heavy `images` array, for performance). The detail page selects `*` and shows `images[0]`. When the DB `image` column was out of sync with `images[0]`, the card and detail page diverged.
+
+### Changes
+- Ran `scratch/sync-product-primary-image.mjs` (service role) which sets `products.image = images[0]` for every row whose cover didn't match the gallery's first image. Result: **48 updated, 361 unchanged**. No code changes — the seller `ImageManager` already emits `thumbnailIndex: 0` and saves `image` from `images[0]`, so new/edited products stay in sync.
+
+### Result
+Cards and the detail page now show the same first image. Data-only fix.
+
+## 2026-07-18 - Sample confirmation flow: seller request → buyer "Requests" section → approve finalizes order
+
+### Why
+The sample isn't packed with the main shipment — it ships 1–2 days before the final delivery. After the buyer checks it, the order should only be finalized on their approval. Seller needed a "send request" action per sample line; buyer needed a "Requests" section to approve/decline, all stored in the DB.
+
+### Database
+- `supabase/migrations/20260718030000_sample_confirmation_requests.sql` [NEW] — `public.sample_requests` table: `order_id`/`order_item_id` (UNIQUE — one request per line), `seller_id`, `buyer_id`, denormalized `order_number`/`product_name`/`seller_name` + `message`, `status` (`sent`/`approved`/`rejected`), `created_at`, `responded_at`. RLS: seller INSERT only for their own order line (EXISTS check on `order_items.seller_id`), SELECT for either party, UPDATE buyer-only. Applied live via `scripts/apply-sample-confirmation-requests.mjs` [NEW] (3 policies verified).
+- `src/integrations/supabase/types.ts` — `sample_requests` table types.
+
+### Flow / Changes
+- `src/hooks/useSampleRequests.ts` [NEW] — `useBuyerSampleRequests` (requests to me), `usePendingSampleRequestCount` (nav badge), `useSellerSampleRequests` (my sent requests + `byOrderItem` map), `useSendSampleRequest` (seller insert; duplicate → friendly error), `useRespondSampleRequest` (buyer updates request status + appends `orders.status_history` note; **approve also sets `orders.status = 'confirmed'`** = finalized; decline only records the note so multi-seller orders aren't cancelled). Invalidates orders/seller-orders caches.
+- `src/routes/_authenticated/supplier.orders.$id.tsx` — each sample-flagged line shows an amber panel "ship the sample 1–2 days before the final delivery" with a **Send approval request** button (uses line's `orderId`/`buyerId`/`orderNumber`, seller business name). After sending: "awaiting buyer approval" / "Approved by buyer — order finalized" / "Declined by buyer" badges.
+- `src/routes/_authenticated/supplier.orders.index.tsx` — Products column badge now reflects request state (requested / awaiting approval / approved-finalized / declined).
+- `src/routes/_authenticated/requests.tsx` [NEW] — buyer Requests page: pending cards (product, order number, seller, message, date) with **Approve & confirm order** / **Decline**, plus a "Responded" history section and empty state. Route registered in `routeTree.gen.ts` via vite build.
+- `src/components/dashboard/DashboardTopbar.tsx` — buyer desktop center nav + mobile sheet gained a **Requests** link with a live pending-count badge.
+- `src/components/layout/SiteLayout.tsx` — `/requests` added to `APP_PREFIXES` (buyer workspace chrome).
+- `src/components/cart/CartItemRow.tsx` — sample toggle toast explains the sample arrives 1–2 days before delivery and the order confirms after approval.
+
+### Verification
+`npx tsc --noEmit` — zero errors in touched files (only pre-existing `useSupplier.ts`/`SignUpForm`/`NotificationsMenu`/`data/products.ts` errors remain). Route tree regenerated cleanly; `/requests` present in `routeTree.gen.ts`.
+
+## 2026-07-18 - Product detail page: both columns scroll together (remove sticky split)
+
+### Why
+On the buyer item view-details page the left (gallery/tabs) and right (purchase/supplier) halves appeared to scroll independently.
+
+### Root cause
+The right column had `lg:sticky lg:top-8`. Because the left column is taller, the right panel froze at the top and the left kept scrolling — reading as two separately-scrolling halves.
+
+### Changes
+- `src/routes/products.$slug.tsx` — removed `lg:sticky lg:top-8` from the right column so both grid columns stay in normal document flow and scroll together as one page.
+
+### Result
+The item-details page now scrolls as a single unit (no independent/sticky panel). Pure CSS/layout change.
+
+## 2026-07-18 - Per-item "Send sample" toggle in cart, stored on order items, visible to seller
+
+### Why
+Buyers should be able to ask the seller to include a sample of a specific item with their order. The request must persist per line item in the database and be visible in the seller dashboard.
+
+### Database
+- `supabase/migrations/20260718020000_sample_requested.sql` [NEW] — adds `sample_requested boolean NOT NULL DEFAULT false` to **both** `public.cart_items` (toggle state while shopping) and `public.order_items` (frozen at checkout, per user request for a per-item column on the order data). Applied to the live DB via `scripts/apply-sample-requested.mjs` [NEW] (pooler connection, verified both columns exist with default `false`).
+
+### Changes
+- `src/types/commerce.ts` — `CartItem.sample_requested: boolean`, `OrderItem.sample_requested: boolean`.
+- `src/types/supplier.ts` — `SupplierOrder.sampleRequested?: boolean`.
+- `src/integrations/supabase/types.ts` — `sample_requested` on `cart_items` and `order_items` Row/Insert/Update.
+- `src/lib/guestCart.ts` — guest lines default `sample_requested: false`; `updateGuestLine` accepts the flag.
+- `src/hooks/useCart.ts` — `normalizeCartRow` reads `sample_requested`; `useUpdateCartItem` supports toggling it (optimistic update + DB patch + guest localStorage); guest→user cart merge carries the flag.
+- `src/components/cart/CartItemRow.tsx` — pill-styled toggle row per item ("Send me a sample of this item" + `Switch`, FlaskConical icon, brand highlight when on) with success toasts.
+- `src/hooks/useOrders.ts` — `usePlaceOrder` writes `sample_requested: Boolean(i.sample_requested)` on every `order_items` insert (Buy Now items have no flag → false).
+- `src/hooks/useSupplier.ts` — `fetchSellerOrders` selects `sample_requested` and maps it to `SupplierOrder.sampleRequested`.
+- `src/routes/_authenticated/supplier.orders.index.tsx` — Products column shows an amber "Sample requested" badge on flagged lines.
+- `src/routes/_authenticated/supplier.orders.$id.tsx` — Products Ordered lines show "Sample requested — include a sample of this item".
+- `src/routes/_authenticated/orders.$id.tsx` — buyer's order detail also shows a "Sample requested" badge per item (uses `order_items(*)` so no query change).
+
+### Verification
+`npx tsc --noEmit` — no new errors (only the 3 pre-existing `useSupplier.ts` 391/449/488 errors remain).
+
+## 2026-07-18 - Cart grand total adds CGST/SGST + shipping
+
+### Why
+Cart order summary listed CGST/SGST but grand total still equalled the item total (GST was peeled out of GST-inclusive wholesale prices and then added back, so nothing appeared to be charged).
+
+### Changes
+- `src/lib/commerce.ts` — `computeTotals` treats listed wholesale as taxable and **always adds GST on top** (`grandTotal = itemTotal − discount + gstTotal + shipping`). No longer peels GST out of `gstIncluded` prices for cart/checkout totals.
+- `src/components/cart/PriceSummary.tsx` — Item total → Discount → CGST/SGST (or IGST) → Shipping → Grand total (rows add up: e.g. ₹18,210 + GST + shipping).
+- `src/components/cart/CartItemRow.tsx` — each line shows `+ GST ₹…` on top of the line price.
+- `src/components/cart/CartSheet.tsx` — footer shows GST and shipping before Est. total.
+
+## 2026-07-18 - Revisit landing while logged in → seller dashboard or marketplace
+
+### Why
+After login, opening the website again still showed the marketing landing. Sellers should land on `/seller/dashboard` and buyers on `/marketplace`.
+
+### Changes
+- `src/routes/index.tsx` — `beforeLoad` uses `resolveAuthedUser()`; if signed in, redirects by `getSessionMode()` (`seller` → `/seller/dashboard`, `buyer` → `/marketplace`), else `getUserRole()` (`seller` → dashboard, otherwise marketplace). Guests are unchanged. Unexpected auth errors are swallowed so the landing still renders.
 
 ## 2026-07-18 - Fix seller Buyers "View" not opening + show buyer details & seller-scoped orders; remove Order Timeline
 

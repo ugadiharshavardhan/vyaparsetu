@@ -658,6 +658,7 @@ async function fetchSellerOrders(sellerId: string): Promise<SupplierOrder[]> {
       line_total,
       product_id,
       product_snapshot,
+      sample_requested,
       seller_id,
       buyed_id,
       orders (
@@ -717,6 +718,7 @@ async function fetchSellerOrders(sellerId: string): Promise<SupplierOrder[]> {
       expectedDelivery: order?.estimated_delivery ? String(order.estimated_delivery) : undefined,
       destination: destinationFromAddress(order?.shipping_address),
       paymentStatus: paymentStatus === "success" || paymentStatus === "paid" ? "paid" : "pending",
+      sampleRequested: Boolean(row.sample_requested),
       gstRate: snap.gstRate != null ? Number(snap.gstRate) : (snap.gst_rate != null ? Number(snap.gst_rate) : 18),
       gstIncluded: snap.gstIncluded != null ? Boolean(snap.gstIncluded) : (snap.gst_included != null ? Boolean(snap.gst_included) : true),
       porterName: order?.delivery_partner ? String(order.delivery_partner) : undefined,
@@ -774,11 +776,35 @@ export function useSupplierOrders() {
     await queryClient.invalidateQueries({ queryKey: SELLER_ORDERS_KEY });
   };
 
+  /** Toggle/record the payment state of the parent order (paid ↔ pending). */
+  const updatePaymentStatus = async (id: string, paymentStatus: "paid" | "pending") => {
+    if (!user?.id) throw new Error("Sign in as a seller to update orders");
+
+    // id is order_items.id — resolve parent order
+    const { data: line, error: lineErr } = await supabase
+      .from("order_items")
+      .select("order_id, seller_id")
+      .eq("id", id)
+      .eq("seller_id", user.id)
+      .maybeSingle();
+    if (lineErr) throw lineErr;
+    if (!line?.order_id) throw new Error("Order line not found for this seller");
+
+    const { error } = await supabase
+      .from("orders")
+      .update({ payment_status: paymentStatus === "paid" ? "success" : "pending" })
+      .eq("id", line.order_id);
+    if (error) throw error;
+
+    await queryClient.invalidateQueries({ queryKey: SELLER_ORDERS_KEY });
+  };
+
   return {
     orders: query.data ?? [],
     isLoading: query.isLoading,
     error: query.error,
     updateStatus,
+    updatePaymentStatus,
   };
 }
 

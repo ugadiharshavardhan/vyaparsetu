@@ -27,6 +27,8 @@ export type CartItem = {
   product_snapshot: ProductSnapshot;
   quantity: number;
   saved_for_later: boolean;
+  /** Buyer asked the seller to include a sample of this item with the order. */
+  sample_requested: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -100,6 +102,7 @@ export type OrderItem = {
   gst_amount: number;
   discount_amount: number;
   line_total: number;
+  sample_requested: boolean;
   buyed_id: string;
   seller_id: string | null;
   seller_order_id: string | null;

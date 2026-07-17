@@ -133,6 +133,8 @@ export type SupplierOrder = {
   expectedDelivery?: string;
   destination: string;
   paymentStatus: "paid" | "pending";
+  /** Buyer toggled "send sample" for this line in the cart. */
+  sampleRequested?: boolean;
   gstDetails?: string;
   gstRate?: number;
   gstIncluded?: boolean;

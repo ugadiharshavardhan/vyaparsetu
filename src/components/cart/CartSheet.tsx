@@ -174,8 +174,22 @@ export function CartSheet() {
         {active.length > 0 && (
           <div className="space-y-3 border-t border-border p-5">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Subtotal</span>
+              <span className="text-muted-foreground">Item total</span>
               <span className="font-semibold">{inr(breakup.subtotal)}</span>
+            </div>
+            {breakup.gstTotal > 0 && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">
+                  {breakup.interstate ? "IGST" : "CGST + SGST"}
+                </span>
+                <span>{inr(breakup.gstTotal)}</span>
+              </div>
+            )}
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">
+                {breakup.shippingTotal === 0 ? "Shipping (FREE)" : "Shipping"}
+              </span>
+              <span>{breakup.shippingTotal === 0 ? "FREE" : inr(breakup.shippingTotal)}</span>
             </div>
             <div className="flex items-center justify-between text-base font-bold">
               <span>Est. total</span>

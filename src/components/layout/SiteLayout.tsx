@@ -14,7 +14,7 @@ import { AuthContext } from "@/hooks/useAuth";
 const APP_PREFIXES = [
   "/dashboard", "/seller", "/profile", "/settings", "/orders", "/wishlist",
   "/admin", "/notifications", "/help", "/onboarding", "/payments",
-  "/addresses", "/supplier", "/checkout",
+  "/addresses", "/supplier", "/checkout", "/requests",
 ];
 
 /** Full-bleed auth chrome (no marketing header/footer). */

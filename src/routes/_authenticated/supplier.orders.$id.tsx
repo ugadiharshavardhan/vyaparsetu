@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, MapPin, Package, FileText, CreditCard, User, CheckCircle2, Phone, Mail } from "lucide-react";
+import { ArrowLeft, MapPin, Package, FileText, CreditCard, User, CheckCircle2, Phone, Mail, FlaskConical, Send } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Pill } from "@/components/supplier/Pill";
 import { useSupplierOrders } from "@/hooks/useSupplier";
 import { useProfile } from "@/hooks/useProfile";
+import { useSellerSampleRequests, useSendSampleRequest } from "@/hooks/useSampleRequests";
 import { downloadSellerInvoice } from "@/lib/invoice/downloadSellerInvoice";
 import type { SupplierOrder } from "@/types/supplier";
 import { inr } from "@/lib/format";
@@ -56,8 +57,10 @@ const STATUS_LABEL: Record<string, string> = {
 function OrderDetailsPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
-  const { orders, updateStatus, isLoading } = useSupplierOrders();
+  const { orders, updateStatus, updatePaymentStatus, isLoading } = useSupplierOrders();
   const { data: profile } = useProfile();
+  const { byOrderItem: sampleRequestByItem } = useSellerSampleRequests();
+  const sendSampleRequest = useSendSampleRequest();
 
   const order = orders.find((o) => o.id === id);
 
@@ -76,8 +79,8 @@ function OrderDetailsPage() {
       const items = order.orderId ? orders.filter((o) => o.orderId === order.orderId) : [order];
       downloadSellerInvoice(order, { sellerName: profile?.business_name, items });
       toast.success("GST invoice downloaded");
-    } catch {
-      toast.error("Could not generate invoice");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not generate invoice");
     }
   };
 
@@ -150,6 +153,9 @@ function OrderDetailsPage() {
                 {order.status === "packing" && (
                   <Button className="bg-success hover:bg-success/90 rounded-full h-10 px-5 shadow-brand text-white text-sm font-semibold" onClick={() => changeStatus("ready", "Marked ready")}><CheckCircle2 className="mr-1.5 h-4 w-4" /> Ready for Pickup</Button>
                 )}
+                {!["delivered", "cancelled", "returned"].includes(order.status) && (
+                  <Button className="bg-emerald-600 hover:bg-emerald-700 rounded-full h-10 px-5 text-white text-sm font-semibold" onClick={() => changeStatus("delivered", "Order marked as delivered")}><CheckCircle2 className="mr-1.5 h-4 w-4" /> Mark as Delivered</Button>
+                )}
               </div>
             }
           />
@@ -158,30 +164,102 @@ function OrderDetailsPage() {
 
       <div className="flex items-center gap-3">
         <Pill tone={STATUS_TONE[order.status]} className="text-sm px-3 py-1 font-semibold">{STATUS_LABEL[order.status]}</Pill>
-        <Pill tone={order.paymentStatus === "paid" ? "success" : "warning"} className="text-sm px-3 py-1 font-semibold">{order.paymentStatus.toUpperCase()}</Pill>
+        <button
+          type="button"
+          className="cursor-pointer rounded-full transition-transform hover:scale-105"
+          title={order.paymentStatus === "paid" ? "Click to mark payment as pending" : "Click to mark payment as completed"}
+          onClick={async () => {
+            const next = order.paymentStatus === "paid" ? "pending" : "paid";
+            try {
+              await updatePaymentStatus(order.id, next);
+              toast.success(next === "paid" ? "Payment marked as completed" : "Payment marked as pending");
+            } catch (e) {
+              toast.error(e instanceof Error ? e.message : "Could not update payment status");
+            }
+          }}
+        >
+          <Pill tone={order.paymentStatus === "paid" ? "success" : "warning"} className="text-sm px-3 py-1 font-semibold">
+            {order.paymentStatus === "paid" ? "COMPLETED" : "PENDING"}
+          </Pill>
+        </button>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
           <SectionCard title={`Products Ordered${orderItems.length > 1 ? ` (${orderItems.length})` : ""}`} className="border-border/50 shadow-soft">
-            {orderItems.map((item) => (
-              <div key={item.id} className="flex items-center justify-between py-3 border-b border-border/50 last:border-0">
-                <div className="flex items-center gap-4">
-                  <div className="h-16 w-16 rounded-lg bg-muted flex items-center justify-center">
-                    <Package className="h-6 w-6 text-muted-foreground" />
+            {orderItems.map((item) => {
+              const sampleReq = sampleRequestByItem.get(item.id);
+              return (
+                <div key={item.id} className="py-3 border-b border-border/50 last:border-0">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="h-16 w-16 rounded-lg bg-muted flex items-center justify-center">
+                        <Package className="h-6 w-6 text-muted-foreground" />
+                      </div>
+                      <div>
+                        <div className="font-semibold text-base">{item.product}</div>
+                        <div className="text-sm text-muted-foreground">Qty: {item.qty}</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-semibold">{inr(item.amount)}</div>
+                      <div className="text-xs text-muted-foreground">{inr(item.amount / (item.qty || 1))} / unit</div>
+                    </div>
                   </div>
-                  <div>
-                    <div className="font-semibold text-base">{item.product}</div>
-                    <div className="text-sm text-muted-foreground">Qty: {item.qty}</div>
-                  </div>
+
+                  {item.sampleRequested && (
+                    <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-amber-50 px-3 py-2">
+                      <div className="flex items-center gap-2 text-[12px] font-medium text-amber-800">
+                        <FlaskConical className="h-4 w-4 shrink-0" />
+                        <span>
+                          Sample requested — ship the sample 1–2 days before the final delivery.
+                        </span>
+                      </div>
+                      {!sampleReq && (
+                        <Button
+                          size="sm"
+                          className="h-8 rounded-full bg-brand px-4 text-xs font-semibold text-white hover:bg-brand/90"
+                          disabled={sendSampleRequest.isPending || !item.orderId || !item.buyerId}
+                          onClick={() => {
+                            if (!item.orderId || !item.buyerId) {
+                              toast.error("Buyer details are missing for this line");
+                              return;
+                            }
+                            sendSampleRequest.mutate({
+                              orderId: item.orderId,
+                              orderItemId: item.id,
+                              buyerId: item.buyerId,
+                              orderNumber: item.orderNumber,
+                              productName: item.product,
+                              sellerName: profile?.business_name ?? undefined,
+                            });
+                          }}
+                        >
+                          <Send className="mr-1.5 h-3.5 w-3.5" />
+                          Send approval request
+                        </Button>
+                      )}
+                      {sampleReq?.status === "sent" && (
+                        <span className="rounded-full bg-blue-100 px-2.5 py-1 text-[11px] font-semibold text-blue-800">
+                          Request sent — awaiting buyer approval
+                        </span>
+                      )}
+                      {sampleReq?.status === "approved" && (
+                        <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-semibold text-emerald-800">
+                          Approved by buyer — order finalized
+                        </span>
+                      )}
+                      {sampleReq?.status === "rejected" && (
+                        <span className="rounded-full bg-red-100 px-2.5 py-1 text-[11px] font-semibold text-red-800">
+                          Declined by buyer after checking the sample
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
-                <div className="text-right">
-                  <div className="font-semibold">{inr(item.amount)}</div>
-                  <div className="text-xs text-muted-foreground">{inr(item.amount / (item.qty || 1))} / unit</div>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </SectionCard>
         </div>
 

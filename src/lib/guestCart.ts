@@ -66,6 +66,7 @@ export function upsertGuestLine(snapshot: ProductSnapshot, quantity: number): Gu
     product_snapshot: snapshot,
     quantity: qty,
     saved_for_later: false,
+    sample_requested: false,
     created_at: now,
     updated_at: now,
   };
@@ -76,7 +77,7 @@ export function upsertGuestLine(snapshot: ProductSnapshot, quantity: number): Gu
 
 export function updateGuestLine(
   id: string,
-  patch: { quantity?: number; saved_for_later?: boolean },
+  patch: { quantity?: number; saved_for_later?: boolean; sample_requested?: boolean },
 ): GuestCartLine[] {
   const now = new Date().toISOString();
   const next = readGuestCart().map((i) =>
@@ -85,6 +86,7 @@ export function updateGuestLine(
           ...i,
           ...(patch.quantity !== undefined ? { quantity: patch.quantity } : {}),
           ...(patch.saved_for_later !== undefined ? { saved_for_later: patch.saved_for_later } : {}),
+          ...(patch.sample_requested !== undefined ? { sample_requested: patch.sample_requested } : {}),
           updated_at: now,
         }
       : i,

@@ -28,6 +28,7 @@ import { Route as CategoriesSlugRouteImport } from './routes/categories.$slug'
 import { Route as AuthenticatedWishlistRouteImport } from './routes/_authenticated/wishlist'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedSellerRouteImport } from './routes/_authenticated/seller'
+import { Route as AuthenticatedRequestsRouteImport } from './routes/_authenticated/requests'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedPaymentsRouteImport } from './routes/_authenticated/payments'
 import { Route as AuthenticatedOrdersRouteImport } from './routes/_authenticated/orders'
@@ -177,6 +178,11 @@ const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
 const AuthenticatedSellerRoute = AuthenticatedSellerRouteImport.update({
   id: '/seller',
   path: '/seller',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedRequestsRoute = AuthenticatedRequestsRouteImport.update({
+  id: '/requests',
+  path: '/requests',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
@@ -523,6 +529,7 @@ export interface FileRoutesByFullPath {
   '/orders': typeof AuthenticatedOrdersRouteWithChildren
   '/payments': typeof AuthenticatedPaymentsRoute
   '/profile': typeof AuthenticatedProfileRoute
+  '/requests': typeof AuthenticatedRequestsRoute
   '/seller': typeof AuthenticatedSellerRouteWithChildren
   '/settings': typeof AuthenticatedSettingsRoute
   '/wishlist': typeof AuthenticatedWishlistRoute
@@ -596,6 +603,7 @@ export interface FileRoutesByTo {
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/payments': typeof AuthenticatedPaymentsRoute
   '/profile': typeof AuthenticatedProfileRoute
+  '/requests': typeof AuthenticatedRequestsRoute
   '/seller': typeof AuthenticatedSellerRouteWithChildren
   '/settings': typeof AuthenticatedSettingsRoute
   '/wishlist': typeof AuthenticatedWishlistRoute
@@ -672,6 +680,7 @@ export interface FileRoutesById {
   '/_authenticated/orders': typeof AuthenticatedOrdersRouteWithChildren
   '/_authenticated/payments': typeof AuthenticatedPaymentsRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
+  '/_authenticated/requests': typeof AuthenticatedRequestsRoute
   '/_authenticated/seller': typeof AuthenticatedSellerRouteWithChildren
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/wishlist': typeof AuthenticatedWishlistRoute
@@ -750,6 +759,7 @@ export interface FileRouteTypes {
     | '/orders'
     | '/payments'
     | '/profile'
+    | '/requests'
     | '/seller'
     | '/settings'
     | '/wishlist'
@@ -823,6 +833,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/payments'
     | '/profile'
+    | '/requests'
     | '/seller'
     | '/settings'
     | '/wishlist'
@@ -898,6 +909,7 @@ export interface FileRouteTypes {
     | '/_authenticated/orders'
     | '/_authenticated/payments'
     | '/_authenticated/profile'
+    | '/_authenticated/requests'
     | '/_authenticated/seller'
     | '/_authenticated/settings'
     | '/_authenticated/wishlist'
@@ -1101,6 +1113,13 @@ declare module '@tanstack/react-router' {
       path: '/seller'
       fullPath: '/seller'
       preLoaderRoute: typeof AuthenticatedSellerRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/requests': {
+      id: '/_authenticated/requests'
+      path: '/requests'
+      fullPath: '/requests'
+      preLoaderRoute: typeof AuthenticatedRequestsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/profile': {
@@ -1627,6 +1646,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedOrdersRoute: typeof AuthenticatedOrdersRouteWithChildren
   AuthenticatedPaymentsRoute: typeof AuthenticatedPaymentsRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
+  AuthenticatedRequestsRoute: typeof AuthenticatedRequestsRoute
   AuthenticatedSellerRoute: typeof AuthenticatedSellerRouteWithChildren
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedWishlistRoute: typeof AuthenticatedWishlistRoute
@@ -1662,6 +1682,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedOrdersRoute: AuthenticatedOrdersRouteWithChildren,
   AuthenticatedPaymentsRoute: AuthenticatedPaymentsRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
+  AuthenticatedRequestsRoute: AuthenticatedRequestsRoute,
   AuthenticatedSellerRoute: AuthenticatedSellerRouteWithChildren,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedWishlistRoute: AuthenticatedWishlistRoute,

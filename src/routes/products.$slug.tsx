@@ -209,7 +209,7 @@ function ProductPage() {
         <span className="line-clamp-1 text-foreground font-semibold">{product.name}</span>
       </nav>
 
-      {/* Main Grid: Left Gallery/Tabs vs Right Sticky Purchase Card */}
+      {/* Main Grid: Left Gallery/Tabs vs Right Purchase Card — both scroll together */}
       <div className="mt-6 grid gap-8 lg:grid-cols-[1.3fr_1fr] items-start">
         {/* Left Column: Gallery, Highlights, Details Tabs */}
         <div className="flex flex-col gap-6">
@@ -341,8 +341,8 @@ function ProductPage() {
           )}
         </div>
 
-        {/* Right Column: Sticky Purchase Panel & Supplier Info */}
-        <div className="lg:sticky lg:top-8 flex flex-col gap-6">
+        {/* Right Column: Purchase Panel & Supplier Info (scrolls with the page) */}
+        <div className="flex flex-col gap-6">
           <div className="rounded-3xl border border-border bg-card p-6 shadow-soft hover:shadow-elevated transition-all duration-300">
             {/* Header Metadata */}
             <div className="flex items-center justify-between gap-2 text-xs uppercase tracking-wider text-muted-foreground font-semibold">

@@ -24,7 +24,7 @@ export function PriceSummary({
           Order summary
         </div>
       )}
-      {row(`Subtotal (${itemCount} items)`, inr(breakup.subtotal))}
+      {row(`Item total (${itemCount} items)`, inr(breakup.subtotal))}
       {breakup.discountTotal > 0 && row("Discount", `− ${inr(breakup.discountTotal)}`, false, true)}
       {breakup.interstate
         ? row(`IGST`, inr(breakup.igst), true)
@@ -46,7 +46,7 @@ export function PriceSummary({
           <span className="text-xl font-bold text-foreground">{inr(breakup.grandTotal)}</span>
         </div>
         <div className="mt-1 text-[11px] text-muted-foreground">
-          Inclusive of all taxes. Prices are wholesale rates.
+          Item total + GST + shipping
         </div>
       </div>
     </div>

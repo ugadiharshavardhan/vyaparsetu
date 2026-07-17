@@ -50,21 +50,19 @@ export function computeTotals(
   coupon: Coupon | null,
 ): PriceBreakup {
   const safeItems = items.filter((i) => i?.product_snapshot && typeof i.product_snapshot.wholesalePrice === "number");
+  // Listed line totals (wholesale × qty) — what the cart rows show.
   const subtotal = safeItems.reduce((s, i) => s + lineNet(i), 0);
   const discountTotal = applyCoupon(subtotal, coupon);
+  // Item prices are treated as taxable (ex-GST). CGST/SGST/IGST are always
+  // charged on top — never peeled out of the listed wholesale price.
   const taxableBase = Math.max(subtotal - discountTotal, 0);
 
-  // Weighted GST rate based on line items
   const gstTotal = safeItems.reduce((s, i) => {
     const line = lineNet(i);
     const share = subtotal > 0 ? line / subtotal : 0;
-    const taxable = taxableBase * share;
-    // treat gstIncluded=true snapshots as tax-inclusive prices
+    const lineTaxable = taxableBase * share;
     const rate = i.product_snapshot.gstRate || 0;
-    const gst = i.product_snapshot.gstIncluded
-      ? taxable - taxable / (1 + rate / 100)
-      : (taxable * rate) / 100;
-    return s + gst;
+    return s + (lineTaxable * rate) / 100;
   }, 0);
 
   const interstate = !!address && address.state.toLowerCase() !== SELLER_STATE.toLowerCase();
@@ -73,10 +71,8 @@ export function computeTotals(
   const igst = interstate ? gstTotal : 0;
 
   const shippingTotal = estimateShipping(taxableBase);
-  const inclusiveSubtotal = safeItems.some((i) => i.product_snapshot.gstIncluded);
-  const grandTotal = inclusiveSubtotal
-    ? taxableBase + shippingTotal
-    : taxableBase + gstTotal + shippingTotal;
+  // Grand total = item total (− discount) + GST + shipping.
+  const grandTotal = taxableBase + gstTotal + shippingTotal;
 
   return {
     subtotal: round(subtotal),

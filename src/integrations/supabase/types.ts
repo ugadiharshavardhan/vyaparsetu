@@ -54,6 +54,7 @@ export type Database = {
           product_id: string
           product_snapshot: Json
           quantity: number
+          sample_requested: boolean
           saved_for_later: boolean
           updated_at: string
           user_id: string
@@ -64,6 +65,7 @@ export type Database = {
           product_id: string
           product_snapshot: Json
           quantity?: number
+          sample_requested?: boolean
           saved_for_later?: boolean
           updated_at?: string
           user_id: string
@@ -74,6 +76,7 @@ export type Database = {
           product_id?: string
           product_snapshot?: Json
           quantity?: number
+          sample_requested?: boolean
           saved_for_later?: boolean
           updated_at?: string
           user_id?: string
@@ -181,6 +184,7 @@ export type Database = {
           product_id: string
           product_snapshot: Json
           quantity: number
+          sample_requested: boolean
           unit_price: number
           seller_id: string | null
           seller_order_id: string | null
@@ -197,6 +201,7 @@ export type Database = {
           product_id: string
           product_snapshot: Json
           quantity: number
+          sample_requested?: boolean
           unit_price: number
           seller_id?: string | null
           seller_order_id?: string | null
@@ -213,6 +218,7 @@ export type Database = {
           product_id?: string
           product_snapshot?: Json
           quantity?: number
+          sample_requested?: boolean
           unit_price?: number
           seller_id?: string | null
           seller_order_id?: string | null
@@ -779,6 +785,66 @@ export type Database = {
             columns: ["subcategory_id"]
             isOneToOne: false
             referencedRelation: "subcategories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sample_requests: {
+        Row: {
+          id: string
+          order_id: string
+          order_item_id: string
+          seller_id: string
+          buyer_id: string
+          order_number: string
+          product_name: string
+          seller_name: string
+          message: string | null
+          status: string
+          created_at: string
+          responded_at: string | null
+        }
+        Insert: {
+          id?: string
+          order_id: string
+          order_item_id: string
+          seller_id: string
+          buyer_id: string
+          order_number?: string
+          product_name?: string
+          seller_name?: string
+          message?: string | null
+          status?: string
+          created_at?: string
+          responded_at?: string | null
+        }
+        Update: {
+          id?: string
+          order_id?: string
+          order_item_id?: string
+          seller_id?: string
+          buyer_id?: string
+          order_number?: string
+          product_name?: string
+          seller_name?: string
+          message?: string | null
+          status?: string
+          created_at?: string
+          responded_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sample_requests_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sample_requests_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: true
+            referencedRelation: "order_items"
             referencedColumns: ["id"]
           },
         ]

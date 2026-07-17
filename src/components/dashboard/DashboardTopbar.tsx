@@ -1,6 +1,7 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   Bell,
+  FlaskConical,
   Heart,
   Loader2,
   LocateFixed,
@@ -13,7 +14,7 @@ import {
   User,
   X,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -42,14 +43,21 @@ import { useProfile } from "@/hooks/useProfile";
 import { useDeliveryLocation } from "@/hooks/useDeliveryLocation";
 import { DELIVERY_LOCATIONS } from "@/lib/deliveryLocation";
 import { useBuyerNotifications, formatRelativeTime } from "@/hooks/useBuyerNotifications";
+import { usePendingSampleRequestCount } from "@/hooks/useSampleRequests";
 
 export function DashboardTopbar({ isBuyerLayout = false }: { isBuyerLayout?: boolean }) {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
-  const searchParams = useRouterState({ select: (r) => r.location.search });
+  // Select the `q` value as a primitive string. Selecting the whole `search`
+  // object returns a new reference on every router tick, which made the sync
+  // effect below fire constantly and wipe out what the user was typing.
+  const urlQuery = useRouterState({
+    select: (r) => ((r.location.search as Record<string, unknown>)?.q as string | undefined) ?? "",
+  });
   const sessionMode = useSessionMode();
   const { data: account } = useAccountFlags();
 
-  const [searchVal, setSearchVal] = useState((searchParams as Record<string, any>)?.q ?? "");
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const [searchVal, setSearchVal] = useState(urlQuery);
   const { location, detecting, select: selectLocation, detect: detectLocation } = useDeliveryLocation();
   const {
     notifications,
@@ -57,23 +65,30 @@ export function DashboardTopbar({ isBuyerLayout = false }: { isBuyerLayout?: boo
     markAllSeen,
     isUnread,
   } = useBuyerNotifications();
+  const pendingRequestCount = usePendingSampleRequestCount();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const debouncedSearchVal = useDebounce(searchVal, 200);
 
+  // Reflect the URL's `q` in the input (back/forward, clear, cross-page search),
+  // but never while the user is actively typing so keystrokes aren't clobbered.
   useEffect(() => {
-    setSearchVal((searchParams as Record<string, any>)?.q ?? "");
-  }, [searchParams]);
+    if (searchInputRef.current && document.activeElement === searchInputRef.current) return;
+    setSearchVal(urlQuery);
+  }, [urlQuery]);
 
+  // Live-filter while on the marketplace; guard against redundant navigations
+  // (which would otherwise re-fire and interfere with unrelated transitions).
   useEffect(() => {
-    if (pathname === "/marketplace") {
-      void navigate({
-        to: "/marketplace",
-        search: (prev: any) => ({ ...prev, q: debouncedSearchVal || undefined }),
-        replace: true,
-      });
-    }
-  }, [debouncedSearchVal, navigate, pathname]);
+    if (pathname !== "/marketplace") return;
+    const nextQ = debouncedSearchVal.trim() || undefined;
+    if ((nextQ ?? "") === urlQuery) return;
+    void navigate({
+      to: "/marketplace",
+      search: (prev: any) => ({ ...prev, q: nextQ }),
+      replace: true,
+    });
+  }, [debouncedSearchVal, urlQuery, navigate, pathname]);
 
   const handleSignOut = async () => {
     try {
@@ -116,6 +131,15 @@ export function DashboardTopbar({ isBuyerLayout = false }: { isBuyerLayout?: boo
                   <Link to="/wishlist" activeProps={{ className: "text-brand bg-brand-soft/20" }} className="flex items-center gap-3 rounded-lg px-4 py-3 text-base font-medium text-foreground hover:bg-secondary">
                     <Heart className="h-4 w-4 text-muted-foreground" />
                     Saved Items
+                  </Link>
+                  <Link to="/requests" activeProps={{ className: "text-brand bg-brand-soft/20" }} className="flex items-center gap-3 rounded-lg px-4 py-3 text-base font-medium text-foreground hover:bg-secondary">
+                    <FlaskConical className="h-4 w-4 text-muted-foreground" />
+                    Requests
+                    {pendingRequestCount > 0 && (
+                      <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1.5 text-[11px] font-bold text-white">
+                        {pendingRequestCount}
+                      </span>
+                    )}
                   </Link>
                   <Link to="/profile" activeProps={{ className: "text-brand bg-brand-soft/20" }} className="flex items-center gap-3 rounded-lg px-4 py-3 text-base font-medium text-foreground hover:bg-secondary">
                     <User className="h-4 w-4 text-muted-foreground" />
@@ -210,6 +234,18 @@ export function DashboardTopbar({ isBuyerLayout = false }: { isBuyerLayout?: boo
           >
             Saved
           </Link>
+          <Link
+            to="/requests"
+            activeProps={{ className: "text-brand bg-brand-soft/30 font-semibold" }}
+            className="relative whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          >
+            Requests
+            {pendingRequestCount > 0 && (
+              <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand px-1 text-[10px] font-bold text-white">
+                {pendingRequestCount}
+              </span>
+            )}
+          </Link>
         </nav>
 
         {/* Right: search, cart, notifications, profile */}
@@ -217,6 +253,7 @@ export function DashboardTopbar({ isBuyerLayout = false }: { isBuyerLayout?: boo
           <div className="relative hidden min-w-0 w-[10rem] sm:block md:w-[12rem] lg:w-[13rem] xl:w-[17rem]">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
+              ref={searchInputRef}
               type="text"
               value={searchVal}
               onChange={(e) => setSearchVal(e.target.value)}
@@ -224,7 +261,7 @@ export function DashboardTopbar({ isBuyerLayout = false }: { isBuyerLayout?: boo
                 if (e.key === "Enter") {
                   navigate({
                     to: "/marketplace",
-                    search: (prev: any) => ({ ...prev, q: searchVal || undefined }),
+                    search: (prev: any) => ({ ...prev, q: searchVal.trim() || undefined }),
                   });
                 }
               }}

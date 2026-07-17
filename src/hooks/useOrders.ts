@@ -91,9 +91,13 @@ export function usePlaceOrder() {
         DELIVERY_PARTNERS[Math.floor(Math.random() * DELIVERY_PARTNERS.length)];
       const tracking_number = "TRK" + Math.random().toString(36).slice(2, 10).toUpperCase();
       const now = new Date().toISOString();
+      // Every new order starts as "pending" in the seller dashboard; the seller
+      // moves it forward (accept / deliver). Payment state is tracked separately.
       const status_history = [
         { status: "pending", at: now, note: "Order created" },
-        { status: "confirmed", at: now, note: "Payment received" },
+        ...(payment_method !== "cod"
+          ? [{ status: "pending", at: now, note: "Payment received" }]
+          : []),
       ];
 
       const { data: orderData, error: orderErr } = await supabase
@@ -102,7 +106,7 @@ export function usePlaceOrder() {
           order_number,
           user_id: user.id,
           buyer_id: user.id,
-          status: "confirmed",
+          status: "pending",
           shipping_address: address as never,
           subtotal: totals.subtotal,
           discount_total: totals.discountTotal,
@@ -163,6 +167,7 @@ export function usePlaceOrder() {
           gst_amount: round(gst),
           discount_amount: round(disc),
           line_total: round(i.product_snapshot.gstIncluded ? taxable + 0 : taxable + gst),
+          sample_requested: Boolean(i.sample_requested),
           seller_id,
           buyed_id: user.id,
         };

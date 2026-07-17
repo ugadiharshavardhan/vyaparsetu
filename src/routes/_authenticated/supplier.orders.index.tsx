@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   FileText, Package, PackageCheck, Truck, Clock, CheckCircle2, Search, MoreVertical, XCircle, AlertCircle
 } from "lucide-react";
@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useSupplierOrders } from "@/hooks/useSupplier";
 import { useProfile } from "@/hooks/useProfile";
+import { useSellerSampleRequests } from "@/hooks/useSampleRequests";
 import { downloadSellerInvoice } from "@/lib/invoice/downloadSellerInvoice";
 import type { SupplierOrder } from "@/types/supplier";
 import { inr } from "@/lib/format";
@@ -52,8 +53,31 @@ const STATUS_LABEL: Record<SupplierOrder["status"], string> = {
   returned: "Returned",
 };
 
+/**
+ * One table row per ORDER (not per order_item line). Base fields come from the
+ * first line; qty/amount are summed across all lines of the same parent order.
+ */
+type SellerOrderGroup = SupplierOrder & { lines: SupplierOrder[] };
+
+function groupByOrder(lines: SupplierOrder[]): SellerOrderGroup[] {
+  const map = new Map<string, SupplierOrder[]>();
+  for (const line of lines) {
+    const key = line.orderId ?? line.id;
+    const bucket = map.get(key);
+    if (bucket) bucket.push(line);
+    else map.set(key, [line]);
+  }
+  return [...map.values()].map((group) => ({
+    ...group[0],
+    lines: group,
+    qty: group.reduce((sum, l) => sum + l.qty, 0),
+    amount: group.reduce((sum, l) => sum + l.amount, 0),
+  }));
+}
+
 function SupplierOrdersPage() {
-  const { orders, updateStatus } = useSupplierOrders();
+  const { orders, updateStatus, updatePaymentStatus } = useSupplierOrders();
+  const { byOrderItem: sampleRequestByItem } = useSellerSampleRequests();
   const { data: profile } = useProfile();
   const navigate = useNavigate();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -64,19 +88,25 @@ function SupplierOrdersPage() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
+  // Order-wise view: one row per parent order, with all of its item lines.
+  const groupedOrders = useMemo(() => groupByOrder(orders), [orders]);
+
   const counts = {
-    today: orders.filter((o) => new Date(o.createdAt) >= today).length,
-    pending: orders.filter((o) => o.status === "pending").length,
-    accepted: orders.filter((o) => o.status === "accepted").length,
-    packing: orders.filter((o) => o.status === "packing").length,
-    ready: orders.filter((o) => o.status === "ready").length,
-    completed: orders.filter((o) => o.status === "delivered").length,
+    today: groupedOrders.filter((o) => new Date(o.createdAt) >= today).length,
+    pending: groupedOrders.filter((o) => o.status === "pending").length,
+    accepted: groupedOrders.filter((o) => o.status === "accepted").length,
+    packing: groupedOrders.filter((o) => o.status === "packing").length,
+    ready: groupedOrders.filter((o) => o.status === "ready").length,
+    completed: groupedOrders.filter((o) => o.status === "delivered").length,
   };
 
-  const filtered = orders.filter((o) => {
+  const filtered = groupedOrders.filter((o) => {
     if (statusFilter !== "all" && o.status !== statusFilter) return false;
     if (paymentFilter !== "all" && o.paymentStatus !== paymentFilter) return false;
-    if (q && !`${o.orderNumber} ${o.customer} ${o.product}`.toLowerCase().includes(q.toLowerCase())) return false;
+    const haystack = `${o.orderNumber} ${o.customer} ${o.buyerBusiness ?? ""} ${o.lines
+      .map((l) => l.product)
+      .join(" ")}`.toLowerCase();
+    if (q && !haystack.includes(q.toLowerCase())) return false;
     return true;
   });
 
@@ -100,12 +130,22 @@ function SupplierOrdersPage() {
     }
   };
 
-  const handleInvoice = (o: SupplierOrder) => {
+  const togglePayment = async (o: SellerOrderGroup) => {
+    const next = o.paymentStatus === "paid" ? "pending" : "paid";
     try {
-      downloadSellerInvoice(o, { sellerName: profile?.business_name });
+      await updatePaymentStatus(o.id, next);
+      toast.success(next === "paid" ? "Payment marked as completed" : "Payment marked as pending");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not update payment status");
+    }
+  };
+
+  const handleInvoice = (o: SellerOrderGroup) => {
+    try {
+      downloadSellerInvoice(o.lines[0], { sellerName: profile?.business_name, items: o.lines });
       toast.success("GST invoice downloaded");
-    } catch {
-      toast.error("Could not generate invoice");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not generate invoice");
     }
   };
 
@@ -163,7 +203,7 @@ function SupplierOrdersPage() {
           </div>
         </div>
 
-        <DataTable<SupplierOrder>
+        <DataTable<SellerOrderGroup>
           rows={filtered}
           selectable={true}
           selectedIds={selectedIds}
@@ -201,13 +241,57 @@ function SupplierOrdersPage() {
             },
             {
               key: "product",
-              header: "Products",
-              cell: (o) => (
-                <div className="flex flex-col">
-                  <span className="font-medium text-sm">{o.product}</span>
-                  <span className="text-xs text-muted-foreground">Qty: {o.qty}</span>
-                </div>
-              )
+              header: "Items",
+              cell: (o) => {
+                const shown = o.lines.slice(0, 2);
+                const extra = o.lines.length - shown.length;
+                // Aggregate sample state across every line of this order.
+                const sampleLines = o.lines.filter((l) => l.sampleRequested);
+                const requestStates = sampleLines.map(
+                  (l) => sampleRequestByItem.get(l.id)?.status ?? "requested",
+                );
+                const pendingSamples = requestStates.filter((s) => s === "requested").length;
+                const awaiting = requestStates.filter((s) => s === "sent").length;
+                const approved = requestStates.filter((s) => s === "approved").length;
+                const rejected = requestStates.filter((s) => s === "rejected").length;
+                return (
+                  <div className="flex flex-col">
+                    <span className="text-xs font-semibold text-muted-foreground">
+                      {o.lines.length} item{o.lines.length > 1 ? "s" : ""} · Qty {o.qty}
+                    </span>
+                    {shown.map((l) => (
+                      <span key={l.id} className="truncate text-sm font-medium">
+                        {l.product} <span className="text-xs font-normal text-muted-foreground">× {l.qty}</span>
+                      </span>
+                    ))}
+                    {extra > 0 && (
+                      <span className="text-xs text-muted-foreground">+ {extra} more item{extra > 1 ? "s" : ""}</span>
+                    )}
+                    <div className="flex flex-wrap gap-1">
+                      {pendingSamples > 0 && (
+                        <span className="mt-0.5 w-fit rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">
+                          {pendingSamples} sample{pendingSamples > 1 ? "s" : ""} requested
+                        </span>
+                      )}
+                      {awaiting > 0 && (
+                        <span className="mt-0.5 w-fit rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-800">
+                          Sample: awaiting buyer approval
+                        </span>
+                      )}
+                      {approved > 0 && (
+                        <span className="mt-0.5 w-fit rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">
+                          Sample approved
+                        </span>
+                      )}
+                      {rejected > 0 && (
+                        <span className="mt-0.5 w-fit rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-800">
+                          Sample declined
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              }
             },
             {
               key: "value",
@@ -217,7 +301,21 @@ function SupplierOrdersPage() {
             {
               key: "payment",
               header: "Payment",
-              cell: (o) => <Pill tone={o.paymentStatus === "paid" ? "success" : "warning"}>{o.paymentStatus}</Pill>
+              cell: (o) => (
+                <button
+                  type="button"
+                  className="cursor-pointer rounded-full transition-transform hover:scale-105"
+                  title={o.paymentStatus === "paid" ? "Click to mark payment as pending" : "Click to mark payment as completed"}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    togglePayment(o);
+                  }}
+                >
+                  <Pill tone={o.paymentStatus === "paid" ? "success" : "warning"}>
+                    {o.paymentStatus === "paid" ? "completed" : "pending"}
+                  </Pill>
+                </button>
+              )
             },
             {
               key: "status",
@@ -255,6 +353,9 @@ function SupplierOrdersPage() {
                       )}
                       {o.status === "packing" && (
                         <DropdownMenuItem onClick={() => changeStatus(o.id, "ready", "Ready for pickup")}><Truck className="mr-2 h-3.5 w-3.5" /> Mark Ready for Pickup</DropdownMenuItem>
+                      )}
+                      {!["delivered", "cancelled", "returned"].includes(o.status) && (
+                        <DropdownMenuItem onClick={() => changeStatus(o.id, "delivered", "Order marked as delivered")}><PackageCheck className="mr-2 h-3.5 w-3.5" /> Mark as Delivered</DropdownMenuItem>
                       )}
                       <DropdownMenuItem onClick={() => handleInvoice(o)}><FileText className="mr-2 h-3.5 w-3.5" /> Download Invoice</DropdownMenuItem>
                     </DropdownMenuContent>

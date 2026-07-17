@@ -1,9 +1,10 @@
 import { motion } from "framer-motion";
-import { Heart, Trash2, Bookmark } from "lucide-react";
+import { Heart, Trash2, Bookmark, FlaskConical } from "lucide-react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import type { CartItem } from "@/types/commerce";
 import { inr } from "@/lib/format";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { useRemoveCartItem, useUpdateCartItem } from "@/hooks/useCart";
 import { useToggleWishlist } from "@/hooks/useWishlist";
 import { useAuth } from "@/hooks/useAuth";
@@ -34,7 +35,8 @@ export function CartItemRow({ item }: { item: CartItem }) {
   const belowMoq = item.quantity < moq;
 
   const lineTotal = (p.wholesalePrice || 0) * item.quantity;
-  const gst = p.gstIncluded ? 0 : (lineTotal * (p.gstRate || 0)) / 100;
+  // Cart totals always add GST on top of the listed wholesale price.
+  const gst = (lineTotal * (p.gstRate || 0)) / 100;
 
   return (
     <motion.div
@@ -70,11 +72,8 @@ export function CartItemRow({ item }: { item: CartItem }) {
             <div className="text-[11px] text-muted-foreground">
               {inr(p.wholesalePrice)} × {item.quantity} {p.unit}
             </div>
-            {!p.gstIncluded && (
+            {gst > 0 && (
               <div className="text-[11px] text-muted-foreground">+ GST {inr(gst)} ({p.gstRate}%)</div>
-            )}
-            {p.gstIncluded && (
-              <div className="text-[11px] text-emerald-600">GST included</div>
             )}
           </div>
         </div>
@@ -133,6 +132,35 @@ export function CartItemRow({ item }: { item: CartItem }) {
             </Button>
           </div>
         </div>
+
+        <label
+          className={`flex w-fit cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+            item.sample_requested
+              ? "border-brand/40 bg-brand-soft/40 text-brand"
+              : "border-border bg-secondary/50 text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <FlaskConical className="h-3.5 w-3.5" />
+          Send me a sample of this item
+          <Switch
+            checked={item.sample_requested}
+            onCheckedChange={(checked) =>
+              update.mutate(
+                { id: item.id, sample_requested: checked },
+                {
+                  onSuccess: () =>
+                    toast.success(
+                      checked
+                        ? "Sample requested — it will reach you 1–2 days before delivery, and your order confirms after you approve it"
+                        : "Sample request removed",
+                    ),
+                },
+              )
+            }
+            className="ml-1 scale-90"
+            aria-label="Send sample for this item"
+          />
+        </label>
 
         <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
           <span className="rounded-full bg-secondary px-2 py-0.5 font-medium text-foreground">

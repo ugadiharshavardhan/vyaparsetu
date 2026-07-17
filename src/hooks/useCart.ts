@@ -57,6 +57,7 @@ function normalizeCartRow(row: Record<string, unknown>): CartItem | null {
     product_snapshot: snapshot,
     quantity: Math.max(1, Number(row.quantity) || 1),
     saved_for_later: Boolean(row.saved_for_later),
+    sample_requested: Boolean(row.sample_requested),
     created_at: String(row.created_at ?? ""),
     updated_at: String(row.updated_at ?? ""),
   };
@@ -113,6 +114,7 @@ async function mergeGuestCartIntoUser(userId: string) {
         product_snapshot: safe as never,
         quantity: line.quantity,
         saved_for_later: line.saved_for_later,
+        sample_requested: Boolean(line.sample_requested),
       });
       if (error) throw error;
     }
@@ -360,10 +362,12 @@ export function useUpdateCartItem() {
       id,
       quantity,
       saved_for_later,
+      sample_requested,
     }: {
       id: string;
       quantity?: number;
       saved_for_later?: boolean;
+      sample_requested?: boolean;
     }) => {
       // Optimistically reflect the change so +/- feels instant.
       await qc.cancelQueries({ queryKey: CART_KEY });
@@ -377,6 +381,7 @@ export function useUpdateCartItem() {
                   ...item,
                   ...(quantity !== undefined ? { quantity } : {}),
                   ...(saved_for_later !== undefined ? { saved_for_later } : {}),
+                  ...(sample_requested !== undefined ? { sample_requested } : {}),
                 }
               : item,
           ),
@@ -388,10 +393,12 @@ export function useUpdateCartItem() {
       id,
       quantity,
       saved_for_later,
+      sample_requested,
     }: {
       id: string;
       quantity?: number;
       saved_for_later?: boolean;
+      sample_requested?: boolean;
     }) => {
       if (quantity !== undefined) {
         if (!user) {
@@ -426,12 +433,13 @@ export function useUpdateCartItem() {
       }
 
       if (!user) {
-        updateGuestLine(id, { quantity, saved_for_later });
+        updateGuestLine(id, { quantity, saved_for_later, sample_requested });
         return;
       }
-      const patch: { quantity?: number; saved_for_later?: boolean } = {};
+      const patch: { quantity?: number; saved_for_later?: boolean; sample_requested?: boolean } = {};
       if (quantity !== undefined) patch.quantity = quantity;
       if (saved_for_later !== undefined) patch.saved_for_later = saved_for_later;
+      if (sample_requested !== undefined) patch.sample_requested = sample_requested;
       const { error } = await supabase.from("cart_items").update(patch).eq("id", id);
       if (error) throw error;
     },
