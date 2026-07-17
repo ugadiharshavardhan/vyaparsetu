@@ -63,8 +63,14 @@ function NotificationsPage() {
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild><Button><Plus className="mr-2 h-4 w-4" /> New broadcast</Button></DialogTrigger>
             <DialogContent>
-              <DialogHeader><DialogTitle>Send broadcast</DialogTitle></DialogHeader>
-              <div className="grid gap-3">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  send();
+                }}
+              >
+                <DialogHeader><DialogTitle>Send broadcast</DialogTitle></DialogHeader>
+                <div className="grid gap-3">
                 <div><Label>Title</Label><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="e.g. Scheduled maintenance" /></div>
                 <div><Label>Message</Label><Textarea value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })} placeholder="Body of the notification" rows={4} /></div>
                 <div className="grid grid-cols-2 gap-3">
@@ -93,7 +99,8 @@ function NotificationsPage() {
                   </div>
                 </div>
               </div>
-              <DialogFooter><Button onClick={send}><Send className="mr-2 h-4 w-4" /> Send now</Button></DialogFooter>
+              <DialogFooter><Button type="submit"><Send className="mr-2 h-4 w-4" /> Send now</Button></DialogFooter>
+              </form>
             </DialogContent>
           </Dialog>
         }

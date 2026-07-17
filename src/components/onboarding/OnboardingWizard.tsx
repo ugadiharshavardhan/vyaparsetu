@@ -112,7 +112,21 @@ export function OnboardingWizard() {
         </p>
       </div>
 
-      <div className="rounded-3xl border border-border bg-card p-6 shadow-elevated sm:p-8">
+      <form
+        className="rounded-3xl border border-border bg-card p-6 shadow-elevated sm:p-8"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (step < STEPS.length - 1) {
+            if (!canNext) {
+              toast.error("Please fill in all required fields");
+              return;
+            }
+            setStep((s) => s + 1);
+            return;
+          }
+          void submit();
+        }}
+      >
         <StepIndicator steps={STEPS} current={step} />
 
         <div className="mt-8 min-h-[380px]">
@@ -226,21 +240,21 @@ export function OnboardingWizard() {
         </div>
 
         <div className="mt-8 flex items-center justify-between border-t border-border pt-6">
-          <Button variant="ghost" onClick={() => setStep((s) => Math.max(0, s - 1))} disabled={step === 0}>
+          <Button type="button" variant="ghost" onClick={() => setStep((s) => Math.max(0, s - 1))} disabled={step === 0}>
             <ArrowLeft className="mr-1.5 h-4 w-4" /> Back
           </Button>
           {step < STEPS.length - 1 ? (
-            <Button onClick={() => setStep((s) => s + 1)} disabled={!canNext} className="shadow-brand">
+            <Button type="submit" disabled={!canNext} className="shadow-brand">
               Continue <ArrowRight className="ml-1.5 h-4 w-4" />
             </Button>
           ) : (
-            <Button onClick={submit} disabled={update.isPending} className="shadow-brand">
+            <Button type="submit" disabled={update.isPending} className="shadow-brand">
               {update.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Submit for verification
             </Button>
           )}
         </div>
-      </div>
+      </form>
     </div>
   );
 }

@@ -43,8 +43,29 @@ export function CouponInput({
     );
   }
 
+  const apply = () => {
+    if (!code) return;
+    mut.mutate(
+      { code, subtotal },
+      {
+        onSuccess: (c) => {
+          onApply(c);
+          toast.success(`${c.code} applied`);
+          setCode("");
+        },
+        onError: (e: Error) => toast.error(e.message),
+      },
+    );
+  };
+
   return (
-    <div className="rounded-xl border border-dashed border-border bg-secondary/40 p-3">
+    <form
+      className="rounded-xl border border-dashed border-border bg-secondary/40 p-3"
+      onSubmit={(e) => {
+        e.preventDefault();
+        apply();
+      }}
+    >
       <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
         <Ticket className="h-3.5 w-3.5" /> Have a coupon?
       </div>
@@ -54,30 +75,15 @@ export function CouponInput({
           value={code}
           onChange={(e) => setCode(e.target.value.toUpperCase())}
         />
-        <Button
-          disabled={!code || mut.isPending}
-          onClick={() =>
-            mut.mutate(
-              { code, subtotal },
-              {
-                onSuccess: (c) => {
-                  onApply(c);
-                  toast.success(`${c.code} applied`);
-                  setCode("");
-                },
-                onError: (e: Error) => toast.error(e.message),
-              },
-            )
-          }
-        >
+        <Button type="submit" disabled={!code || mut.isPending}>
           Apply
         </Button>
       </div>
       <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] text-muted-foreground">
-        Try: <button onClick={() => setCode("WELCOME10")} className="rounded-full bg-white px-2 py-0.5 font-medium text-foreground hover:bg-brand hover:text-white">WELCOME10</button>
-        <button onClick={() => setCode("FLAT500")} className="rounded-full bg-white px-2 py-0.5 font-medium text-foreground hover:bg-brand hover:text-white">FLAT500</button>
-        <button onClick={() => setCode("BULK15")} className="rounded-full bg-white px-2 py-0.5 font-medium text-foreground hover:bg-brand hover:text-white">BULK15</button>
+        Try: <button type="button" onClick={() => setCode("WELCOME10")} className="rounded-full bg-white px-2 py-0.5 font-medium text-foreground hover:bg-brand hover:text-white">WELCOME10</button>
+        <button type="button" onClick={() => setCode("FLAT500")} className="rounded-full bg-white px-2 py-0.5 font-medium text-foreground hover:bg-brand hover:text-white">FLAT500</button>
+        <button type="button" onClick={() => setCode("BULK15")} className="rounded-full bg-white px-2 py-0.5 font-medium text-foreground hover:bg-brand hover:text-white">BULK15</button>
       </div>
-    </div>
+    </form>
   );
 }

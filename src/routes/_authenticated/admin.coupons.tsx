@@ -64,8 +64,14 @@ function CouponsPage() {
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild><Button><Plus className="mr-2 h-4 w-4" /> New coupon</Button></DialogTrigger>
             <DialogContent>
-              <DialogHeader><DialogTitle>Create coupon</DialogTitle></DialogHeader>
-              <div className="grid gap-3">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  create();
+                }}
+              >
+                <DialogHeader><DialogTitle>Create coupon</DialogTitle></DialogHeader>
+                <div className="grid gap-3">
                 <div><Label>Code</Label><Input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })} placeholder="DIWALI25" /></div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -82,7 +88,8 @@ function CouponsPage() {
                   <div><Label>Expiry</Label><Input type="date" value={form.expiry} onChange={(e) => setForm({ ...form, expiry: e.target.value })} /></div>
                 </div>
               </div>
-              <DialogFooter><Button onClick={create}>Create</Button></DialogFooter>
+              <DialogFooter><Button type="submit">Create</Button></DialogFooter>
+              </form>
             </DialogContent>
           </Dialog>
         }

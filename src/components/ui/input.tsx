@@ -1,9 +1,10 @@
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
+import { handleFormSubmitOnEnter } from "@/lib/formSubmitOnEnter";
 
 const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
-  ({ className, type, ...props }, ref) => {
+  ({ className, type, onKeyDown, ...props }, ref) => {
     return (
       <input
         type={type}
@@ -12,6 +13,7 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
           className,
         )}
         ref={ref}
+        onKeyDown={(e) => handleFormSubmitOnEnter(e, onKeyDown)}
         {...props}
       />
     );

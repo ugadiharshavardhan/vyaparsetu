@@ -142,22 +142,24 @@ function MessagesPage() {
           </div>
 
           <div className="p-4 border-t border-border bg-muted/10">
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" className="shrink-0 text-muted-foreground"><Paperclip className="h-5 w-5" /></Button>
-              <Button variant="ghost" size="icon" className="shrink-0 text-muted-foreground"><ImageIcon className="h-5 w-5" /></Button>
+            <form
+              className="flex items-center gap-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!msg.trim()) return;
+                setMsg("");
+              }}
+            >
+              <Button type="button" variant="ghost" size="icon" className="shrink-0 text-muted-foreground"><Paperclip className="h-5 w-5" /></Button>
+              <Button type="button" variant="ghost" size="icon" className="shrink-0 text-muted-foreground"><ImageIcon className="h-5 w-5" /></Button>
               <Input
                 value={msg}
                 onChange={(e) => setMsg(e.target.value)}
                 placeholder="Type your message..."
                 className="flex-1 bg-background"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && msg) {
-                    setMsg("");
-                  }
-                }}
               />
-              <Button onClick={() => setMsg("")} disabled={!msg} className="shrink-0 shadow-brand"><Send className="h-4 w-4 mr-2" /> Send</Button>
-            </div>
+              <Button type="submit" disabled={!msg.trim()} className="shrink-0 shadow-brand"><Send className="h-4 w-4 mr-2" /> Send</Button>
+            </form>
           </div>
         </div>
 

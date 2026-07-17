@@ -104,7 +104,7 @@ function BuyerProfilePage() {
               <ShoppingCart className="mr-1.5 h-4 w-4" />
               Cart{cartCount > 0 ? ` (${cartCount})` : ""}
             </Button>
-            <Button onClick={save} disabled={update.isPending || isLoading} className="shadow-brand">
+            <Button type="submit" form="buyer-profile-form" disabled={update.isPending || isLoading} className="shadow-brand">
               {update.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Save changes
             </Button>
@@ -150,6 +150,7 @@ function BuyerProfilePage() {
 
         <div className="space-y-6">
           <form
+            id="buyer-profile-form"
             className="space-y-5 rounded-2xl border border-border bg-card p-6 shadow-soft"
             onSubmit={(e) => {
               e.preventDefault();
@@ -268,7 +269,7 @@ function SellerOrFullProfilePage() {
               <ShoppingCart className="mr-1.5 h-4 w-4" />
               Cart{cartCount > 0 ? ` (${cartCount})` : ""}
             </Button>
-            <Button onClick={save} disabled={update.isPending || isLoading} className="shadow-brand">
+            <Button type="submit" form="seller-profile-form" disabled={update.isPending || isLoading} className="shadow-brand">
               {update.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Save changes
             </Button>
@@ -315,7 +316,7 @@ function SellerOrFullProfilePage() {
         </div>
 
         <div className="space-y-6">
-          <form className="space-y-6 rounded-2xl border border-border bg-card p-6 shadow-soft" onSubmit={(e) => { e.preventDefault(); void save(); }}>
+          <form id="seller-profile-form" className="space-y-6 rounded-2xl border border-border bg-card p-6 shadow-soft" onSubmit={(e) => { e.preventDefault(); void save(); }}>
             <h3 className="font-display text-lg font-semibold">Account details</h3>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Business name"><Input value={form.business_name ?? ""} onChange={(e) => set("business_name", e.target.value)} /></Field>
@@ -346,6 +347,10 @@ function SellerOrFullProfilePage() {
                 <Field label="Country"><Input value={form.country ?? ""} onChange={(e) => set("country", e.target.value)} /></Field>
               </div>
             </div>
+            <Button type="submit" disabled={update.isPending || isLoading} className="shadow-brand">
+              {update.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save to database
+            </Button>
           </form>
         </div>
       </div>

@@ -95,12 +95,19 @@ function AdminCategoriesPage() {
           <Dialog>
             <DialogTrigger asChild><Button><Plus className="mr-2 h-4 w-4" /> New category</Button></DialogTrigger>
             <DialogContent>
-              <DialogHeader><DialogTitle>Create category</DialogTitle></DialogHeader>
-              <div className="space-y-4">
-                <div><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Grains & Pulses" /></div>
-                <div><Label>SEO description</Label><Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Meta description shown on SERPs" /></div>
-              </div>
-              <DialogFooter><Button onClick={() => void create()}>Create</Button></DialogFooter>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  void create();
+                }}
+              >
+                <DialogHeader><DialogTitle>Create category</DialogTitle></DialogHeader>
+                <div className="space-y-4">
+                  <div><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Grains & Pulses" /></div>
+                  <div><Label>SEO description</Label><Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Meta description shown on SERPs" /></div>
+                </div>
+                <DialogFooter><Button type="submit">Create</Button></DialogFooter>
+              </form>
             </DialogContent>
           </Dialog>
         }

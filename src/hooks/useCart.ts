@@ -116,6 +116,14 @@ async function mergeGuestCartIntoUser(userId: string) {
 /** Prevent concurrent remounts from adding the same pending item twice. */
 let pendingCartFlush: Promise<boolean> | null = null;
 
+/**
+ * `useCart` mounts in several components at once (CartSheet, CartButton, PDP…).
+ * Without this guard every instance runs the post-login merge/flush and fires
+ * its own "Added to cart" toast, so the user sees the item added multiple
+ * times. Claim the sync for a given user id so only the first instance runs it.
+ */
+let postLoginSyncedUserId: string | null = null;
+
 /** Add the product the guest clicked before they were sent to auth. */
 async function flushPendingCartAdd(userId: string) {
   if (pendingCartFlush) return pendingCartFlush;
@@ -171,18 +179,27 @@ export function useCart() {
   const { user, loading } = useAuth();
   const qc = useQueryClient();
 
-  // After sign-in: merge guest cart (if any) + add the product they clicked pre-auth
+  // After sign-in: merge guest cart (if any) + add the product they clicked pre-auth.
+  // Runs exactly once per signed-in user (across all useCart consumers) so the
+  // pending item is added — and the toast shown — only a single time.
   useEffect(() => {
-    if (!user || loading) return;
+    if (!user || loading) {
+      if (!user) postLoginSyncedUserId = null;
+      return;
+    }
+    if (postLoginSyncedUserId === user.id) return;
+    // Claim synchronously before any await so concurrent mounts don't re-run it.
+    postLoginSyncedUserId = user.id;
+    const userId = user.id;
     let cancelled = false;
 
     (async () => {
       try {
         const guest = readGuestCart();
         if (guest.length) {
-          await mergeGuestCartIntoUser(user.id);
+          await mergeGuestCartIntoUser(userId);
         }
-        const addedPending = await flushPendingCartAdd(user.id);
+        const addedPending = await flushPendingCartAdd(userId);
         if (cancelled) return;
         await qc.invalidateQueries({ queryKey: CART_KEY });
         if (addedPending) {
@@ -190,6 +207,8 @@ export function useCart() {
           // Do not auto-open cart drawer — badge / toast is enough
         }
       } catch (e) {
+        // Allow a retry on the next mount if the sync failed.
+        if (postLoginSyncedUserId === userId) postLoginSyncedUserId = null;
         if (!cancelled) {
           toast.error(e instanceof Error ? e.message : "Could not add item to cart");
         }

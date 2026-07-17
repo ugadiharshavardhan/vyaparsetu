@@ -95,7 +95,13 @@ export function EmailOtpForm({
   };
 
   return (
-    <div className="space-y-4">
+    <form
+      className="space-y-4"
+      onSubmit={(e) => {
+        e.preventDefault();
+        void verify();
+      }}
+    >
       <div>
         <Label htmlFor="otp">6-digit code</Label>
         <Input
@@ -116,11 +122,10 @@ export function EmailOtpForm({
         </p>
       </div>
       <Button
-        type="button"
+        type="submit"
         size="lg"
         className="w-full shadow-brand"
         disabled={verifying || code.length !== 6}
-        onClick={() => void verify()}
       >
         {verifying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
         {submitLabel}
@@ -133,6 +138,6 @@ export function EmailOtpForm({
       >
         {resending ? "Sending…" : "Resend code"}
       </button>
-    </div>
+    </form>
   );
 }

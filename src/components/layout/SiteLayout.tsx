@@ -14,7 +14,7 @@ import { AuthContext } from "@/hooks/useAuth";
 const APP_PREFIXES = [
   "/dashboard", "/seller", "/profile", "/settings", "/orders", "/wishlist",
   "/admin", "/notifications", "/help", "/onboarding", "/payments",
-  "/addresses", "/supplier",
+  "/addresses", "/supplier", "/checkout",
 ];
 
 /** Full-bleed auth chrome (no marketing header/footer). */
@@ -38,8 +38,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
   const isApp = APP_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
   const isAuth = AUTH_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
   const isShared = SHARED_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
-  const skipDashboardChrome =
-    pathname.startsWith("/onboarding") || pathname.startsWith("/checkout");
+  const skipDashboardChrome = pathname.startsWith("/onboarding");
   const useWorkspaceChrome =
     isAuthenticated && !skipDashboardChrome && (isApp || isShared);
 

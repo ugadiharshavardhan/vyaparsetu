@@ -60,8 +60,14 @@ function BannersPage() {
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild><Button><Plus className="mr-2 h-4 w-4" /> Upload banner</Button></DialogTrigger>
             <DialogContent>
-              <DialogHeader><DialogTitle>New banner</DialogTitle></DialogHeader>
-              <div className="grid gap-3">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  create();
+                }}
+              >
+                <DialogHeader><DialogTitle>New banner</DialogTitle></DialogHeader>
+                <div className="grid gap-3">
                 <div><Label>Title</Label><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></div>
                 <div>
                   <Label>Placement</Label>
@@ -81,7 +87,8 @@ function BannersPage() {
                 </div>
                 <div><Label>Image</Label><Input type="file" /></div>
               </div>
-              <DialogFooter><Button onClick={create}>Create</Button></DialogFooter>
+              <DialogFooter><Button type="submit">Create</Button></DialogFooter>
+              </form>
             </DialogContent>
           </Dialog>
         }

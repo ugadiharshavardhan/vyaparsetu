@@ -156,12 +156,62 @@
 
 # Current Project State
 
-- **Current Phase:** Landing auth chrome + checkout redirect reliability
-- **Current Module:** `Header`, `CartSheet`, `auth`, `_authenticated/route`, `checkout`
-- **Overall Progress:** Landing navbar shows profile + cart when signed in; cart Checkout opens `/checkout` reliably for authenticated buyers; auth gate retries session before bouncing.
+- **Current Phase:** Checkout chrome + single pending-cart flush
+- **Current Module:** `SiteLayout`, `useCart`, `checkout`
+- **Overall Progress:** Checkout keeps the buyer workspace navbar (no landing header); pre-login "Add to cart" is flushed and toasted exactly once after sign-in.
 - **Last Updated:** 2026-07-17
 
 # Development History
+
+## 2026-07-17 - Single pending-cart flush + checkout keeps buyer navbar
+
+### Why
+1. Adding an item as a guest then signing in showed the item added "multiple" times (duplicate "Added to cart" toasts).
+2. When a buyer entered/selected their shipping location on the checkout page, the navbar switched to the public landing header (Login/Signup, Browse catalogue…).
+
+### Root cause
+1. The post-login "merge guest cart + flush pending add" effect lives in `useCart`, which mounts in several components at once (`CartSheet`, `CartButton`, PDP, etc.). Each instance awaited the shared flush promise and fired its own `toast.success("Added to cart")`.
+2. `SiteLayout` listed `/checkout` in `skipDashboardChrome`, and `/checkout` wasn't in `APP_PREFIXES`/`SHARED_PREFIXES`, so it fell through to the marketing `<Header/>`/`<Footer/>` branch — the landing navbar.
+
+### Changes
+- `src/hooks/useCart.ts` — added module-level `postLoginSyncedUserId` guard so the merge/flush/toast runs exactly once per signed-in user (claimed synchronously before any await; reset on sign-out and on failure to allow retry).
+- `src/components/layout/SiteLayout.tsx` — removed `/checkout` from `skipDashboardChrome` and added `/checkout` to `APP_PREFIXES`, so authenticated checkout renders the buyer workspace chrome (buyer topbar) instead of the marketing landing header.
+
+### No backend changes
+Pure frontend fix.
+
+## 2026-07-17 - Enter key submits forms across the app
+
+### Why
+Pressing Enter while filling form fields did not submit on many screens (OTP, address dialog, coupon apply, onboarding steps, messages, admin create dialogs) because inputs were not inside `<form>` elements or submit buttons lacked `type="submit"`.
+
+### Changes
+- `lib/formSubmitOnEnter.ts` [NEW] — shared Enter handler calling `form.requestSubmit()` on the nearest submit button.
+- `components/ui/input.tsx` — all inputs trigger form submit on Enter when a submit button exists.
+- `EmailOtpForm.tsx`, `AddressForm.tsx`, `CouponInput.tsx`, `OnboardingWizard.tsx`, `messages.tsx`, `profile.tsx`, `admin.categories.tsx`, `admin.coupons.tsx`, `admin.banners.tsx`, `admin.notifications.tsx` — wrapped in proper `<form onSubmit>` with `type="submit"` primary actions and `type="button"` for secondary/cancel controls.
+
+## 2026-07-17 - Landing navbar: always "Login / Signup" (smart target)
+
+### Why
+Operator wants the landing navbar to always show a single "Login / Signup" button (no profile avatar/cart). Clicking it should go straight to the buyer dashboard (`/marketplace`) when already signed in, else open buyer sign-in / sign-up.
+
+### Changes
+- `Header.tsx` — removed the authenticated `CartButton` + `UserMenu` branch (desktop and mobile drawer). The button now always reads "Login / Signup" and calls `goLoginOrDashboard()`: `isAuthenticated` → `/marketplace`, else → `/auth?mode=signin&role=buyer`. Dropped now-unused `UserMenu` / `CartButton` imports; added `useNavigate`.
+
+## 2026-07-17 - Role-scoped sign-in (seller→sellers, buyer→buyers)
+
+### Why
+Sign-in had no role gate, so a buyer could log in on the Seller tab (and vice-versa) and land in the wrong workspace. Operator asked that the Seller tab check the sellers table only and the Customer tab check the buyers table only.
+
+### Changes
+- `lib/accountMembership.ts` — new `ensureRoleMembershipForSignIn(user, wanted)`:
+  - Seller tab → requires an existing `public.sellers` row (never auto-creates a seller). If the email is a customer, rejects with "use the Customer tab".
+  - Customer tab → requires `public.buyers`; a seller-only email is rejected with "use the Seller tab"; if neither row exists (failed signup upsert) it heals the buyer row from auth metadata so genuine customers aren't locked out.
+- `SignInForm.tsx` — `finishSignIn` now runs the gate (via `supabase.auth.getUser()` for metadata) before persisting mode/redirecting; on mismatch it signs out, clears session mode, and toasts the reason. Applies to both password and email-OTP sign-in paths.
+
+### Notes
+- Route guards (`_authenticated/buyer.tsx`, `seller.tsx`) already enforce membership per workspace; this makes the login step itself role-accurate too.
+- Post-login navigation stays consistent: `persistMode()` (from the chosen tab) runs before `resolvePostLoginPath`, so seller → `/seller/dashboard`, buyer → `/marketplace`.
 
 ## 2026-07-17 - Landing navbar profile + cart checkout redirect fix
 

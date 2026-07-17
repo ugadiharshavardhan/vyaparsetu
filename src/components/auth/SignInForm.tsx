@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { EmailOtpForm } from "@/components/auth/EmailOtpForm";
 import { resolvePostLoginPath } from "@/lib/postLoginRedirect";
 import { setSessionMode, clearSessionMode } from "@/lib/sessionMode";
+import { ensureRoleMembershipForSignIn } from "@/lib/accountMembership";
 import { establishSessionAfterSignup, sendEmailOtp, checkLoginHelp } from "@/lib/otp";
 import { cn } from "@/lib/utils";
 import { authFieldLabel, authInputWithIcon, authSubmitButton } from "@/components/auth/AuthLayout";
@@ -42,8 +43,23 @@ export function SignInForm({ role }: { role?: "buyer" | "seller" } = {}) {
   };
 
   const finishSignIn = async (userId: string) => {
-    // No role-membership gate: valid credentials always sign in. Buyers and
-    // sellers can log in from either tab without being blocked or signed out.
+    // Role-scoped gate: the Seller tab checks public.sellers, the Customer tab
+    // checks public.buyers. A user who belongs to the other role is signed out
+    // with a message pointing them at the correct tab.
+    const wanted: "buyer" | "seller" = role === "seller" ? "seller" : "buyer";
+    const { data: userData } = await supabase.auth.getUser();
+    const authUser = userData.user;
+    const membership = await ensureRoleMembershipForSignIn(
+      { id: userId, email: authUser?.email, user_metadata: authUser?.user_metadata },
+      wanted,
+    );
+    if (!membership.ok) {
+      await supabase.auth.signOut();
+      clearSessionMode();
+      toast.error(membership.message);
+      return;
+    }
+
     persistMode();
     toast.success("Welcome back!");
     const path = await resolvePostLoginPath(userId, search.redirect);

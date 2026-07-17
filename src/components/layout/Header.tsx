@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ChevronDown, MapPin, Menu, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,8 +11,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Logo } from "@/components/common/Logo";
 import { SearchDialog } from "@/components/search/SearchDialog";
-import { UserMenu } from "@/components/layout/UserMenu";
-import { CartButton } from "@/components/cart/CartButton";
 import { useAuth } from "@/hooks/useAuth";
 import {
   DELIVERY_LOCATIONS,
@@ -72,7 +70,18 @@ export function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [location, setLocation] = useState<DeliveryLocation | null>(null);
-  const { isAuthenticated, loading: authLoading } = useAuth();
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+
+  // Landing "Login / Signup": signed-in users go straight to their dashboard
+  // (marketplace); guests get the buyer sign-in / sign-up screen.
+  const goLoginOrDashboard = () => {
+    if (isAuthenticated) {
+      void navigate({ to: "/marketplace" });
+      return;
+    }
+    void navigate({ to: "/auth", search: { mode: "signin", role: "buyer" } });
+  };
 
   useEffect(() => {
     setLocation(readDeliveryLocation());
@@ -141,21 +150,12 @@ export function Header() {
             <Search className="h-5 w-5 text-brand" />
           </button>
 
-          {!authLoading && isAuthenticated ? (
-            <>
-              <CartButton className="hidden sm:inline-flex" />
-              <UserMenu />
-            </>
-          ) : !authLoading ? (
-            <Button
-              asChild
-              className="hidden h-11 rounded-full bg-brand px-6 text-base font-semibold text-brand-foreground hover:bg-brand/90 sm:inline-flex"
-            >
-              <Link to="/auth" search={{ mode: "signin", role: "buyer" }}>
-                Login / Signup
-              </Link>
-            </Button>
-          ) : null}
+          <Button
+            className="hidden h-11 rounded-full bg-brand px-6 text-base font-semibold text-brand-foreground hover:bg-brand/90 sm:inline-flex"
+            onClick={goLoginOrDashboard}
+          >
+            Login / Signup
+          </Button>
 
           <Sheet>
             <SheetTrigger asChild>
@@ -206,24 +206,12 @@ export function Header() {
                 ))}
 
                 <div className="mt-4 border-t border-border pt-4">
-                  {isAuthenticated ? (
-                    <div className="flex items-center justify-between gap-3 px-1">
-                      <span className="text-sm font-medium text-muted-foreground">Your account</span>
-                      <div className="flex items-center gap-2">
-                        <CartButton variant="ghost" />
-                        <UserMenu />
-                      </div>
-                    </div>
-                  ) : (
-                    <Button
-                      className="h-11 w-full rounded-full bg-brand text-base font-semibold text-brand-foreground hover:bg-brand/90"
-                      asChild
-                    >
-                      <Link to="/auth" search={{ mode: "signin", role: "buyer" }}>
-                        Login / Signup
-                      </Link>
-                    </Button>
-                  )}
+                  <Button
+                    className="h-11 w-full rounded-full bg-brand text-base font-semibold text-brand-foreground hover:bg-brand/90"
+                    onClick={goLoginOrDashboard}
+                  >
+                    Login / Signup
+                  </Button>
                 </div>
               </div>
             </SheetContent>

@@ -138,7 +138,13 @@ export function AddressFormDialog({
           <DialogTitle>{initial ? "Edit shipping address" : "Add shipping address"}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-5">
+        <form
+          className="space-y-5"
+          onSubmit={(e) => {
+            e.preventDefault();
+            submit();
+          }}
+        >
           <section className="space-y-3">
             <div>
               <h4 className="text-sm font-semibold">Address details</h4>
@@ -230,14 +236,14 @@ export function AddressFormDialog({
               />
             )}
           </section>
-        </div>
 
-        <div className="mt-2 flex justify-end gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={submit} disabled={save.isPending} className="shadow-brand">
-            {save.isPending ? "Saving..." : "Save shipping address"}
-          </Button>
-        </div>
+          <div className="mt-2 flex justify-end gap-2 border-t border-border pt-4">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button type="submit" disabled={save.isPending} className="shadow-brand">
+              {save.isPending ? "Saving..." : "Save shipping address"}
+            </Button>
+          </div>
+        </form>
       </DialogContent>
     </Dialog>
   );
