@@ -156,13 +156,21 @@
 
 # Current Project State
 
-- **Current Phase:** Category cover images corrected
+- **Current Phase:** Breadcrumb cleanup
 - **Current Branch:** N/A
-- **Current Module:** Marketplace categories / Our Categories
-- **Overall Progress:** Fixed wrong `spices` cover (was Tikhalal+Tata Salt collage → Everest Coriander pack); cache-busted `pulses-dal` / `salt-sugar` / `spices` URLs.
+- **Current Module:** Marketplace Breadcrumbs
+- **Overall Progress:** Simplified breadcrumb path on category pages by removing the intermediate "Categories" link.
 - **Last Updated:** 2026-07-17
 
 # Development History
+
+## 2026-07-17 - Remove "Categories" from Breadcrumb Navigation
+
+### Why
+Simplify the breadcrumb navigation by removing the intermediate "Categories" breadcrumb item on category pages, as requested.
+
+### Changes
+- `categories.$slug.tsx` — Removed the "Categories" breadcrumb link and its separator, directly connecting "Home" to the current category name.
 
 ## 2026-07-17 - Fix wrong Spices category cover in Our Categories
 

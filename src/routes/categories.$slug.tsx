@@ -11,7 +11,11 @@ import { ProductGrid } from "@/components/product/ProductGrid";
 import { ProductList } from "@/components/product/ProductListItem";
 import { ProductGridSkeleton } from "@/components/product/ProductCardSkeleton";
 import { QuickViewDialog } from "@/components/product/QuickViewDialog";
-import { DEFAULT_FILTERS, FilterSidebar, type Filters } from "@/components/marketplace/FilterSidebar";
+import {
+  DEFAULT_FILTERS,
+  FilterSidebar,
+  type Filters,
+} from "@/components/marketplace/FilterSidebar";
 import { SortDropdown, type SortKey } from "@/components/marketplace/SortDropdown";
 import { CategoryImage } from "@/components/marketplace/CategoryCard";
 import { useSubcategoryImages } from "@/components/marketplace/AllSubcategoriesStrip";
@@ -82,7 +86,10 @@ function CategoryPage() {
   const { data: subImages = {} } = useSubcategoryImages();
   const search = Route.useSearch();
   const navigate = useNavigate({ from: "/categories/$slug" });
-  const { data: allProducts = [], isLoading: productsLoading } = useProductsByCategory(category.slug, 200);
+  const { data: allProducts = [], isLoading: productsLoading } = useProductsByCategory(
+    category.slug,
+    200,
+  );
   const [query, setQuery] = useState(search.q ?? "");
   const debouncedQuery = useDebounce(query, 200);
   const [filters, setFilters] = useState<Filters>({
@@ -124,7 +131,11 @@ function CategoryPage() {
   const categoryProducts = allProducts;
 
   const filtered = useMemo(() => {
-    const list = filterProducts(categoryProducts, { ...filters, category: category.slug }, debouncedQuery);
+    const list = filterProducts(
+      categoryProducts,
+      { ...filters, category: category.slug },
+      debouncedQuery,
+    );
     return sortProducts(list, sort);
   }, [categoryProducts, filters, category.slug, debouncedQuery, sort]);
 
@@ -207,9 +218,9 @@ function CategoryPage() {
         <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 space-y-6">
           {/* Breadcrumb Path */}
           <nav className="text-[10px] sm:text-[11px] text-muted-foreground flex flex-wrap items-center gap-1.5">
-            <Link to="/marketplace" className="hover:text-brand transition-colors">Home</Link>
-            <span>&gt;</span>
-            <Link to="/categories" className="hover:text-brand transition-colors">Categories</Link>
+            <Link to="/marketplace" className="hover:text-brand transition-colors">
+              Home
+            </Link>
             <span>&gt;</span>
             <span className="text-foreground font-medium">{category.name}</span>
             {subName && (
@@ -267,7 +278,11 @@ function CategoryPage() {
                 className={`rounded-full text-xs h-8.5 px-3.5 ${showFilters ? "shadow-brand bg-brand text-white border-brand" : "hover:border-brand/40"}`}
                 onClick={() => setShowFilters((v) => !v)}
               >
-                {showFilters ? <X className="mr-1.5 h-3.5 w-3.5" /> : <SlidersHorizontal className="mr-1.5 h-3.5 w-3.5" />}
+                {showFilters ? (
+                  <X className="mr-1.5 h-3.5 w-3.5" />
+                ) : (
+                  <SlidersHorizontal className="mr-1.5 h-3.5 w-3.5" />
+                )}
                 {showFilters ? "Hide filters" : "More Filters"}
               </Button>
             </div>
