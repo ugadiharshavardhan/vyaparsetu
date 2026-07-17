@@ -105,7 +105,7 @@ export function DashboardTopbar({ isBuyerLayout = false }: { isBuyerLayout?: boo
 
   if (isBuyerLayout) {
     return (
-      <header className="sticky top-0 z-30 grid h-14 w-full grid-cols-[1fr_auto_1fr] items-center gap-3 border-b border-border bg-card px-3 shadow-sm transition-all sm:h-16 sm:gap-6 sm:px-6">
+      <header className="sticky top-0 z-30 grid h-14 w-full grid-cols-[1fr_auto_1fr] items-center gap-3 border-b border-border bg-card px-3 shadow-sm transition-all sm:h-16 sm:gap-4 sm:px-4 xl:gap-6 xl:px-6">
         {/* Left: menu, logo, location */}
         <div className="flex min-w-0 items-center gap-2 justify-self-start sm:gap-3">
           <Sheet>
@@ -216,43 +216,43 @@ export function DashboardTopbar({ isBuyerLayout = false }: { isBuyerLayout?: boo
         </div>
 
         {/* Center: primary nav */}
-        <nav className="hidden items-center gap-1 justify-self-center lg:flex">
+        <nav className="hidden items-center gap-0.5 justify-self-center lg:flex xl:gap-1">
           <Link
             to="/marketplace"
             activeProps={{ className: "text-brand bg-brand-soft/30 font-semibold" }}
-            className="whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            className="whitespace-nowrap rounded-full px-2.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground xl:px-3.5"
           >
             Marketplace
           </Link>
           <Link
             to="/orders"
             activeProps={{ className: "text-brand bg-brand-soft/30 font-semibold" }}
-            className="whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            className="whitespace-nowrap rounded-full px-2.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground xl:px-3.5"
           >
             Orders
           </Link>
           <Link
             to="/wishlist"
             activeProps={{ className: "text-brand bg-brand-soft/30 font-semibold" }}
-            className="whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            className="whitespace-nowrap rounded-full px-2.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground xl:px-3.5"
           >
             Saved
           </Link>
           <Link
             to="/samples"
             activeProps={{ className: "text-brand bg-brand-soft/30 font-semibold" }}
-            className="whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            className="whitespace-nowrap rounded-full px-2.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground xl:px-3.5"
           >
             Samples
           </Link>
           <Link
             to="/requests"
             activeProps={{ className: "text-brand bg-brand-soft/30 font-semibold" }}
-            className="relative whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            className="relative flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground xl:px-3.5"
           >
             Requests
             {pendingRequestCount > 0 && (
-              <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand px-1 text-[10px] font-bold text-white">
+              <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-brand px-1 text-[10px] font-bold leading-none text-white">
                 {pendingRequestCount}
               </span>
             )}
@@ -261,7 +261,7 @@ export function DashboardTopbar({ isBuyerLayout = false }: { isBuyerLayout?: boo
 
         {/* Right: search, cart, notifications, profile */}
         <div className="flex min-w-0 items-center gap-1.5 justify-self-end sm:gap-3">
-          <div className="relative hidden min-w-0 w-[10rem] sm:block md:w-[12rem] lg:w-[13rem] xl:w-[17rem]">
+          <div className="relative hidden min-w-0 w-[10rem] sm:block md:w-[12rem] lg:w-[11rem] xl:w-[14rem] 2xl:w-[17rem]">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               ref={searchInputRef}
@@ -306,11 +306,13 @@ export function DashboardTopbar({ isBuyerLayout = false }: { isBuyerLayout?: boo
             <Search className="h-5 w-5 text-muted-foreground" />
           </Button>
 
+          {/* Heart shortcut duplicates the center "Saved" link — show it only when
+              the center nav is hidden (< lg) or when there's plenty of room (2xl+). */}
           <Button
             asChild
             variant="ghost"
             size="icon"
-            className="hidden h-9 w-9 rounded-full hover:bg-muted sm:inline-flex"
+            className="hidden h-9 w-9 rounded-full hover:bg-muted sm:inline-flex lg:hidden 2xl:inline-flex"
             aria-label="Saved items"
           >
             <Link to="/wishlist" activeProps={{ className: "text-brand" }}>

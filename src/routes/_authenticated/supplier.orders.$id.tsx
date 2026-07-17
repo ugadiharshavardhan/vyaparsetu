@@ -198,7 +198,14 @@ function OrderDetailsPage() {
                         <Package className="h-6 w-6 text-muted-foreground" />
                       </div>
                       <div>
-                        <div className="font-semibold text-base">{item.product}</div>
+                        <div className="font-semibold text-base">
+                          {item.product}
+                          {item.isSample && (
+                            <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-800">
+                              Sample order
+                            </span>
+                          )}
+                        </div>
                         <div className="text-sm text-muted-foreground">Qty: {item.qty}</div>
                       </div>
                     </div>
@@ -208,12 +215,14 @@ function OrderDetailsPage() {
                     </div>
                   </div>
 
-                  {item.sampleRequested && (
+                  {(item.sampleRequested || item.isSample) && (
                     <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-amber-50 px-3 py-2">
                       <div className="flex items-center gap-2 text-[12px] font-medium text-amber-800">
                         <FlaskConical className="h-4 w-4 shrink-0" />
                         <span>
-                          Sample requested — ship the sample 1–2 days before the final delivery.
+                          {item.isSample
+                            ? "Paid ₹100 sample order — ship the sample, then ask the buyer to approve."
+                            : "Sample requested — ship the sample 1–2 days before the final delivery."}
                         </span>
                       </div>
                       {!sampleReq && (

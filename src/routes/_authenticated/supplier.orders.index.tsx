@@ -268,6 +268,11 @@ function SupplierOrdersPage() {
                       <span className="text-xs text-muted-foreground">+ {extra} more item{extra > 1 ? "s" : ""}</span>
                     )}
                     <div className="flex flex-wrap gap-1">
+                      {o.lines.some((l) => l.isSample) && (
+                        <span className="mt-0.5 w-fit rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-800">
+                          Sample order
+                        </span>
+                      )}
                       {pendingSamples > 0 && (
                         <span className="mt-0.5 w-fit rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">
                           {pendingSamples} sample{pendingSamples > 1 ? "s" : ""} requested

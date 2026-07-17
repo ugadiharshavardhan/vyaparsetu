@@ -156,12 +156,58 @@
 
 # Current Project State
 
-- **Current Phase:** Merged main (Supabase Auth & Chatbot integration) with local seller/sample work
-- **Current Module:** `useSupplier.updatePaymentStatus`, seller orders list + detail; `useAuth`, `apiClient`, `Chatbot`
-- **Overall Progress:** The Payment pill in the seller orders list and on the order detail header is now a click-to-toggle: pending → completed → pending, persisted to `orders.payment_status` (`success`/`pending`). Order-wise grouped list, Pending-on-placement, Mark-as-Delivered, invoice download, and the sample loop remain in place. Merged from main: floating AI Chatbot widget for authenticated buyers backed by a FastAPI backend, with `apiClient` attaching the Supabase JWT to every request.
+- **Current Phase:** Paid Sample Store flow (buyer samples → checkout → seller Samples section → approval → bulk order)
+- **Current Module:** `/samples` buyer page, `/supplier/samples` seller page, sample cart pricing in `commerce.ts`/`useCart`/`useOrders`
+- **Overall Progress:** Buyers have a navbar "Samples" section listing Rice Products, Pulses (Dal) and Food Grains & Cereals items grouped by category/subcategory; "Add sample" puts a flat ₹100 sample line in the cart (qty 1, no MOQ/GST) with a flat ₹50 sample delivery at checkout, through the normal address → payment flow. Sellers get a sidebar "Samples" section showing each paid sample order with full buyer details and a Send-approval-request action; buyers approve under Requests and can then order the real item in bulk from the same card. Previous work (payment pill toggle, grouped orders, Chatbot, etc.) unchanged.
 - **Last Updated:** 2026-07-18
 
 # Development History
+
+## 2026-07-18 - Buyer topbar spacing fix for 5-link center nav (Samples + Requests)
+
+### Why
+With Samples and Requests added, the buyer topbar's center nav (5 pills) collided with the search box at `lg` widths — the Requests pill (and its count badge) overlapped the search input.
+
+### Changes
+- `src/components/dashboard/DashboardTopbar.tsx` (buyer header) —
+ - Header grid gap/padding tightened at `sm`–`lg` (`sm:gap-4 sm:px-4`, back to `xl:gap-6 xl:px-6`).
+ - Center nav pills compacted at `lg` (`px-2.5`, `gap-0.5`; original `px-3.5`/`gap-1` restored at `xl`).
+ - Requests badge moved inline (flex `gap-1.5` inside the pill) instead of absolutely positioned at the pill corner, so it no longer bleeds outside the nav toward the search box.
+ - Search width rebalanced: `lg:w-[11rem] xl:w-[14rem] 2xl:w-[17rem]` (was `lg:w-[13rem] xl:w-[17rem]`).
+ - Heart "Saved items" icon button (duplicate of the center "Saved" link) now hidden between `lg` and `2xl` to free space while the center nav is visible.
+
+## 2026-07-18 - Paid Sample Store: buyer samples nav → ₹100/item + ₹50 delivery checkout → seller Samples section → approve & bulk order
+
+### Why
+Buyers should be able to order paid product samples (rice products, pulses/dal, food grains) before committing to bulk MOQ quantities. Each sample costs a flat ₹100 with a ₹50 delivery charge per order. Sellers need a dedicated Samples section showing these orders with buyer details and a way to request approval; after checking the sample, the buyer approves the request and orders the real item.
+
+### How sample lines work (no schema change)
+- `ProductSnapshot` gained optional `isSample?: boolean` (preserved by `normalizeSnapshot`). A sample cart line stores `product_id = "sample:<realProductId>"` (so it can coexist with a regular line under `cart_items` UNIQUE(user_id, product_id)) while the snapshot keeps the REAL product id, `wholesalePrice: 100`, `moq: 1`, `gstRate: 0`. `usePlaceOrder` writes the REAL product id onto `order_items` (stock decrement + seller stamping + sample_requests RLS all keep working); the snapshot's `isSample` flag marks the line as a sample order end-to-end. The synthetic cart id also means `fetchLiveMoqMap` never overrides the sample MOQ of 1, so MOQ enforcement is naturally bypassed for samples.
+
+### Changes
+- `src/lib/commerce.ts` — `SAMPLE_ITEM_PRICE` (100), `SAMPLE_DELIVERY_FEE` (50), `isSampleLine()`, `toSampleSnapshot()` (flat ₹100, qty 1, no GST). `computeTotals` now splits sample vs regular lines: regular items use the existing slab shipping; any sample in the cart adds a flat ₹50 (`sampleDeliveryTotal`, included in `shippingTotal`); sample-only carts pay exactly ₹100×n + ₹50.
+- `src/types/commerce.ts` — `ProductSnapshot.isSample?`, `PriceBreakup.sampleDeliveryTotal`.
+- `src/hooks/useCart.ts` — `sampleCartProductId()`, `useAddSampleToCart()` (one sample per product, qty 1, toast), `useSampleCartLine()`; `normalizeSnapshot` preserves `isSample`.
+- `src/hooks/useOrders.ts` — `usePlaceOrder` resolves the real product id for sample lines (owner lookup + `order_items.product_id`).
+- `src/hooks/useCatalog.ts` — `useProductsByCategories(slugs)` (products across multiple main categories via `.in("category_slug", …)`).
+- `src/routes/_authenticated/samples.tsx` [NEW] — buyer Sample Store: header explains ₹100/item + ₹50 delivery, groups the three categories by subcategory (labels from `CATEGORIES` fallback), cards show bulk price/MOQ vs ₹100 sample price with **Add sample** / **In cart** states and a "Checkout N samples" CTA.
+- `src/components/dashboard/DashboardTopbar.tsx` — buyer center nav + mobile sheet gained a **Samples** link.
+- `src/components/layout/SiteLayout.tsx` — `/samples` added to `APP_PREFIXES`.
+- `src/components/cart/CartItemRow.tsx` — sample lines show a "Sample · ₹100 flat" badge, fixed-quantity pill (no stepper), no sample-toggle/MOQ/stock chips.
+- `src/components/cart/CartSheet.tsx` — + on a sample line is blocked ("Samples are limited to 1 unit").
+- `src/components/cart/PriceSummary.tsx` — shipping row splits into regular Shipping + a "Sample delivery" ₹50 row.
+- `src/routes/_authenticated/checkout.tsx` — review list badges SAMPLE lines and shows "flat sample charge" instead of GST.
+- `src/types/supplier.ts` / `src/hooks/useSupplier.ts` — `SupplierOrder.isSample` mapped from the order-item snapshot.
+- `src/routes/_authenticated/supplier.samples.tsx` [NEW] — seller **Samples** section (sidebar item added in `DashboardSidebar.tsx`): every paid sample line with SAMPLE/status/payment pills, order link, date, sample charge, buyer card (business, contact name, tel:/mailto:, destination), **Mark sample delivered**, and **Send approval request** (reuses `sample_requests`; shows awaiting/approved/declined states).
+- `src/routes/_authenticated/supplier.orders.$id.tsx` / `supplier.orders.index.tsx` — sample order lines badge "Sample order"; the amber panel + send-request button now also renders for paid sample lines.
+- `src/routes/_authenticated/orders.$id.tsx` — buyer order detail badges "Paid sample — ₹100 flat" lines.
+- `src/hooks/useSampleRequests.ts` — `useResolveRequestProduct()` (order_item → real product, fresh price/MOQ).
+- `src/routes/_authenticated/requests.tsx` — approved request cards gained **Order this item**: resolves the live product, adds it to the cart at MOQ, navigates to `/cart` — closing the loop sample → check → approve → bulk order.
+
+### Verification
+`npx tsc --noEmit` — only the pre-existing errors (SignUpForm / NotificationsMenu / data/products.ts / useSupplier 391/449/488) remain; all touched files clean. `npx vite build` succeeds; `routeTree.gen.ts` registered `/samples` and `/supplier/samples`. Live DB check: rice-products (20), pulses-dal (32), food-grains-cereals (25) products available for the Sample Store.
+
+# Development History (continued)
 
 ## 2026-07-18 - Seller login always lands on /seller/dashboard
 
