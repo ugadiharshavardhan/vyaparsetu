@@ -156,13 +156,56 @@
 
 # Current Project State
 
-- **Current Phase:** Holistic Seller Rating System
+- **Current Phase:** Premium UI Polish for Buyer Orders Page
 - **Current Branch:** N/A
-- **Current Module:** Seller & Product ratings aggregation
-- **Overall Progress:** Implemented dynamic real-time aggregated ratings for sellers and products calculated from database buyer reviews.
+- **Current Module:** Buyer Experience Refinement
+- **Overall Progress:** Redesigned the orders page layout, search inputs, tabs, and order card details to deliver a premium, modern dashboard experience with glassmorphism and subtle animations.
 - **Last Updated:** 2026-07-17
 
 # Development History
+
+## 2026-07-17 - Premium UI Polish for Buyer Orders Page
+
+### Why
+The orders page and order cards were plain, lacked proper dark-mode adaptation, had generic badges, and didn't match the premium, modern India B2B aesthetic. An upgrade was needed to align this page with the rest of the polished marketplace UI.
+
+### Changes
+- `src/routes/_authenticated/orders.tsx` — Styled page container, unified controls bar, fully rounded search input, glassmorphic layout, and dynamic Empty State card with transitions.
+- `src/components/orders/OrderCard.tsx` — Added hover-lift transition, custom glassmorphism, updated status badge styles to use modern translucent HSL values, enhanced image grid scaling, and fully rounded action buttons.
+
+## 2026-07-17 - Filter Buyer Orders by `user_id`
+
+### Why
+Buyers were previously retrieving all orders in the entire database (up to 40) by default because client-side query filters did not restrict queries by `user_id`. For users with multiple profiles (e.g. buyer and seller), or when database row level security policies are broad/open in local dev, this resulted in inconsistent/leaked order details.
+
+### Changes
+- `src/hooks/useOrders.ts` — Added `user_id` filtering using `.eq("user_id", user.id)` to `useOrders()`, `useOrder()`, and `useCancelOrder()` hooks.
+
+## 2026-07-17 - Remove `/buyer/dashboard` and Default to `/marketplace`
+
+### Why
+The `/buyer/dashboard` route does not exist in the file-based router. Buyers should land on `/marketplace` by default as their workspace. Legacy bookmarks and manual URL entries to `/buyer/dashboard` should redirect gracefully to `/marketplace` without triggering a 404.
+
+### Changes
+- `src/lib/postLoginRedirect.ts` — Updated post-login redirection path for buyers to point to `/marketplace` instead of `/buyer/dashboard`.
+- `src/components/onboarding/OnboardingWizard.tsx` — Updated wizard completion redirect for buyers to point to `/marketplace`.
+- `src/components/dashboard/DashboardSidebar.tsx` — Updated internal links and active checks to use `/marketplace`.
+- `src/components/layout/SiteLayout.tsx` — Removed `/buyer/dashboard` from the `APP_PREFIXES` array.
+- `src/components/auth/SignInForm.tsx` & `src/components/auth/SignUpForm.tsx` — Updated signup and signin default redirects to point to `/marketplace`.
+- `src/routes/_authenticated/buyer.dashboard.tsx` [NEW] — Added route to capture `/buyer/dashboard` and throw redirect to `/marketplace`.
+
+## 2026-07-17 - Add buyed_id to order_items and Store Buyer ID on Checkout
+
+### Why
+Directly capture buyer ownership on every order line item for secure querying, metrics tracking, and strict Row Level Security (RLS) enforcement, rather than having to join on the orders table.
+
+### Changes
+- `supabase/migrations/20260717034500_order_items_buyer_id.sql` — Added `buyed_id` referencing `buyers(id)` on the `order_items` table, backfilled existing data from `orders.buyer_id`/`orders.user_id`, set column to `NOT NULL`, created index for query optimization, updated RLS policies (buyers read only their own purchased items, sellers read only their sold items), and created a `BEFORE INSERT` trigger to automatically set and validate `buyed_id`. Fixed migration conflict by adding `DROP POLICY IF EXISTS` commands for `order_items select`, `order_items insert`, `order_items update`, and `order_items delete` policies before creating them.
+- `scripts/apply-buyer-id-migration.mjs` [NEW] — Created database migration script configured with AP-Northeast-1 poolers to run the new schema.
+- `scripts/reload-pgrst.mjs` [NEW] — Created database script to notify PostgREST to refresh its schema cache.
+- `src/hooks/useOrders.ts` — Updated the `usePlaceOrder` hook to map `buyed_id: user.id` in `itemRows` when placing a new order. Also populated `buyer_id: user.id` in `orders` insert payload on checkout to ensure the master order holds a direct reference.
+- `src/types/commerce.ts` — Updated `OrderItem` type definition to include `buyed_id`, `seller_id`, and `seller_order_id`.
+- `src/integrations/supabase/types.ts` — Manually updated database definitions for `order_items` Row, Insert, and Update structures to include `buyed_id`, `seller_order_id`, and foreign key relations. Also updated `orders` schema type representation to include `buyer_id`.
 
 ## 2026-07-17 - Holistic Seller Rating System
 

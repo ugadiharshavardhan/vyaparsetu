@@ -92,7 +92,7 @@ export function OnboardingWizard() {
       await update.mutateAsync({ ...form, verification_status: "under_review", onboarding_completed: true });
       toast.success("Onboarding complete — welcome aboard!");
       const isSeller = ["manufacturer", "wholesaler", "distributor"].includes(form.business_type ?? "");
-      navigate({ to: isSeller ? "/seller/dashboard" : "/buyer/dashboard" });
+      navigate({ to: isSeller ? "/seller/dashboard" : "/marketplace" });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not save profile");
     }
