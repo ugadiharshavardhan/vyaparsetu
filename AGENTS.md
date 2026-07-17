@@ -173,7 +173,7 @@ With Samples and Requests added, the buyer topbar's center nav (5 pills) collide
  - Header grid gap/padding tightened at `sm`–`lg` (`sm:gap-4 sm:px-4`, back to `xl:gap-6 xl:px-6`).
  - Center nav pills compacted at `lg` (`px-2.5`, `gap-0.5`; original `px-3.5`/`gap-1` restored at `xl`).
  - Requests badge moved inline (flex `gap-1.5` inside the pill) instead of absolutely positioned at the pill corner, so it no longer bleeds outside the nav toward the search box.
- - Search width rebalanced: `lg:w-[11rem] xl:w-[14rem] 2xl:w-[17rem]` (was `lg:w-[13rem] xl:w-[17rem]`).
+ - Search box made **flexible instead of fixed-width**: right cluster is `w-full justify-end` and the search wrapper is `flex-1 min-w-[6.5rem]` capped at `max-w-[12rem] md:13 xl:15 2xl:17rem` — so when space runs out the search input shrinks first and can never be overlapped by the center nav.
  - Heart "Saved items" icon button (duplicate of the center "Saved" link) now hidden between `lg` and `2xl` to free space while the center nav is visible.
 
 ## 2026-07-18 - Paid Sample Store: buyer samples nav → ₹100/item + ₹50 delivery checkout → seller Samples section → approve & bulk order

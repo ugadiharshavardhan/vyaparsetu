@@ -259,9 +259,11 @@ export function DashboardTopbar({ isBuyerLayout = false }: { isBuyerLayout?: boo
           </Link>
         </nav>
 
-        {/* Right: search, cart, notifications, profile */}
-        <div className="flex min-w-0 items-center gap-1.5 justify-self-end sm:gap-3">
-          <div className="relative hidden min-w-0 w-[10rem] sm:block md:w-[12rem] lg:w-[11rem] xl:w-[14rem] 2xl:w-[17rem]">
+        {/* Right: search, cart, notifications, profile.
+            The search box is flexible (flex-1 up to a max width) so it shrinks
+            first when space is tight instead of colliding with the center nav. */}
+        <div className="flex w-full min-w-0 items-center justify-end gap-1.5 justify-self-end sm:gap-3">
+          <div className="relative hidden min-w-[6.5rem] max-w-[12rem] flex-1 sm:block md:max-w-[13rem] xl:max-w-[15rem] 2xl:max-w-[17rem]">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               ref={searchInputRef}
