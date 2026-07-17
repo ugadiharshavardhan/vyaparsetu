@@ -602,7 +602,7 @@ function SignupOtpStep({
                 const next =
                   search.redirect ||
                   pending?.returnTo ||
-                  (role === "seller" ? "/seller/dashboard" : "/buyer/dashboard");
+                  (role === "seller" ? "/seller/dashboard" : "/marketplace");
                 window.location.assign(next);
               } catch (e) {
                 toast.error(e instanceof Error ? e.message : "Sign in failed after verification");

@@ -35,7 +35,7 @@ export function SignInForm({ role, onBack }: { role?: "buyer" | "seller"; onBack
   });
 
   const roleRedirect = (fallback: string) =>
-    role === "seller" ? "/seller/dashboard" : role === "buyer" ? "/buyer/dashboard" : fallback;
+    role === "seller" ? "/seller/dashboard" : role === "buyer" ? "/marketplace" : fallback;
 
   const persistMode = () => {
     if (role === "seller") setSessionMode("seller");

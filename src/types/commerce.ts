@@ -100,6 +100,9 @@ export type OrderItem = {
   gst_amount: number;
   discount_amount: number;
   line_total: number;
+  buyed_id: string;
+  seller_id: string | null;
+  seller_order_id: string | null;
 };
 
 export type StatusHistoryEntry = { status: OrderStatus; at: string; note?: string };

@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -183,6 +183,8 @@ export type Database = {
           quantity: number
           unit_price: number
           seller_id: string | null
+          seller_order_id: string | null
+          buyed_id: string
         }
         Insert: {
           created_at?: string
@@ -197,6 +199,8 @@ export type Database = {
           quantity: number
           unit_price: number
           seller_id?: string | null
+          seller_order_id?: string | null
+          buyed_id?: string
         }
         Update: {
           created_at?: string
@@ -211,6 +215,8 @@ export type Database = {
           quantity?: number
           unit_price?: number
           seller_id?: string | null
+          seller_order_id?: string | null
+          buyed_id?: string
         }
         Relationships: [
           {
@@ -225,6 +231,20 @@ export type Database = {
             columns: ["seller_id"]
             isOneToOne: false
             referencedRelation: "sellers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_seller_order_id_fkey"
+            columns: ["seller_order_id"]
+            isOneToOne: false
+            referencedRelation: "seller_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_buyed_id_fkey"
+            columns: ["buyed_id"]
+            isOneToOne: false
+            referencedRelation: "buyers"
             referencedColumns: ["id"]
           },
         ]
@@ -255,6 +275,7 @@ export type Database = {
           tracking_number: string | null
           updated_at: string
           user_id: string
+          buyer_id: string | null
         }
         Insert: {
           cgst?: number
@@ -281,6 +302,7 @@ export type Database = {
           tracking_number?: string | null
           updated_at?: string
           user_id: string
+          buyer_id?: string | null
         }
         Update: {
           cgst?: number
@@ -307,6 +329,7 @@ export type Database = {
           tracking_number?: string | null
           updated_at?: string
           user_id?: string
+          buyer_id?: string | null
         }
         Relationships: [
           {
