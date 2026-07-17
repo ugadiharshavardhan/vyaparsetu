@@ -4,17 +4,20 @@ import { cn } from "@/lib/utils";
 export function Logo({
   compact = false,
   hideSubtitle = false,
+  variant = "default",
   className,
 }: {
   compact?: boolean;
   hideSubtitle?: boolean;
+  variant?: "default" | "onBrand";
   className?: string;
 }) {
+  const onBrand = variant === "onBrand";
   return (
     <Link
       to="/marketplace"
       className={cn(
-        "group inline-flex shrink-0 flex-nowrap items-center gap-2 whitespace-nowrap",
+        "group inline-flex shrink-0 flex-nowrap items-center gap-2.5 whitespace-nowrap",
         compact && "justify-center",
         className,
       )}
@@ -22,19 +25,30 @@ export function Logo({
       <span
         aria-hidden
         className={cn(
-          "grid shrink-0 place-items-center rounded-xl gradient-brand font-bold text-white shadow-brand transition-transform group-hover:scale-105",
+          "grid shrink-0 place-items-center rounded-xl font-bold shadow-soft transition-transform group-hover:scale-105",
+          onBrand ? "bg-white text-brand" : "bg-brand text-brand-foreground",
           compact ? "h-8 w-8 text-sm" : "h-9 w-9 text-base",
         )}
       >
         वि
       </span>
       {!compact && (
-        <span className="inline-flex flex-nowrap items-baseline gap-2 leading-none">
-          <span className="font-display text-lg font-bold tracking-tight text-foreground">
+        <span className="flex flex-col leading-none">
+          <span
+            className={cn(
+              "font-display text-lg font-bold tracking-tight",
+              onBrand ? "text-white" : "text-foreground",
+            )}
+          >
             VyaparSetu
           </span>
           {!hideSubtitle && (
-            <span className="hidden text-[10px] uppercase tracking-[0.16em] text-muted-foreground sm:inline">
+            <span
+              className={cn(
+                "hidden text-[10px] uppercase tracking-[0.16em] sm:inline",
+                onBrand ? "text-white/70" : "text-muted-foreground",
+              )}
+            >
               B2B Marketplace
             </span>
           )}

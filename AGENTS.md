@@ -156,56 +156,386 @@
 
 # Current Project State
 
-- **Current Phase:** Premium UI Polish for Buyer Orders Page
-- **Current Branch:** N/A
-- **Current Module:** Buyer Experience Refinement
-- **Overall Progress:** Redesigned the orders page layout, search inputs, tabs, and order card details to deliver a premium, modern dashboard experience with glassmorphism and subtle animations.
-- **Last Updated:** 2026-07-17
+
 
 # Development History
 
-## 2026-07-17 - Premium UI Polish for Buyer Orders Page
+## 2026-07-17 - Remove "Categories" from Breadcrumb Navigation
 
 ### Why
-The orders page and order cards were plain, lacked proper dark-mode adaptation, had generic badges, and didn't match the premium, modern India B2B aesthetic. An upgrade was needed to align this page with the rest of the polished marketplace UI.
+Simplify the breadcrumb navigation by removing the intermediate "Categories" breadcrumb item on category pages, as requested.
 
 ### Changes
-- `src/routes/_authenticated/orders.tsx` — Styled page container, unified controls bar, fully rounded search input, glassmorphic layout, and dynamic Empty State card with transitions.
-- `src/components/orders/OrderCard.tsx` — Added hover-lift transition, custom glassmorphism, updated status badge styles to use modern translucent HSL values, enhanced image grid scaling, and fully rounded action buttons.
+- `categories.$slug.tsx` — Removed the "Categories" breadcrumb link and its separator, directly connecting "Home" to the current category name.
 
-## 2026-07-17 - Filter Buyer Orders by `user_id`
+## 2026-07-17 - Fix wrong Spices category cover in Our Categories
 
 ### Why
-Buyers were previously retrieving all orders in the entire database (up to 40) by default because client-side query filters did not restrict queries by `user_id`. For users with multiple profiles (e.g. buyer and seller), or when database row level security policies are broad/open in local dev, this resulted in inconsistent/leaked order details.
+Landing “Our Categories” still showed a bad `spices.png` (Everest Tikhalal + Tata Salt collage). Slug upload only updated `pulses-dal` / `salt-sugar`; spices kept the old Storage object.
 
 ### Changes
-- `src/hooks/useOrders.ts` — Added `user_id` filtering using `.eq("user_id", user.id)` to `useOrders()`, `useOrder()`, and `useCancelOrder()` hooks.
+- Replaced Storage `category-images/categories/spices.png` with Everest Coriander Powder pack front
+- Set `categories.image` for `spices`, `pulses-dal`, `salt-sugar` with `?v=` cache-busters so the UI refreshes
 
-## 2026-07-17 - Remove `/buyer/dashboard` and Default to `/marketplace`
+## 2026-07-17 - Upload category images by slug (pulses-dal, salt-sugar)
 
 ### Why
-The `/buyer/dashboard` route does not exist in the file-based router. Buyers should land on `/marketplace` by default as their workspace. Legacy bookmarks and manual URL entries to `/buyer/dashboard` should redirect gracefully to `/marketplace` without triggering a 404.
+Operator asked to run the slug-based category cover upload script.
 
 ### Changes
-- `src/lib/postLoginRedirect.ts` — Updated post-login redirection path for buyers to point to `/marketplace` instead of `/buyer/dashboard`.
-- `src/components/onboarding/OnboardingWizard.tsx` — Updated wizard completion redirect for buyers to point to `/marketplace`.
-- `src/components/dashboard/DashboardSidebar.tsx` — Updated internal links and active checks to use `/marketplace`.
-- `src/components/layout/SiteLayout.tsx` — Removed `/buyer/dashboard` from the `APP_PREFIXES` array.
-- `src/components/auth/SignInForm.tsx` & `src/components/auth/SignUpForm.tsx` — Updated signup and signin default redirects to point to `/marketplace`.
-- `src/routes/_authenticated/buyer.dashboard.tsx` [NEW] — Added route to capture `/buyer/dashboard` and throw redirect to `/marketplace`.
+- Ran `node scripts/upload-category-images.mjs --dir ./public`
+- Updated: `pulses-dal`, `salt-sugar` → `category-images/categories/<slug>.png` + `categories.image`
+- Skipped non-category files in `public/`; remaining 12 categories already had images
 
-## 2026-07-17 - Add buyed_id to order_items and Store Buyer ID on Checkout
+## 2026-07-17 - Footer social icons: drop lucide brand exports
 
 ### Why
-Directly capture buyer ownership on every order line item for secure querying, metrics tracking, and strict Row Level Security (RLS) enforcement, rather than having to join on the orders table.
+Vercel/Rolldown failed with `[MISSING_EXPORT] "Linkedin" / "Youtube" is not exported` — lucide-react v1 removed brand logo icons.
 
 ### Changes
-- `supabase/migrations/20260717034500_order_items_buyer_id.sql` — Added `buyed_id` referencing `buyers(id)` on the `order_items` table, backfilled existing data from `orders.buyer_id`/`orders.user_id`, set column to `NOT NULL`, created index for query optimization, updated RLS policies (buyers read only their own purchased items, sellers read only their sold items), and created a `BEFORE INSERT` trigger to automatically set and validate `buyed_id`. Fixed migration conflict by adding `DROP POLICY IF EXISTS` commands for `order_items select`, `order_items insert`, `order_items update`, and `order_items delete` policies before creating them.
-- `scripts/apply-buyer-id-migration.mjs` [NEW] — Created database migration script configured with AP-Northeast-1 poolers to run the new schema.
-- `scripts/reload-pgrst.mjs` [NEW] — Created database script to notify PostgREST to refresh its schema cache.
-- `src/hooks/useOrders.ts` — Updated the `usePlaceOrder` hook to map `buyed_id: user.id` in `itemRows` when placing a new order. Also populated `buyer_id: user.id` in `orders` insert payload on checkout to ensure the master order holds a direct reference.
-- `src/types/commerce.ts` — Updated `OrderItem` type definition to include `buyed_id`, `seller_id`, and `seller_order_id`.
-- `src/integrations/supabase/types.ts` — Manually updated database definitions for `order_items` Row, Insert, and Update structures to include `buyed_id`, `seller_order_id`, and foreign key relations. Also updated `orders` schema type representation to include `buyer_id`.
+- `Footer.tsx` — replaced `Linkedin` / `Instagram` / `Youtube` lucide imports with inline SVG brand marks (same pattern as Play/App Store badges)
+
+## 2026-07-17 - Restore Logo variant/hideSubtitle props
+
+### Why
+Merge left `Logo.tsx` reading `variant` without declaring it, so `Footer` (`variant="onBrand"`) and `DashboardSidebar` (`hideSubtitle`) failed type-check.
+
+### Changes
+- `Logo.tsx` — restored `variant?: "default" | "onBrand"` and `hideSubtitle?: boolean`; onBrand uses white mark/wordmark (and muted white subtitle) for the green footer
+
+## 2026-07-17 - Resolve merge conflicts (Footer + AGENTS.md)
+
+### Why
+Branch merge left 4 conflict markers across `Footer.tsx` and `AGENTS.md`.
+
+### Changes
+- `Footer.tsx` — kept HEAD green Hyperpure footer (LinkedIn/Instagram/YouTube + store badges); dropped older placeholder social icon set
+- `AGENTS.md` — kept both landing-page and seller-rating development histories; updated Current Project State
+
+## 2026-07-17 - Green footer + brand store icons
+
+### Why
+Footer should use the brand green with white text, and the Play Store / App Store badges needed proper brand logos.
+
+### Changes
+- `Footer.tsx` — `bg-brand text-white`; white/80 body text, white headings, white social circles (brand icon), `border-white/20` divider; replaced lucide Play/Apple with inline SVGs (four-color Google Play triangle + Apple mark) on black badges
+- `Logo.tsx` — added `variant="onBrand"` (white mark + white wordmark) so the footer logo reads on green
+
+## 2026-07-17 - Footer redesign, Porter card, section image swaps
+
+### Why
+Operator wanted a Hyperpure-style footer, a pale Porter delivery card with a rounded logo, and different photos in the Quality/Sustainability sections.
+
+### Changes
+- `Footer.tsx` — rebuilt into 4 columns (Company legal details, Know More links, Follow us on brand-circle socials, logo + Google Play/App Store badges) with an FSSAI license + copyright bottom bar
+- `DeliveryModels.tsx` — Porter card now pale (`bg-surface` + ring, dark text) instead of dark; Porter logo shown as a rounded app-icon (`rounded-[1.25rem]`, 20-24 size)
+- `QualityAtEveryStep.tsx` — Food safety & hygiene image swapped from washing-vegetables to wheat grains (`/quality/food-grains.jpg`, from the provided gstatic link); removed `public/quality/safety.jpg`
+- `ImpactSection.tsx` — Sustainability "Working with local sellers" card image swapped from a produce-market photo to a retail-aisle photo (`/sustainability/local-sellers.jpg`)
+
+## 2026-07-17 - Quality section step images
+
+### Why
+Operator supplied real photos for the Quality steps (warehouse fulfilment, food washing, handshake support).
+
+### Changes
+- Downloaded 3 provided image URLs into `public/quality/` (`fulfilment.jpg`, `safety.jpg`, `support.jpg`) since two were unstable Google thumbnail-cache links
+- `QualityAtEveryStep.tsx` — Reliable fulfilment / Food safety & hygiene / Customer centricity steps now use the local `/quality/*` images (Standardized sourcing keeps its Unsplash image)
+
+## 2026-07-17 - Hero banner images + testimonial overlap fix
+
+### Why
+Operator added designed 2:1 banners (`hero-banner1-3.png`) to replace the Unsplash hero; testimonial customer name overlapped the portrait.
+
+### Changes
+- `Hero.tsx` — carousel now shows `/hero-banner1.png`, `2`, `3` full-bleed (aspect-2/1, object-cover, links to marketplace); removed dark overlay + title/subtitle/CTA (text is baked into the banners); kept arrows + dots + autoplay
+- `Testimonials.tsx` — replaced the oversized watermark name with a compact name+role block (`max-w-[45%]`, left) and shrank the portrait to `w-[50%] h-[62%]` so name and image no longer overlap
+
+## 2026-07-17 - Testimonials use Indian local retailer photos
+
+## 2026-07-17 - Testimonials use Indian local retailer photos
+
+### Why
+Feedback cards used generic Unsplash portraits; operator wants Indian local kirana-store retailer photos (like the reference shopkeeper image).
+
+### Changes
+- Generated 5 photorealistic Indian retailer portraits → `public/retailers/retailer-1..5.png` (male shopkeeper, woman shopkeeper, young male, older man in kurta, wholesale owner)
+- `src/data/testimonials.ts` — `photo` now points to `/retailers/retailer-N.png`; renamed t4 `Meera Joshi` → `Ramesh Joshi` (Owner) so the portrait gender matches
+- `Testimonials.tsx` — fallback photo → `/retailers/retailer-1.png`
+
+## 2026-07-17 - Hero banner no longer links to marketplace
+
+### Why
+Operator did not want clicking the hero carousel to navigate to `/marketplace`.
+
+### Changes
+- `Hero.tsx` — removed the `Link` wrapper around the banner image (and its `href` per slide); banner is now a plain, non-clickable image (arrows/dots still work)
+
+## 2026-07-17 - Network diagram full-bleed (logos stream from screen edges)
+
+### Why
+Operator wanted the marquee logos to stream in from the actual screen edges (not inset within the container) and the rows nudged up.
+
+### Changes
+- `NetworkSection.tsx` — diagram broken out of `container-page` into a full-width `w-full` block (section horizontal padding removed; heading + CTA re-wrapped in `container-page`); SVG connectors constrained to a centered `max-w-4xl` so labels/hub stay near center; diagram top margin `mt-8/10` → `mt-6/8`; CTA gap `mt-32/40` → `mt-24/28`
+
+## 2026-07-17 - Network spacing + white junction fade
+
+### Why
+Operator wanted the marquee logos moved up, a white fade where logos meet the label pills, and more gap between the animation and the CTA cards.
+
+### Changes
+- `NetworkSection.tsx` — diagram top spacing `mt-16/20` → `mt-8/10` (moves up); new `JunctionFade` white/surface gradient at logo→pill junction (both sides); CTA cards gap `mt-20/24` → `mt-32/40`
+
+## 2026-07-17 - Network marquee uses manufacturer logos (c*/s*), shadow removed
+
+### Why
+Operator wanted the network animation to stream real `manufacturers` logos: c1–c10 on the left (sellers), s1–s10 on the right (buyers); and the junction shadow removed.
+
+### Changes
+- `useCatalog.ts` — new `useManufacturers()` hook (id, name, slug, logo, sort_order)
+- `NetworkSection.tsx` — pulls logos from `manufacturers`; `c*` slugs feed left rows, `s*` slugs feed right rows (sorted by numeric suffix); `Avatar` now white chip + `object-contain` for logos; removed `JunctionShadow`, `AvatarRowWrap` edge fade, and directional pill shadow
+
+## 2026-07-17 - CTA card icons, network junction shadows, Porter brand mark
+
+### Why
+Operator wanted stock photos removed from seller/retailer CTA cards (icons instead); stronger shadow where network marquees meet label pills; Porter delivery card to show rounded-2xl logo chip plus “Porter” title text.
+
+### Changes
+- `NetworkSection.tsx` — CTA cards use `Factory` / `Store` icon headers + corner stickers (no Unsplash images); `JunctionShadow` + `AvatarRowWrap` edge fade + directional pill shadow at tag/image junction
+- `DeliveryModels.tsx` — `PorterBrandMark`: logo in `rounded-2xl` white chip + “Porter” heading below
+
+## 2026-07-17 - Network junction shadows, CTA stickers, Porter logo asset
+
+### Why
+Operator wanted depth where network label pills meet streaming category circles; sticker badges on seller/retailer CTA card images; real Porter logo in delivery models instead of CSS wordmark.
+
+### Changes
+- `NetworkSection.tsx` — `JunctionShadow` gradient + blur between avatar rows and label pills; `CardImageSticker` on CTA card images (bottom-right); image→text seam gradient on both cards
+- `DeliveryModels.tsx` — Porter card uses `/porterlogo.png` in a white chip (removed Truck icon approximation)
+
+## 2026-07-17 - Sliced a1/k1 logo sheets into manufacturers (c1–c10, s1–s10)
+
+### Why
+Operator added `public/a1.png` (10 brand logos) and `public/k1.png` (10 kirana-store logos); each logo cut out, uploaded, and inserted with codes c1–c10 (from a1) and s1–s10 (from k1).
+
+### Changes
+- Applied `manufacturers` table via `scripts/apply-manufacturers-pg.mjs` (direct db host is IPv6-only; used IPv4 transaction pooler `aws-0-ap-northeast-1.pooler.supabase.com:6543`, user `postgres.juoufayfyzpmscxeiydd`)
+- `scripts/slice-manufacturer-logos.mjs` — added `--prefix` and `--map a1=c,k1=s`; storage object `<tag>/<code>.png`, id `mf-<code>`, slug `<code>`, name from `<base>.names.json`
+- `public/a1.names.json`, `public/k1.names.json` — real company/store names (reading order)
+- Ran `--files a1,k1 --map a1=c,k1=s --grid 2x5 --expect 10` → 20 rows inserted, 0 errors (verified: a1=10, k1=10)
+
+### Codes
+- a1 → c1 Shree Laxmi Foods, c2 Sri Sai Agro Foods, c3 Vijay Masala, c4 Natural Harvest, c5 Hillside Dairy, c6 Britannia, c7 Sunfeast, c8 Parle, c9 Surf Excel, c10 Colgate
+- k1 → s1 Shivam, s2 Gupta Ji, s3 Patel, s4 Agrawal, s5 Mahajan, s6 Singh, s7 Dubey, s8 Yadav, s9 Verma, s10 Sharma (Kirana Store)
+
+## 2026-07-17 - Network marquee uses DB category images
+
+### Why
+Hardcoded `/public` category PNGs were stale; animation must show live `categories.image` from the database.
+
+### Changes
+- `NetworkSection.tsx` — removed static image list; `useCategories()` feeds circular marquee rows
+
+## 2026-07-17 - Manufacturers table + logo-sheet slicing script
+
+### Why
+Operator uploads sheets (a1, a2, a3) each containing ~10 company logos; each logo must be cut out, stored in Storage, and inserted as its own `manufacturers` row.
+
+### Files Created
+- `supabase/migrations/20260717000000_manufacturers_table.sql` + `scratch/APPLY_MANUFACTURERS.sql` — `manufacturers` (id, name, slug, logo, source_image, sort_order) with public-read / admin-write RLS
+- `scripts/slice-manufacturer-logos.mjs` — auto-detects logos via row/column projection segmentation (no fixed grid), trims whitespace, uploads to bucket `manufacturer-logos`, upserts rows; supports `--grid RxC`, `--files`, `--expect`, `--dry-run`, and optional `<base>.names.json`
+
+### Files Modified
+- `src/integrations/supabase/types.ts` — added `manufacturers` table type
+- `.gitignore` — ignore `manufacturer-logos-upload/`
+- Added dep `jimp` (pure-JS image cropping)
+
+### Apply / Usage
+```bash
+# 1) create the table (direct DB host is IPv6-only from here) — run
+#    scratch/APPLY_MANUFACTURERS.sql in Supabase SQL Editor (project juoufayfyzpmscxeiydd)
+# 2) put sheets in public/ named a1.png, a2.png, a3.png (optional public/a1.names.json)
+node scripts/slice-manufacturer-logos.mjs --dry-run
+node scripts/slice-manufacturer-logos.mjs --expect 10
+# if auto-detect miscounts, force a uniform grid:
+node scripts/slice-manufacturer-logos.mjs --grid 2x5
+```
+
+### Notes
+- `a1`, `a2`, `a3` were NOT in the repo when this was built — add them to `public/` then run
+- Names default to `<base>-01`… unless a `<base>.names.json` sidecar (reading order) is provided; rename in DB anytime
+
+## 2026-07-17 - Network polish + 5 retailer feedback cards
+
+### Why
+White edge fades hid product circles; CTA cards needed imagery; Restaurants copy removed; feedback should show five Indian retailers with edge shadows.
+
+### Changes
+- `NetworkSection.tsx` — removed end masks/fades; more space under animation; CTA cards with images; right pill “Hotels”; buyer CTA “Retailers” only
+- `testimonials.ts` — 5 Indian retailer stories with portraits
+- `Testimonials.tsx` — edge fade shadows on marquee left/right
+
+## 2026-07-17 - Flip testimonial cards on infinite marquee
+
+### Why
+Feedback section needed Hyperpure-style portrait cards with front/back flip on hover while keeping continuous carousel motion.
+
+### Changes
+- `Testimonials.tsx` — 3D flip cards (company/logo, snippet, watermark name, photo, +); back shows full quote + rating
+- `testimonials.ts` / `Testimonial` type — accents, portrait photos
+- `InfiniteCarousel.tsx` — `pauseOnChildHoverSelector` so hovering a card pauses the marquee for readable flip
+
+## 2026-07-17 - Junction shadows, testimonial elevation, Porter delivery
+
+### Why
+Operator wanted shadows where network images meet the label tags, elevated corners on testimonial carousel cards, and the EXPRESS delivery model renamed to Porter with a Porter logo.
+
+### Changes
+- `NetworkSection.tsx` — `LabelPill` now `shadow-elevated` + ring; junction gradient fade strip so streaming images tuck under each label; symmetric mask on both edges
+- `Testimonials.tsx` — carousel cards use `shadow-elevated` + ring + vertical margin so corner shadows show
+- `DeliveryModels.tsx` — renamed `EXPRESS` → `Porter`; added `PorterLogo` wordmark chip (Truck icon + "Porter" in Porter's indigo/yellow); note: brand-colour wordmark approximation, not an official asset file
+
+## 2026-07-17 - Network section coded animation (revert video)
+
+### Why
+Operator wanted the network animation recreated in code (like the reference image), not an embedded video.
+
+### Changes
+- `NetworkSection.tsx` — coded diagram: 3 left rows (Manufacturers/Distributors/Wholesalers) stream in, 3 right rows (Kirana & Retail/Restaurants/Cloud Kitchens) stream out, central VyaparSetu hub, dashed SVG converge/diverge curves, edge-fade masks (uses `InfiniteCarousel` with `reverse`)
+- Deleted `public/itemsvideo.mp4`
+
+## 2026-07-17 - Navbar overlap fix + network diagram animation
+
+### Why
+Centered nav was absolutely positioned and overlapped the search box; the "Building a wide network" section needed the Hyperpure-style layout — 3 rows of category images animating into a central VyaparSetu hub and out to buyer types.
+
+### Changes
+- `Header.tsx` — nav is now a flowing `flex-1` centered item (no absolute overlap); search box fixed-width (`lg:w-[180px] xl:w-[260px]`), nav text shrinks at lg
+- `InfiniteCarousel.tsx` — added `reverse` prop (`vs-marquee-reverse` keyframes) for left→right drift
+- `NetworkSection.tsx` — 3 left rows (Manufacturers/Distributors/Wholesalers) + 3 right rows (Kirana & Retail/Restaurants/Cloud Kitchens) of category-image avatars via `InfiniteCarousel`; central card hub; dashed SVG connector curves converging/diverging; edge fade masks
+
+## 2026-07-17 - Landing CTA uses bannerlanding.png
+
+### Why
+Replace the solid green HTML CTA (“Ready to scale…”) with the credit-limit promo art in `public/bannerlanding.png`.
+
+### Changes
+- `CtaBanner.tsx` — show `/bannerlanding.png` (links to marketplace); removed old text/button block
+- Re-ran `upload-category-images.mjs --dir ./public` (14 categories; skipped `bannerlanding.png`)
+
+## 2026-07-17 - Infinite marquee carousels + delivery cards without images
+
+### Why
+Stepped 3-at-a-time carousels felt jumpy; delivery model cards should be color blocks only.
+
+### Changes
+- `InfiniteCarousel.tsx` — continuous CSS marquee (duplicated track, pause on hover)
+- `ImpactSection.tsx` / `Testimonials.tsx` — use infinite marquee instead of index jumps
+- `DeliveryModels.tsx` — remove bottom images; Wholesale / EXPRESS colored cards only
+
+## 2026-07-17 - Delivery models, carousels, navbar & scroll-to-top
+
+### Why
+Landing polish: categories margin; product links opened mid-page; delivery/sustainability/testimonials needed Hyperpure-style layouts; navbar felt small.
+
+### Changes
+- `CategoriesPreview.tsx` — outer side margin around green panel
+- `SiteLayout.tsx` + `resetScroll` on category/product links — scroll to top on navigation
+- `DeliveryModels.tsx` — Wholesale / EXPRESS curved cards (brand + foreground, no neon)
+- `ImpactSection.tsx` — left copy + 2s auto image carousel
+- `Testimonials.tsx` + `testimonials.ts` — 2s auto carousel, more partner quotes
+- `Header.tsx` — taller bar, larger nav/search/CTA sizing
+
+## 2026-07-17 - Category product carousels + wider categories panel
+
+### Why
+Our Categories title/width needed tweak; per-category product rows needed Hyperpure carousel UI without visible scrollbars.
+
+### Changes
+- `CategoriesPreview.tsx` — smaller title; near full-bleed green panel
+- `FeaturedProducts.tsx` — category rows with icon/title/subtitle, arrow controls, See all pill, compact cards, hidden scrollbar; DeliveryModels left as-is
+
+## 2026-07-17 - Main category image bulk upload script
+
+### Why
+Operators add cover images named after main categories; those must land in Storage and `categories.image` for marketplace/landing category tiles.
+
+### Changes
+- `scripts/upload-category-images.mjs` — match by category name/slug, upload to public bucket `category-images`, set `categories.image`
+- Removed `scripts/upload-subcategory-images.mjs` (superseded)
+- `.gitignore` — ignore local `category-images/` upload tree
+- UI already maps `categories.image` via `useCategories` → `CategoryCard` / `CategoriesPreview`
+
+### Usage
+```bash
+# Put files in ./category-images named like: Spices.jpg, Food Grains & Cereals.png, pulses-dal.webp
+node scripts/upload-category-images.mjs --dry-run
+node scripts/upload-category-images.mjs
+# Or from public/:
+node scripts/upload-category-images.mjs --dir ./public
+```
+
+### Applied 2026-07-17
+- Ran `--dir ./public`: created bucket `category-images`, uploaded 11 images, updated `categories.image`
+- Renamed `public/bevarages.png` → `beverages.png` so Beverages matched
+- Still missing files for: `personal-care`, `pulses-dal`, `snacks-bakery`
+
+## 2026-07-17 - Our Categories Hyperpure-style panel
+
+### Why
+Categories strip needed white outer / green inner panel, larger titles, card padding, and main categories from DB.
+
+### Changes
+- `CategoriesPreview.tsx` — white section → `bg-brand-soft` rounded panel; “Our Categories” with side rules; 7-col white cards with padding + larger titles; tiles from main `categories` (not subcategories)
+
+## 2026-07-16 - Quality section interactive 2s loop UI
+
+### Why
+Static two-column quality block felt weak; needed first-image accordion UI with continuous highlight cycling.
+
+### Changes
+- `QualityAtEveryStep.tsx` — left list with active description + brand indicator bar; auto-advances every 2s (pauses on hover); right image swaps per step with pin highlight card; VyaparSetu content + brand green
+
+## 2026-07-16 - Landing nav center + live stats + location cache
+
+### Why
+Nav links were left-aligned; location did not persist; stats showed animated zeros from mock data; operator asked for Hyderabad/Bengaluru only and Hyperpure-style stats typography.
+
+### Changes
+- `Header.tsx` — nav centered; cities limited to Hyderabad & Bengaluru; selection saved in `localStorage` (`vs.delivery-location.v1`)
+- `src/lib/deliveryLocation.ts` — read/write helpers
+- `ImpactStats.tsx` — divider stats row + “Quality at every step / Built on trust” (brand green)
+- `useMarketplaceStats.ts` — live counts (RPC when available, else public products aggregation); cities = 2
+- Migration `20260716220000_marketplace_public_stats.sql` + `scratch/APPLY_MARKETPLACE_STATS.sql`
+
+### Apply (for exact verified seller / buyer counts)
+Run `scratch/APPLY_MARKETPLACE_STATS.sql` in Supabase SQL Editor.
+
+## 2026-07-16 - Landing navbar (location + Login/Signup)
+
+### Why
+Landing chrome still showed cart, notifications, Get Started, and inline “B2B Marketplace” beside the logo; needed Hyperpure-style public nav.
+
+### Changes
+- `Logo.tsx` — “B2B Marketplace” stacked under VyaparSetu; solid `bg-brand` mark (no gradient)
+- `Header.tsx` — removed cart, notifications, UserMenu, Get Started; added location picker, Browse catalogue (NEW) / Quality / Sustainability / Blogs, inline search, Login/Signup
+- Quality & sustainability sections get `id` anchors for nav hash links
+
+## 2026-07-16 - Landing page Hyperpure-style redesign
+
+### Why
+Operator requested a full landing UI redesign matching a clean B2B food-supply long-form layout, using existing VyaparSetu theme tokens only (solid brand green, soft surfaces — no neon or gradient accents).
+
+### Changes
+- `src/routes/index.tsx` — new section order: Hero carousel → Impact stats → Quality → Network CTAs → Categories (DB) → Product rows → Delivery models → Impact → Testimonials → FAQ → CTA
+- `Hero.tsx` — full-bleed image carousel with solid brand CTA
+- `ImpactStats.tsx` — four-column metric strip
+- `QualityAtEveryStep.tsx` — feature list + process checklist image
+- `NetworkSection.tsx` — sellers/customers network + dual register cards
+- `CategoriesPreview.tsx` — shop-by-categories grid from `useCategories()` (Supabase)
+- `FeaturedProducts.tsx` — horizontal product carousels (featured + top 3 DB categories)
+- `DeliveryModels.tsx`, `ImpactSection.tsx` — solid brand/foreground blocks (no gradients)
+- `Testimonials.tsx`, `FaqSection.tsx`, `CtaBanner.tsx` — restyled to match layout; CTA uses solid `bg-brand`
 
 ## 2026-07-17 - Holistic Seller Rating System
 

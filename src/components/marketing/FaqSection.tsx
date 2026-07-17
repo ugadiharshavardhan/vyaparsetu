@@ -5,31 +5,29 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { FAQS } from "@/data/faqs";
-import { SectionHeading } from "@/components/common/SectionHeading";
 
 export function FaqSection() {
   return (
-    <section className="bg-surface py-20 sm:py-24">
-      <div className="container-page grid gap-12 lg:grid-cols-[1fr_1.5fr]">
-        <div>
-          <SectionHeading
-            align="left"
-            eyebrow="FAQ"
-            title="Everything you wanted to ask"
-            description="Still curious? Our team is one message away."
-          />
-        </div>
-        <Accordion type="single" collapsible className="w-full">
+    <section className="border-t border-border bg-surface py-14 sm:py-16">
+      <div className="container-page max-w-3xl">
+        <h2 className="text-center font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+          Frequently asked questions
+        </h2>
+        <p className="mt-2 text-center text-sm text-muted-foreground">
+          Quick answers about buying and selling on VyaparSetu.
+        </p>
+
+        <Accordion type="single" collapsible className="mt-8 w-full">
           {FAQS.map((f) => (
             <AccordionItem
               key={f.id}
               value={f.id}
-              className="rounded-xl border border-border bg-card px-5 mb-3 shadow-soft"
+              className="border-b border-border px-1"
             >
-              <AccordionTrigger className="text-left text-base font-semibold hover:no-underline">
+              <AccordionTrigger className="py-5 text-left text-base font-semibold hover:no-underline">
                 {f.q}
               </AccordionTrigger>
-              <AccordionContent className="text-sm leading-relaxed text-muted-foreground">
+              <AccordionContent className="pb-5 text-sm leading-relaxed text-muted-foreground">
                 {f.a}
               </AccordionContent>
             </AccordionItem>

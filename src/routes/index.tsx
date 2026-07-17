@@ -2,11 +2,13 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { resolvePostLoginPath } from "@/lib/postLoginRedirect";
 import { Hero } from "@/components/marketing/Hero";
-import { TrustedBy } from "@/components/marketing/TrustedBy";
+import { ImpactStats } from "@/components/marketing/ImpactStats";
+import { QualityAtEveryStep } from "@/components/marketing/QualityAtEveryStep";
+import { NetworkSection } from "@/components/marketing/NetworkSection";
 import { CategoriesPreview } from "@/components/marketing/CategoriesPreview";
 import { FeaturedProducts } from "@/components/marketing/FeaturedProducts";
-import { WhyVyaparSetu } from "@/components/marketing/WhyVyaparSetu";
-import { HowItWorks } from "@/components/marketing/HowItWorks";
+import { DeliveryModels } from "@/components/marketing/DeliveryModels";
+import { ImpactSection } from "@/components/marketing/ImpactSection";
 import { Testimonials } from "@/components/marketing/Testimonials";
 import { FaqSection } from "@/components/marketing/FaqSection";
 import { CtaBanner } from "@/components/marketing/CtaBanner";
@@ -28,14 +30,16 @@ function HomePage() {
   return (
     <>
       <Hero />
-      <TrustedBy />
+      <ImpactStats />
+      <QualityAtEveryStep />
+      <NetworkSection />
       <CategoriesPreview />
       <FeaturedProducts />
-      <WhyVyaparSetu />
-      <HowItWorks />
+      <DeliveryModels />
+      <ImpactSection />
       <Testimonials />
-      <FaqSection />
       <CtaBanner />
+      <FaqSection />
     </>
   );
 }

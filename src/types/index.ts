@@ -75,6 +75,10 @@ export type Testimonial = {
   logo: string;
   quote: string;
   rating: number;
+  /** Portrait cutout URL for flip card */
+  photo?: string;
+  /** Solid card face color (CSS color / Tailwind-compatible token) */
+  accent?: string;
 };
 
 export type FAQ = {
