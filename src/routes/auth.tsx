@@ -10,7 +10,6 @@ import { AdminSignInForm } from "@/components/auth/AdminSignInForm";
 import type { BusinessRole } from "@/components/auth/RoleSelect";
 import { resolvePostLoginPath } from "@/lib/postLoginRedirect";
 import { peekPendingCartAdd } from "@/lib/pendingCart";
-import { SITE } from "@/constants/site";
 
 const searchSchema = z.object({
   mode: z.enum(["signin", "signup"]).optional(),
@@ -115,12 +114,12 @@ function AuthPage() {
         title="Sign in to admin dashboard"
         subtitle="Use the platform admin credentials to manage sellers and verifications."
         footerSlot={
-          <p className="text-center text-sm text-muted-foreground">
+          <p className="text-center text-sm text-[#757575]">
             Not an admin?{" "}
             <button
               type="button"
               onClick={() => navigate({ to: "/auth", search: { mode: "signin", role: "buyer" } })}
-              className="font-semibold text-brand underline underline-offset-2 hover:opacity-90"
+              className="font-semibold text-[#108548] hover:opacity-80"
             >
               Buyer / Seller sign in
             </button>
@@ -133,10 +132,10 @@ function AuthPage() {
   }
 
   const isSignIn = mode === "signin";
-  const roleLabel = role === "seller" ? "seller" : "buyer";
 
   return (
     <AuthLayout
+      wideCard={!isSignIn}
       eyebrow={pendingProduct ? "Almost there" : undefined}
       title={
         pendingProduct
@@ -144,19 +143,17 @@ function AuthPage() {
             ? "Sign in to add to cart"
             : "Create an account to add to cart"
           : isSignIn
-            ? "Welcome Back"
-            : "Create your account"
+            ? "Welcome Back!"
+            : "Create Your Account"
       }
       subtitle={
         pendingProduct
           ? "After you sign in, the item you selected will be added to your cart automatically."
           : isSignIn
-            ? role === "seller"
-              ? "Sign in to manage inventory, orders, and your seller dashboard."
-              : "Sign in to manage your profile, delivery address, and orders."
+            ? "Login to access your VyaparSetu account"
             : role === "seller"
-              ? "Join as a verified manufacturer, distributor, or wholesaler."
-              : "Join thousands of retailers sourcing wholesale on VyaparSetu."
+              ? "Register as a verified manufacturer, distributor, or wholesaler."
+              : "Sign up to start sourcing wholesale on VyaparSetu."
       }
       headerSlot={
         <AuthRoleToggle
@@ -166,27 +163,27 @@ function AuthPage() {
         />
       }
       footerSlot={
-        <p className="text-center text-sm text-muted-foreground">
+        <p className="text-center text-sm text-[#757575]">
           {isSignIn ? (
             <>
-              New to {SITE.name}?{" "}
+              Don&apos;t have an account?{" "}
               <button
                 type="button"
                 onClick={() => switchMode("signup")}
-                className="font-semibold text-brand underline underline-offset-2 hover:opacity-90"
+                className="font-semibold text-[#108548] hover:opacity-80"
               >
-                Create an account
+                Sign up
               </button>
             </>
           ) : (
             <>
-              Already have a {roleLabel} account?{" "}
+              Already have an account?{" "}
               <button
                 type="button"
                 onClick={() => switchMode("signin")}
-                className="font-semibold text-brand underline underline-offset-2 hover:opacity-90"
+                className="font-semibold text-[#108548] hover:opacity-80"
               >
-                Sign in
+                Login
               </button>
             </>
           )}

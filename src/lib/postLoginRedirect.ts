@@ -8,7 +8,7 @@ import { peekPendingCartAdd } from "@/lib/pendingCart";
  * Priority:
  *  1. Explicit `redirect` search param (e.g. Add-to-cart return URL)
  *  2. Pending cart add `returnTo` (guest clicked Add before sign-in)
- *  3. Session mode / role defaults → marketplace (admin → /admin)
+ *  3. Session mode / role defaults (seller → dashboard, buyer → marketplace, admin → /admin)
  */
 export async function resolvePostLoginPath(
   userId: string,
@@ -21,11 +21,13 @@ export async function resolvePostLoginPath(
   if (pendingReturn) return pendingReturn;
 
   const mode = getSessionMode();
-  if (mode === "seller" || mode === "buyer") return "/marketplace";
+  if (mode === "seller") return "/seller/dashboard";
+  if (mode === "buyer") return "/marketplace";
 
   try {
     const role = await getUserRole(userId);
     if (role === "admin") return "/admin";
+    if (role === "seller") return "/seller/dashboard";
     return "/marketplace";
   } catch {
     return "/marketplace";

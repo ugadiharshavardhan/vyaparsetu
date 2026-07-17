@@ -15,6 +15,7 @@ import { setSessionMode, clearSessionMode } from "@/lib/sessionMode";
 import { assertAccountMembership } from "@/lib/accountMembership";
 import { establishSessionAfterSignup, sendEmailOtp, checkLoginHelp } from "@/lib/otp";
 import { cn } from "@/lib/utils";
+import { authFieldLabel, authInputWithIcon, authSubmitButton } from "@/components/auth/AuthLayout";
 
 const schema = z.object({
   email: z.string().trim().email("Please enter a valid email").max(255),
@@ -163,24 +164,20 @@ export function SignInForm({ role }: { role?: "buyer" | "seller" } = {}) {
     );
   }
 
-  const fieldLabel = "text-[11px] font-semibold uppercase tracking-[0.12em] text-foreground/70";
-  const inputWithIcon =
-    "h-12 rounded-xl border-border bg-white pl-10 pr-3 shadow-none focus-visible:ring-brand/30";
-
   return (
     <div className="space-y-5">
       <form onSubmit={form.handleSubmit(submit)} className="space-y-4" noValidate>
         <div>
-          <Label htmlFor="email" className={fieldLabel}>
-            Email
+          <Label htmlFor="email" className={authFieldLabel}>
+            Email Address
           </Label>
           <div className="relative mt-1.5">
-            <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9E9E9E]" />
             <Input
               id="email"
               type="email"
-              placeholder="you@company.com"
-              className={inputWithIcon}
+              placeholder="Enter your email"
+              className={authInputWithIcon}
               autoComplete="email"
               disabled={loading}
               {...form.register("email")}
@@ -192,16 +189,16 @@ export function SignInForm({ role }: { role?: "buyer" | "seller" } = {}) {
         </div>
 
         <div>
-          <Label htmlFor="password" className={fieldLabel}>
+          <Label htmlFor="password" className={authFieldLabel}>
             Password
           </Label>
           <div className="relative mt-1.5">
-            <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9E9E9E]" />
             <Input
               id="password"
               type={show ? "text" : "password"}
-              placeholder="Enter password"
-              className={cn(inputWithIcon, "pr-10")}
+              placeholder="Enter your password"
+              className={cn(authInputWithIcon, "pr-10")}
               autoComplete="current-password"
               disabled={loading}
               {...form.register("password")}
@@ -223,9 +220,9 @@ export function SignInForm({ role }: { role?: "buyer" | "seller" } = {}) {
         <div className="flex justify-end">
           <Link
             to="/forgot-password"
-            className="text-sm font-semibold text-brand underline underline-offset-2 hover:opacity-90"
+            className="text-sm font-medium text-[#108548] hover:opacity-80"
           >
-            Forgot password?
+            Forgot Password?
           </Link>
         </div>
 
@@ -233,9 +230,9 @@ export function SignInForm({ role }: { role?: "buyer" | "seller" } = {}) {
           type="submit"
           size="lg"
           loading={loading}
-          className="h-12 w-full rounded-xl text-sm font-semibold uppercase tracking-[0.08em] shadow-brand"
+          className={authSubmitButton}
         >
-          {loading ? "Signing in…" : "Sign in"}
+          {loading ? "Signing in…" : "Login"}
         </Button>
       </form>
     </div>

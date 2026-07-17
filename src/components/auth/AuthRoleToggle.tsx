@@ -14,7 +14,7 @@ export function AuthRoleToggle({
     <div
       role="tablist"
       aria-label="Account type"
-      className="grid grid-cols-2 rounded-xl border border-border bg-muted/50 p-1"
+      className="grid grid-cols-2 rounded-lg border border-[#E0E0E0] bg-[#F5F5F5] p-1"
     >
       {(
         [
@@ -32,10 +32,10 @@ export function AuthRoleToggle({
             disabled={disabled}
             onClick={() => onChange(opt.id)}
             className={cn(
-              "rounded-lg px-3 py-2.5 text-sm font-semibold transition-all",
+              "rounded-md px-3 py-2 text-sm font-semibold transition-all",
               active
-                ? "bg-brand text-white shadow-soft"
-                : "text-muted-foreground hover:text-foreground",
+                ? "bg-[#108548] text-white shadow-sm"
+                : "text-[#757575] hover:text-[#1a1a1a]",
               disabled && "opacity-60",
             )}
           >

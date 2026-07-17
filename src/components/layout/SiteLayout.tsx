@@ -12,7 +12,7 @@ import { AuthContext } from "@/hooks/useAuth";
 // marketing site chrome for these paths and let the dashboard layout render
 // its own chrome.
 const APP_PREFIXES = [
-  "/dashboard", "/seller/dashboard", "/profile", "/settings", "/orders", "/wishlist",
+  "/dashboard", "/seller", "/profile", "/settings", "/orders", "/wishlist",
   "/admin", "/notifications", "/help", "/onboarding", "/payments",
   "/addresses", "/supplier",
 ];
@@ -45,6 +45,10 @@ export function SiteLayout({ children }: { children: ReactNode }) {
   const isApp = APP_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
   const isAuth = AUTH_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
   const isShared = SHARED_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
+  const skipDashboardChrome =
+    pathname.startsWith("/onboarding") || pathname.startsWith("/checkout");
+  const useWorkspaceChrome =
+    isAuthenticated && !skipDashboardChrome && (isApp || isShared);
 
   const chrome = (
     <>
@@ -53,7 +57,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
     </>
   );
 
-  if (isApp || isAuth) {
+  if (isAuth) {
     return (
       <div className="min-h-screen bg-background text-foreground">
         {children}
@@ -62,12 +66,21 @@ export function SiteLayout({ children }: { children: ReactNode }) {
     );
   }
 
-  if (isShared && isAuthenticated) {
+  if (useWorkspaceChrome) {
     return (
       <DashboardLayout>
         {children}
         {chrome}
       </DashboardLayout>
+    );
+  }
+
+  if (isApp) {
+    return (
+      <div className="min-h-screen bg-background text-foreground">
+        {children}
+        {chrome}
+      </div>
     );
   }
 

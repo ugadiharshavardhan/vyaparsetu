@@ -63,7 +63,7 @@ export function Logo({
   }
 
   return (
-    <Link to="/marketplace" className={classes} aria-label={`${SITE.name} home`}>
+    <Link to="/" className={classes} aria-label={`${SITE.name} home`}>
       {mark}
     </Link>
   );

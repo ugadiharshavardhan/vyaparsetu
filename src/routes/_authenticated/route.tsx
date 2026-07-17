@@ -1,6 +1,5 @@
-import { createFileRoute, Outlet, redirect, useRouterState } from "@tanstack/react-router";
+import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
-import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -29,7 +28,20 @@ export const Route = createFileRoute("/_authenticated")({
       path.startsWith("/checkout") ||
       path.startsWith("/addresses") ||
       path.startsWith("/orders") ||
-      path.startsWith("/payments");
+      path.startsWith("/payments") ||
+      path.startsWith("/supplier") ||
+      path.startsWith("/seller");
+
+    if (path.startsWith("/supplier") || path.startsWith("/seller/")) {
+      const { data: seller } = await supabase
+        .from("sellers")
+        .select("id")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (!seller) {
+        throw redirect({ to: "/unauthorized" });
+      }
+    }
 
     const done = await context.queryClient.ensureQueryData({
       queryKey: ["onboarding-complete", "v2", user.id],
@@ -92,13 +104,5 @@ export const Route = createFileRoute("/_authenticated")({
 });
 
 function AuthenticatedShell() {
-  const pathname = useRouterState({ select: (r) => r.location.pathname });
-  if (pathname.startsWith("/onboarding") || pathname.startsWith("/checkout")) {
-    return <Outlet />;
-  }
-  return (
-    <DashboardLayout>
-      <Outlet />
-    </DashboardLayout>
-  );
+  return <Outlet />;
 }

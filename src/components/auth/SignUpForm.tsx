@@ -15,6 +15,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { EmailOtpForm } from "@/components/auth/EmailOtpForm";
 import { LocalAssetDropzone, type LocalAsset } from "@/components/auth/LocalAssetDropzone";
 import { attachSellerBrandAssets } from "@/lib/sellerBrandAssets";
+import { authFieldLabel, authInputWithIcon, authSubmitButton } from "@/components/auth/AuthLayout";
+import { cn } from "@/lib/utils";
 import type { BusinessRole } from "./RoleSelect";
 
 const passwordSchema = {
@@ -171,11 +173,11 @@ function BuyerSignUp() {
     <div className="space-y-5">
       <form onSubmit={form.handleSubmit(submit)} className="space-y-4" noValidate>
         <div>
-          <Label htmlFor="fullName">Name</Label>
+          <Label htmlFor="fullName" className={authFieldLabel}>Name</Label>
           <Input
             id="fullName"
             placeholder="Rakesh Sharma"
-            className="mt-1.5 h-11"
+            className={cn(authInputWithIcon, "mt-1.5 pl-3")}
             {...form.register("fullName")}
           />
           {form.formState.errors.fullName && (
@@ -184,11 +186,11 @@ function BuyerSignUp() {
         </div>
 
         <div>
-          <Label htmlFor="businessName">Business name</Label>
+          <Label htmlFor="businessName" className={authFieldLabel}>Business name</Label>
           <Input
             id="businessName"
             placeholder="Sharma Kirana Store"
-            className="mt-1.5 h-11"
+            className={cn(authInputWithIcon, "mt-1.5 pl-3")}
             {...form.register("businessName")}
           />
           {form.formState.errors.businessName && (
@@ -197,12 +199,12 @@ function BuyerSignUp() {
         </div>
 
         <div>
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="email" className={authFieldLabel}>Email Address</Label>
           <Input
             id="email"
             type="email"
-            placeholder="you@company.com"
-            className="mt-1.5 h-11"
+            placeholder="Enter your email"
+            className={cn(authInputWithIcon, "mt-1.5 pl-3")}
             autoComplete="email"
             {...form.register("email")}
           />
@@ -213,12 +215,12 @@ function BuyerSignUp() {
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <Label htmlFor="buyer-phone">Phone number</Label>
+            <Label htmlFor="buyer-phone" className={authFieldLabel}>Phone number</Label>
             <Input
               id="buyer-phone"
               type="tel"
               placeholder="+91 98765 43210"
-              className="mt-1.5 h-11"
+              className={cn(authInputWithIcon, "mt-1.5 pl-3")}
               autoComplete="tel"
               {...form.register("phone")}
             />
@@ -227,14 +229,14 @@ function BuyerSignUp() {
             )}
           </div>
           <div>
-            <Label htmlFor="buyer-whatsapp">
-              WhatsApp <span className="text-muted-foreground">(optional)</span>
+            <Label htmlFor="buyer-whatsapp" className={authFieldLabel}>
+              WhatsApp <span className="font-normal text-[#757575]">(optional)</span>
             </Label>
             <Input
               id="buyer-whatsapp"
               type="tel"
               placeholder="Same as phone if empty"
-              className="mt-1.5 h-11"
+              className={cn(authInputWithIcon, "mt-1.5 pl-3")}
               {...form.register("whatsapp")}
             />
             {form.formState.errors.whatsapp && (
@@ -244,11 +246,11 @@ function BuyerSignUp() {
         </div>
 
         <div>
-          <Label htmlFor="buyer-address">Business address</Label>
+          <Label htmlFor="buyer-address" className={authFieldLabel}>Business address</Label>
           <Input
             id="buyer-address"
             placeholder="Shop / street, area, city, pincode"
-            className="mt-1.5 h-11"
+            className={cn(authInputWithIcon, "mt-1.5 pl-3")}
             autoComplete="street-address"
             {...form.register("address")}
           />
@@ -275,9 +277,9 @@ function BuyerSignUp() {
           type="submit"
           size="lg"
           loading={form.formState.isSubmitting}
-          className="h-12 w-full rounded-xl text-sm font-semibold uppercase tracking-[0.08em] shadow-brand"
+          className={authSubmitButton}
         >
-          {form.formState.isSubmitting ? "Creating account…" : "Create account"}
+          {form.formState.isSubmitting ? "Creating account…" : "Sign up"}
         </Button>
       </form>
     </div>
@@ -372,11 +374,11 @@ function SellerSignUp() {
       <form onSubmit={form.handleSubmit(submit)} className="space-y-4" noValidate>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <Label htmlFor="businessName">Business name</Label>
+            <Label htmlFor="businessName" className={authFieldLabel}>Business name</Label>
             <Input
               id="businessName"
               placeholder="Sharma Kirana Store"
-              className="mt-1.5 h-11"
+              className={cn(authInputWithIcon, "mt-1.5 pl-3")}
               {...form.register("businessName")}
             />
             {form.formState.errors.businessName && (
@@ -384,11 +386,11 @@ function SellerSignUp() {
             )}
           </div>
           <div>
-            <Label htmlFor="fullName">Owner name</Label>
+            <Label htmlFor="fullName" className={authFieldLabel}>Owner name</Label>
             <Input
               id="fullName"
               placeholder="Rakesh Sharma"
-              className="mt-1.5 h-11"
+              className={cn(authInputWithIcon, "mt-1.5 pl-3")}
               {...form.register("fullName")}
             />
             {form.formState.errors.fullName && (
@@ -399,12 +401,12 @@ function SellerSignUp() {
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <Label htmlFor="email">Work email</Label>
+            <Label htmlFor="email" className={authFieldLabel}>Work email</Label>
             <Input
               id="email"
               type="email"
-              placeholder="you@company.com"
-              className="mt-1.5 h-11"
+              placeholder="Enter your email"
+              className={cn(authInputWithIcon, "mt-1.5 pl-3")}
               autoComplete="email"
               {...form.register("email")}
             />
@@ -413,11 +415,11 @@ function SellerSignUp() {
             )}
           </div>
           <div>
-            <Label htmlFor="phone">Mobile number</Label>
+            <Label htmlFor="phone" className={authFieldLabel}>Mobile number</Label>
             <Input
               id="phone"
               placeholder="+91 98765 43210"
-              className="mt-1.5 h-11"
+              className={cn(authInputWithIcon, "mt-1.5 pl-3")}
               autoComplete="tel"
               {...form.register("phone")}
             />
@@ -428,13 +430,13 @@ function SellerSignUp() {
         </div>
 
         <div>
-          <Label htmlFor="gst">
-            GSTIN <span className="text-muted-foreground">(optional)</span>
+          <Label htmlFor="gst" className={authFieldLabel}>
+            GSTIN <span className="font-normal text-[#757575]">(optional)</span>
           </Label>
           <Input
             id="gst"
             placeholder="29ABCDE1234F1Z5"
-            className="mt-1.5 h-11 uppercase"
+            className={cn(authInputWithIcon, "mt-1.5 pl-3 uppercase")}
             {...form.register("gstNumber")}
           />
           {form.formState.errors.gstNumber && (
@@ -443,13 +445,13 @@ function SellerSignUp() {
         </div>
 
         <div>
-          <Label htmlFor="address">
-            Business address <span className="text-muted-foreground">(optional)</span>
+          <Label htmlFor="address" className={authFieldLabel}>
+            Business address <span className="font-normal text-[#757575]">(optional)</span>
           </Label>
           <Input
             id="address"
             placeholder="Shop 12, MG Road, Mumbai"
-            className="mt-1.5 h-11"
+            className={cn(authInputWithIcon, "mt-1.5 pl-3")}
             {...form.register("address")}
           />
         </div>
@@ -498,9 +500,9 @@ function SellerSignUp() {
           type="submit"
           size="lg"
           loading={form.formState.isSubmitting}
-          className="h-12 w-full rounded-xl text-sm font-semibold uppercase tracking-[0.08em] shadow-brand"
+          className={authSubmitButton}
         >
-          {form.formState.isSubmitting ? "Creating account…" : "Create account"}
+          {form.formState.isSubmitting ? "Creating account…" : "Sign up"}
         </Button>
       </form>
     </div>
@@ -609,19 +611,20 @@ function PasswordFields({
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       <div>
-        <Label htmlFor="password">Password</Label>
+        <Label htmlFor="password" className={authFieldLabel}>Password</Label>
         <div className="relative mt-1.5">
           <Input
             id="password"
             type={show ? "text" : "password"}
-            className="h-11 pr-10"
+            placeholder="Enter your password"
+            className={cn(authInputWithIcon, "pl-3 pr-10")}
             autoComplete="new-password"
             {...register("password")}
           />
           <button
             type="button"
             onClick={() => setShow((s) => !s)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-muted-foreground hover:text-foreground"
+            className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-[#9E9E9E] hover:text-[#1a1a1a]"
             aria-label={show ? "Hide password" : "Show password"}
           >
             {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -630,11 +633,12 @@ function PasswordFields({
         {passwordError && <p className="mt-1 text-xs text-destructive">{passwordError}</p>}
       </div>
       <div>
-        <Label htmlFor="confirm">Confirm password</Label>
+        <Label htmlFor="confirm" className={authFieldLabel}>Confirm password</Label>
         <Input
           id="confirm"
           type={show ? "text" : "password"}
-          className="mt-1.5 h-11"
+          placeholder="Confirm your password"
+          className={cn(authInputWithIcon, "mt-1.5 pl-3")}
           autoComplete="new-password"
           {...register("confirmPassword")}
         />
@@ -657,13 +661,13 @@ function TermsCheckbox({
     <>
       <div className="flex items-start gap-2">
         <Checkbox id="terms" checked={checked} onCheckedChange={(v) => onCheckedChange(!!v)} />
-        <Label htmlFor="terms" className="cursor-pointer text-sm font-normal leading-snug">
+        <Label htmlFor="terms" className="cursor-pointer text-sm font-normal leading-snug text-[#757575]">
           I agree to the{" "}
-          <Link to="/about" className="cursor-pointer text-brand hover:underline">
+          <Link to="/about" className="cursor-pointer font-medium text-[#108548] hover:underline">
             Terms of Service
           </Link>{" "}
           and{" "}
-          <Link to="/about" className="cursor-pointer text-brand hover:underline">
+          <Link to="/about" className="cursor-pointer font-medium text-[#108548] hover:underline">
             Privacy Policy
           </Link>
           .

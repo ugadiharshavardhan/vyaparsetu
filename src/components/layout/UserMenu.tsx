@@ -128,6 +128,13 @@ function ProvidedUserMenu() {
             </Link>
           </DropdownMenuItem>
         )}
+        {!isSeller && (
+          <DropdownMenuItem asChild>
+            <Link to="/orders" className="cursor-pointer">
+              <ShoppingCart className="mr-2 h-4 w-4" /> My Orders
+            </Link>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem asChild>
           <Link to="/profile" className="cursor-pointer">
             <UserIcon className="mr-2 h-4 w-4" /> Profile

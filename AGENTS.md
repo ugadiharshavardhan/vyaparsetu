@@ -156,13 +156,94 @@
 
 # Current Project State
 
-- **Current Phase:** Landing-page performance optimization (images + data fetching)
+- **Current Phase:** Auth page navigation
 - **Current Branch:** main
-- **Current Module:** `public/` assets, `Hero`, `Testimonials`, `useCatalog.ts`
-- **Overall Progress:** Compressed hero/retailer/banner/logo assets (~22MB → ~1.5MB), removed the all-products scan from `fetchCategories`, and added lazy/async image hints across the landing.
+- **Current Module:** `AuthLayout.tsx`
+- **Overall Progress:** Auth card now has a "Back to home" link to the landing page (shared by sign-in, sign-up, and admin login).
 - **Last Updated:** 2026-07-17
 
 # Development History
+
+## 2026-07-17 - Back-to-home button on auth pages
+
+### Why
+Sign-in / sign-up (and admin) auth screens had no way to return to the landing page.
+
+### Changes
+- `AuthLayout.tsx` — added a "Back to home" `Link` (ArrowLeft icon) at the top of the auth card; navigates to `/` (landing). Shared across sign-in, sign-up, and admin login since they all render through `AuthLayout`.
+
+## 2026-07-17 - Center auth marketing logo
+
+### Why
+The hex logo on sign-in/sign-up looked shifted right because `logo1.png` had uneven whitespace and the marketing panel lacked full-width center alignment.
+
+### Changes
+- `public/logo1.png` — autocropped and re-centered in a square canvas (124×127 → 85×85)
+- `AuthLayout.tsx` — logo wrapper uses `mx-auto flex items-center justify-center`; marketing panel uses `items-center` + `w-full max-w-[480px]`
+
+## 2026-07-17 - Logo links to home page
+
+### Why
+Clicking the VyaparSetu logo should open the marketing landing page (`/`), not the marketplace.
+
+### Changes
+- `Logo.tsx` — brand link `to="/"` (was `/marketplace`)
+- `DashboardSidebar.tsx` — sidebar logo wrapper also links to `/`
+- `index.tsx` — removed auto-redirect for signed-in users so `/` always renders the landing page
+
+## 2026-07-17 - Auth logo1 hex icon only (no wordmark text)
+
+### Why
+Sign-in / sign-up still showed the combined logo1 asset with "Vyapar Setu" text beside the hex mark; operator wants only the hex `logo1` icon, not `logo.png`.
+
+### Changes
+- `public/logo1.png` — cropped to hex mark only (124×127)
+- `AuthLayout.tsx` — `AuthBrandLogo` square sizing for icon; still uses `/logo1.png` only (never `logo.png`)
+
+## 2026-07-17 - Auth pages use logo1.png brand asset
+
+### Why
+Operator provided `logo1` (hex mark + Vyapar Setu text) for sign-in / sign-up; auth was still using `logo.png`.
+
+### Changes
+- `public/logo1.png` — synced from operator asset
+- `AuthLayout.tsx` — `AuthBrandLogo` renders `/logo1.png` on desktop marketing panel and mobile form header
+
+## 2026-07-17 - Auth wordmark: show logo + text (not cropped icon)
+
+### Why
+Auth left panel and mobile header used a square `120×120` / `64×64` crop on `logo.png`, showing only the hex mark and hiding the VyaparSetu wordmark beside it.
+
+### Changes
+- `AuthLayout.tsx` — `AuthWordmark` uses `h-* w-auto object-contain` so the full horizontal wordmark (icon + text) renders on desktop marketing panel and mobile form header
+
+## 2026-07-17 - Auth pages match reference design (no Google)
+
+### Why
+Operator provided a reference login layout with mint background, dot grids, soft green blobs, left marketing panel, and right white form card. Sign-in and sign-up should match exactly; Google OAuth must stay removed.
+
+### Changes
+- `AuthLayout.tsx` — full-page `#F9FBF9` background; dot grids (top-left / bottom-right); soft green blobs + outlined circle; left marketing (logo, headline, feature icons); right white card with user icon; exported shared form field classes
+- `SignInForm.tsx` — reference labels/placeholders ("Email Address", "Enter your email"), green Login button, no Google
+- `SignUpForm.tsx` — same field styling + Sign up CTA
+- `AuthRoleToggle.tsx` — green active pill on gray track
+- `auth.tsx` — "Welcome Back!" / "Create Your Account" copy; footer "Don't have an account? Sign up"
+
+## 2026-07-17 - Fix buyer/seller navigation and post-login redirect
+
+### Why
+Buyers clicking Orders did not reliably show the orders page; seller sidebar sections appeared stuck on one view (often marketplace); sellers were forced to marketplace after every login.
+
+### Root cause
+Dashboard chrome was applied in two different places (`SiteLayout` for `/marketplace`, `_authenticated/route` for app routes like `/orders` and `/supplier/*`), so navigating between shared and app routes remounted the shell inconsistently and could leave stale page content visible.
+
+### Changes
+- `SiteLayout.tsx` — single `useWorkspaceChrome` path wraps all authenticated app + shared routes in `DashboardLayout` (excludes onboarding/checkout); added `/seller` prefix
+- `_authenticated/route.tsx` — shell is now `<Outlet />` only; supplier/seller paths get seller membership guard; supplier/seller paths skip onboarding trap
+- `DashboardLayout.tsx` — `key={pathname}` on `<main>` forces content remount on navigation
+- `postLoginRedirect.ts` — seller session/role → `/seller/dashboard` (not marketplace); buyer still → `/marketplace`
+- `orders.tsx` — error state + retry when order fetch fails
+- `UserMenu.tsx` — buyer "My Orders" link
 
 ## 2026-07-17 - Landing performance: image + data fetch optimization
 

@@ -23,7 +23,7 @@ const TABS = [
 ];
 
 function OrdersPage() {
-  const { data: orders = [], isLoading } = useOrders();
+  const { data: orders = [], isLoading, isError, error, refetch } = useOrders();
   const [tab, setTab] = useState("all");
   const [query, setQuery] = useState("");
 
@@ -73,7 +73,17 @@ function OrdersPage() {
       </div>
 
       {/* Content Area */}
-      {isLoading ? (
+      {isError ? (
+        <div className="mx-auto flex max-w-md flex-col items-center rounded-3xl border border-destructive/30 bg-destructive/5 p-10 text-center">
+          <h3 className="text-lg font-bold text-foreground">Could not load orders</h3>
+          <p className="mt-2 text-xs text-muted-foreground">
+            {(error as Error)?.message ?? "Something went wrong while fetching your orders."}
+          </p>
+          <Button className="mt-6 rounded-full" onClick={() => void refetch()}>
+            Try again
+          </Button>
+        </div>
+      ) : isLoading ? (
         <div className="space-y-4">
           {[...Array(3)].map((_, i) => (
             <Skeleton key={i} className="h-44 w-full rounded-2xl" />
