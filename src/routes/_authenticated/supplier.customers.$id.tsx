@@ -168,7 +168,7 @@ function BuyerProfilePage() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6">
-          <SectionCard>
+          <SectionCard className="p-6">
             <div className="flex flex-col items-center text-center pb-6 border-b border-border">
               <div className="h-20 w-20 rounded-full bg-brand-soft text-brand flex items-center justify-center font-bold text-3xl mb-4">
                 {displayBusiness.charAt(0).toUpperCase()}
@@ -180,7 +180,7 @@ function BuyerProfilePage() {
               </div>
             </div>
 
-            <div className="py-4 space-y-4 text-sm">
+            <div className="pt-5 space-y-4 text-sm">
               <div className="flex gap-3">
                 <Phone className="h-4 w-4 shrink-0 text-muted-foreground mt-0.5" />
                 <div>

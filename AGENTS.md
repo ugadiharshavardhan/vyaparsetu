@@ -163,6 +163,14 @@
 
 # Development History
 
+## 2026-07-18 - Buyer profile card padding fix (seller Buyers section)
+
+### Why
+On `/supplier/customers/$id` the buyer details card (avatar, name, phone/email/address/GST) rendered with no inner padding — `SectionCard` only applies `p-6` when a `title`/`action` header is passed, and this card passes neither, so content sat flush against the card border.
+
+### Changes
+- `src/routes/_authenticated/supplier.customers.$id.tsx` — profile `SectionCard` now gets `className="p-6"`; contact list spacing normalized (`py-4` → `pt-5` under the header divider). Insights / Orders / Invoices cards were already padded correctly.
+
 ## 2026-07-18 - Merge main: Supabase Auth & Chatbot Integration
 
 ### Why
