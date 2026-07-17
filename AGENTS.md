@@ -156,14 +156,27 @@
 
 # Current Project State
 
-- **Current Phase:** Checkout chrome + single pending-cart flush
-- **Current Module:** `SiteLayout`, `useCart`, `checkout`
-- **Overall Progress:** Checkout keeps the buyer workspace navbar (no landing header); pre-login "Add to cart" is flushed and toasted exactly once after sign-in.
+- **Current Phase:** Live seller MOQ enforcement end-to-end
+- **Current Module:** `moq`, `useCart`, `useOrders`, cart UI controls
+- **Overall Progress:** Cart/checkout/order placement use live `products.moq` from the seller; quantities below MOQ cannot checkout or place an order; minus buttons stop at MOQ.
 - **Last Updated:** 2026-07-17
 
 # Development History
 
-## 2026-07-17 - Single pending-cart flush + checkout keeps buyer navbar
+## 2026-07-17 - Live seller MOQ enforcement (cart → checkout → order)
+
+### Why
+Minimum order quantity must follow the seller-entered value on each product. Cart lines stored stale `product_snapshot.moq` (often defaulting to 1), so buyers could checkout below the real MOQ.
+
+### Changes
+- `lib/moq.ts` — `fetchLiveMoqMap`, `applyLiveMoqToItems`, `resolveLineMoq`, `assertOrderMeetsMoq` (reads `products.moq`).
+- `hooks/useCart.ts` — enrich cart on fetch (logged-in + guest) with live MOQ; add-to-cart/repeat-order persist current MOQ in snapshot; `useUpdateCartItem` rejects quantity below live MOQ.
+- `hooks/useOrders.ts` — `usePlaceOrder` calls `assertOrderMeetsMoq` before creating the order.
+- `AddToCartControl.tsx` / `CartItemRow.tsx` — minus disabled at MOQ; toast instead of silently removing the line when below MOQ.
+
+### No backend migration
+Uses existing `products.moq` column; frontend-only enforcement layered on cart/checkout UI and order mutation.
+
 
 ### Why
 1. Adding an item as a guest then signing in showed the item added "multiple" times (duplicate "Added to cart" toasts).

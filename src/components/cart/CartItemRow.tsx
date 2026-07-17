@@ -31,7 +31,7 @@ export function CartItemRow({ item }: { item: CartItem }) {
   const changeQty = (q: number) => {
     const moq = Math.max(1, p.moq);
     if (q < moq) {
-      remove.mutate(item.id);
+      toast.error(`Minimum order is ${moq} ${p.unit}`);
       return;
     }
     if (q > p.stockCount) {
@@ -93,7 +93,8 @@ export function CartItemRow({ item }: { item: CartItem }) {
           <div className="inline-flex items-center rounded-full border border-brand/40 bg-white">
             <button
               onClick={() => changeQty(item.quantity - 1)}
-              className="grid h-9 w-9 place-items-center rounded-l-full text-brand transition-colors hover:bg-brand hover:text-white"
+              disabled={item.quantity <= moq}
+              className="grid h-9 w-9 place-items-center rounded-l-full text-brand transition-colors hover:bg-brand hover:text-white disabled:opacity-40"
               aria-label="Decrease"
             >
               <Minus className="h-4 w-4" strokeWidth={2.5} />

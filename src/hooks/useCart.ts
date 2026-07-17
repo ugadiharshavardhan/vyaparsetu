@@ -12,6 +12,7 @@ import {
 } from "@/lib/guestCart";
 import { peekPendingCartAdd, setPendingCartAdd, takePendingCartAdd } from "@/lib/pendingCart";
 import { openCartSheet } from "@/hooks/useCartSheet";
+import { applyLiveMoqToItems, fetchLiveMoqMap, resolveLineMoq } from "@/lib/moq";
 import { toast } from "sonner";
 
 export const CART_KEY = ["cart"] as const;
@@ -68,9 +69,16 @@ async function fetchUserCart(userId: string): Promise<CartItem[]> {
     .eq("user_id", userId)
     .order("created_at", { ascending: true });
   if (error) throw error;
-  return (data ?? [])
+  const rows = (data ?? [])
     .map((row) => normalizeCartRow(row as unknown as Record<string, unknown>))
     .filter((row): row is CartItem => row !== null);
+  const moqMap = await fetchLiveMoqMap(rows.map((r) => r.product_id));
+  return applyLiveMoqToItems(rows, moqMap);
+}
+
+async function enrichGuestCart(items: CartItem[]): Promise<CartItem[]> {
+  const moqMap = await fetchLiveMoqMap(items.map((r) => r.product_id));
+  return applyLiveMoqToItems(items, moqMap);
 }
 
 async function mergeGuestCartIntoUser(userId: string) {
@@ -239,7 +247,7 @@ export function useCart() {
     retry: 1,
     queryFn: async (): Promise<CartItem[]> => {
       if (user) return fetchUserCart(user.id);
-      return readGuestCart() as CartItem[];
+      return enrichGuestCart(readGuestCart() as CartItem[]);
     },
   });
 }
@@ -271,7 +279,15 @@ export function useAddToCart() {
     }) => {
       const safe = normalizeSnapshot(snapshot);
       if (!safe) throw new Error("Invalid product");
-      const qty = Math.max(quantity ?? safe.moq, safe.moq);
+
+      const { data: liveProduct } = await supabase
+        .from("products")
+        .select("moq")
+        .eq("id", safe.id)
+        .maybeSingle();
+      const liveMoq = Math.max(1, Number(liveProduct?.moq) || safe.moq);
+      const snap = { ...safe, moq: liveMoq };
+      const qty = Math.max(quantity ?? liveMoq, liveMoq);
 
       if (!user) {
         throw new Error("Please sign in to add items to your cart");
@@ -281,19 +297,23 @@ export function useAddToCart() {
         .from("cart_items")
         .select("id, quantity")
         .eq("user_id", user.id)
-        .eq("product_id", safe.id)
+        .eq("product_id", snap.id)
         .maybeSingle();
       if (existing) {
         const { error } = await supabase
           .from("cart_items")
-          .update({ quantity: existing.quantity + qty, saved_for_later: false })
+          .update({
+            quantity: existing.quantity + qty,
+            saved_for_later: false,
+            product_snapshot: snap as never,
+          })
           .eq("id", existing.id);
         if (error) throw error;
       } else {
         const { error } = await supabase.from("cart_items").insert({
           user_id: user.id,
-          product_id: safe.id,
-          product_snapshot: safe as never,
+          product_id: snap.id,
+          product_snapshot: snap as never,
           quantity: qty,
         });
         if (error) throw error;
@@ -323,6 +343,38 @@ export function useUpdateCartItem() {
       quantity?: number;
       saved_for_later?: boolean;
     }) => {
+      if (quantity !== undefined) {
+        if (!user) {
+          const line = readGuestCart().find((i) => i.id === id);
+          if (line) {
+            const moqMap = await fetchLiveMoqMap([line.product_id]);
+            const required = resolveLineMoq(line, moqMap);
+            if (quantity < required) {
+              throw new Error(
+                `Minimum order quantity is ${required} ${line.product_snapshot.unit ?? "units"}`,
+              );
+            }
+          }
+        } else {
+          const { data: line } = await supabase
+            .from("cart_items")
+            .select("product_id, product_snapshot")
+            .eq("id", id)
+            .maybeSingle();
+          if (line) {
+            const snap = normalizeSnapshot(line.product_snapshot, line.product_id);
+            const moqMap = await fetchLiveMoqMap([line.product_id]);
+            const required =
+              moqMap.get(line.product_id) ?? Math.max(1, snap?.moq ?? 1);
+            if (quantity < required) {
+              throw new Error(
+                `Minimum order quantity is ${required} ${snap?.unit ?? "units"}`,
+              );
+            }
+          }
+        }
+      }
+
       if (!user) {
         updateGuestLine(id, { quantity, saved_for_later });
         return;
@@ -433,13 +485,20 @@ export function useRepeatOrder() {
       if (!items?.length) throw new Error("This order has no items to repeat");
 
       let added = 0;
+      const moqMap = await fetchLiveMoqMap(
+        items
+          .map((item) => normalizeSnapshot(item.product_snapshot)?.id)
+          .filter((id): id is string => Boolean(id)),
+      );
       for (const item of items) {
         const safe = normalizeSnapshot(item.product_snapshot);
         if (!safe) continue;
-        const qty = Math.max(1, Number(item.quantity) || safe.moq, safe.moq);
+        const liveMoq = moqMap.get(safe.id) ?? safe.moq;
+        const snap = { ...safe, moq: Math.max(1, liveMoq) };
+        const qty = Math.max(Number(item.quantity) || snap.moq, snap.moq);
 
         if (!user) {
-          upsertGuestLine(safe, qty);
+          upsertGuestLine(snap, qty);
           added += 1;
           continue;
         }
@@ -448,7 +507,7 @@ export function useRepeatOrder() {
           .from("cart_items")
           .select("id, quantity")
           .eq("user_id", user.id)
-          .eq("product_id", safe.id)
+          .eq("product_id", snap.id)
           .maybeSingle();
 
         if (existing) {
@@ -457,15 +516,15 @@ export function useRepeatOrder() {
             .update({
               quantity: existing.quantity + qty,
               saved_for_later: false,
-              product_snapshot: safe as never,
+              product_snapshot: snap as never,
             })
             .eq("id", existing.id);
           if (error) throw error;
         } else {
           const { error } = await supabase.from("cart_items").insert({
             user_id: user.id,
-            product_id: safe.id,
-            product_snapshot: safe as never,
+            product_id: snap.id,
+            product_snapshot: snap as never,
             quantity: qty,
           });
           if (error) throw error;

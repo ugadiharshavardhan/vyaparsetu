@@ -36,7 +36,7 @@ export function AddToCartControl({
   const add = useAddToCart();
   const update = useUpdateCartItem();
   const remove = useRemoveCartItem();
-  const moq = Math.max(1, snapshot?.moq ?? 1);
+  const moq = Math.max(1, line?.product_snapshot.moq ?? snapshot?.moq ?? 1);
   const stockCount = snapshot?.stockCount ?? 0;
   const inStock = product?.inStock ?? stockCount > 0;
   const pending = add.isPending || update.isPending || remove.isPending;
@@ -69,7 +69,7 @@ export function AddToCartControl({
     }
     if (!line) return;
     if (next < moq) {
-      remove.mutate(line.id);
+      toast.error(`Minimum order is ${moq} ${snapshot.unit}`);
       return;
     }
     if (next > stockCount) {
@@ -99,7 +99,7 @@ export function AddToCartControl({
       >
         <button
           type="button"
-          disabled={pending}
+          disabled={pending || line.quantity <= moq}
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();

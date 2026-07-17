@@ -16,6 +16,7 @@ import {
   generateOrderNumber,
   DELIVERY_PARTNERS,
 } from "@/lib/commerce";
+import { assertOrderMeetsMoq } from "@/lib/moq";
 import { toast } from "sonner";
 
 export function useOrders() {
@@ -74,6 +75,8 @@ export function usePlaceOrder() {
     mutationFn: async ({ items, address, coupon, payment_method, isBuyNow }: PlaceOrderInput) => {
       if (!user) throw new Error("Please sign in");
       if (!items.length) throw new Error("Cart is empty");
+
+      await assertOrderMeetsMoq(items);
 
       const totals = computeTotals(items, address, coupon);
       const order_number = generateOrderNumber();
