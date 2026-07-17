@@ -58,7 +58,7 @@ export function AddToCartControl({
     toast.message("Sign in to add this item to your cart");
     navigate({
       to: "/auth",
-      search: { mode: "signin", redirect: returnTo },
+      search: { mode: "signin", role: "buyer", redirect: returnTo },
     });
   };
 

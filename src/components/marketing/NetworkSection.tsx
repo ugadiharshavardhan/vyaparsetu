@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useEffect, useRef } from "react";
 import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { Factory, Store } from "lucide-react";
@@ -7,8 +8,9 @@ import { InfiniteCarousel } from "@/components/marketing/InfiniteCarousel";
 import { CategoryImage } from "@/components/marketplace/CategoryCard";
 import { useManufacturers } from "@/hooks/useCatalog";
 import { Skeleton } from "@/components/ui/skeleton";
-const LEFT_LABELS = ["Manufacturers", "Distributors", "Wholesalers"];
-const RIGHT_LABELS = ["Kirana & Retail", "Hotels", "Cloud Kitchens"];
+import { cn } from "@/lib/utils";
+const LEFT_LABELS = ["Manufacturers", "Distributors", "Wholesalers"] as const;
+const RIGHT_LABELS = ["Kirana & Retail", "Marts", "Institutions"] as const;
 
 /** Slice/rotate a pool of logo URLs for each marquee row. */
 function rowImages(pool: string[], offset: number, count = 10): string[] {
@@ -28,11 +30,16 @@ function slugNum(slug: string): number {
 
 function Avatar({ src }: { src: string }) {
   return (
-    <div className="mx-3 grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-full border border-border bg-white p-2.5 shadow-soft sm:mx-3.5 sm:h-20 sm:w-20 sm:p-3 lg:h-[5.5rem] lg:w-[5.5rem]">
+    <div
+      data-scale-item
+      className="mx-1 grid h-16 w-16 shrink-0 origin-center place-items-center overflow-hidden rounded-full border border-border bg-white p-2.5 shadow-soft will-change-transform sm:mx-1.5 sm:h-20 sm:w-20 sm:p-3 lg:h-[5.5rem] lg:w-[5.5rem]"
+    >
       <CategoryImage src={src} alt="" className="h-full w-full object-contain" />
     </div>
   );
 }
+
+type ScaleMode = "shrink-to-right" | "grow-to-right";
 
 function AvatarRow({
   images,
@@ -40,13 +47,42 @@ function AvatarRow({
   reverse,
   durationSec,
   loading,
+  scaleMode,
 }: {
   images: string[];
   offset: number;
   reverse?: boolean;
   durationSec: number;
   loading?: boolean;
+  /** shrink-to-right: large on left → small near tags; grow-to-right: small near tags → large on right */
+  scaleMode: ScaleMode;
 }) {
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let raf = 0;
+    const tick = () => {
+      const root = rootRef.current;
+      if (root) {
+        const rootRect = root.getBoundingClientRect();
+        const width = rootRect.width || 1;
+        const items = root.querySelectorAll<HTMLElement>("[data-scale-item]");
+        for (const el of items) {
+          const r = el.getBoundingClientRect();
+          const center = r.left + r.width / 2;
+          const t = Math.min(1, Math.max(0, (center - rootRect.left) / width));
+          // Keep readable range: 0.55 ↔ 1.0
+          const scale =
+            scaleMode === "shrink-to-right" ? 1 - t * 0.45 : 0.55 + t * 0.45;
+          el.style.transform = `scale(${scale})`;
+        }
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [scaleMode]);
+
   if (loading) {
     return (
       <div className="flex items-center gap-3 overflow-hidden py-1">
@@ -64,37 +100,64 @@ function AvatarRow({
   if (slice.length === 0) return null;
 
   return (
-    <InfiniteCarousel
-      durationSec={durationSec}
-      reverse={reverse}
-      className="w-full py-1"
-      trackClassName="items-center"
-      pauseOnHover={false}
-    >
-      {slice.map((src, i) => (
-        <Avatar key={`${offset}-${src}-${i}`} src={src} />
-      ))}
-    </InfiniteCarousel>
+    <div ref={rootRef} className="w-full">
+      <InfiniteCarousel
+        durationSec={durationSec}
+        reverse={reverse}
+        className="w-full py-1"
+        trackClassName="items-center"
+        pauseOnHover={false}
+      >
+        {slice.map((src, i) => (
+          <Avatar key={`${offset}-${src}-${i}`} src={src} />
+        ))}
+      </InfiniteCarousel>
+    </div>
   );
 }
 
-function LabelPill({ children }: { children: ReactNode }) {
+function LabelPill({
+  children,
+  wide = false,
+}: {
+  children: ReactNode;
+  wide?: boolean;
+}) {
   return (
-    <span className="relative z-20 inline-flex items-center whitespace-nowrap rounded-full border border-brand/20 bg-brand-soft px-4 py-2 text-xs font-bold uppercase tracking-wide text-brand ring-1 ring-black/5 sm:text-sm">
+    <span
+      className={cn(
+        "relative z-20 inline-flex items-center justify-center whitespace-nowrap rounded-full bg-brand px-3.5 py-2 text-xs font-bold uppercase tracking-wide text-white shadow-soft ring-1 ring-brand/30 sm:px-4 sm:py-2 sm:text-sm",
+        wide && "min-w-[8.5rem] sm:min-w-[10rem]",
+      )}
+    >
       {children}
     </span>
   );
 }
 
-/** White fade where the streaming logos meet the label pill. */
+/** Soft white fade at the outer left / right edges of the logo marquee. */
+function EdgeFade({ side }: { side: "left" | "right" }) {
+  return (
+    <div
+      aria-hidden
+      className={`pointer-events-none absolute inset-y-0 z-30 w-12 sm:w-20 lg:w-28 ${
+        side === "left"
+          ? "left-0 bg-gradient-to-r from-surface via-surface/80 to-transparent"
+          : "right-0 bg-gradient-to-l from-surface via-surface/80 to-transparent"
+      }`}
+    />
+  );
+}
+
+/** White fade where logos meet the category tag (inner junction). */
 function JunctionFade({ side }: { side: "left" | "right" }) {
   return (
     <div
       aria-hidden
-      className={`pointer-events-none absolute inset-y-0 z-[5] hidden w-16 lg:block ${
+      className={`pointer-events-none absolute inset-y-0 z-[5] hidden w-10 sm:w-14 lg:block ${
         side === "left"
-          ? "right-0 bg-gradient-to-l from-surface via-surface/85 to-transparent"
-          : "left-0 bg-gradient-to-r from-surface via-surface/85 to-transparent"
+          ? "right-0 bg-gradient-to-l from-surface via-surface/90 to-transparent"
+          : "left-0 bg-gradient-to-r from-surface via-surface/90 to-transparent"
       }`}
     />
   );
@@ -102,7 +165,7 @@ function JunctionFade({ side }: { side: "left" | "right" }) {
 
 function CardHeaderSticker({ label }: { label: string }) {
   return (
-    <div className="absolute bottom-4 right-4 z-10 rotate-[-4deg] rounded-xl bg-white px-3.5 py-2 text-brand shadow-elevated ring-1 ring-black/10">
+    <div className="absolute bottom-4 right-4 z-10 rounded-xl bg-white px-3.5 py-2 text-brand shadow-elevated ring-1 ring-black/10">
       <span className="font-display text-xs font-bold uppercase tracking-wide sm:text-sm">
         {label}
       </span>
@@ -136,7 +199,71 @@ function CardIconHeader({
     </div>
   );
 }
-export function NetworkSection() {
+function FlowConnectors() {
+  // Shared bezier endpoints relative to viewBox 0..1000 × 0..300
+  // Paths extend behind the pills so no gap appears at the tag junction.
+  const leftPaths = [
+    "M270 48 C 390 48, 445 150, 500 150",
+    "M270 150 L 500 150",
+    "M270 252 C 390 252, 445 150, 500 150",
+  ];
+  const rightPaths = [
+    { d: "M500 150 C 555 150, 610 48, 690 48", color: "var(--brand)" },
+    { d: "M500 150 L 690 150", color: "var(--warning)" },
+    { d: "M500 150 C 555 150, 610 252, 690 252", color: "oklch(0.72 0.12 95)" },
+  ];
+
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 1000 300"
+      preserveAspectRatio="none"
+      className="pointer-events-none absolute inset-y-0 left-1/2 z-0 hidden h-full w-full max-w-4xl -translate-x-1/2 lg:block"
+    >
+      {/* Left: faint dashed lines converging into the hub */}
+      <g fill="none" strokeLinecap="round" strokeLinejoin="round">
+        {leftPaths.map((d) => (
+          <path
+            key={d}
+            d={d}
+            stroke="var(--brand)"
+            strokeOpacity="0.35"
+            strokeWidth="2.5"
+            strokeDasharray="5 9"
+          />
+        ))}
+      </g>
+
+      {/* Right: thick colored “road” paths with dashed center line */}
+      <g fill="none" strokeLinecap="round" strokeLinejoin="round">
+        {rightPaths.map((p) => (
+          <g key={p.d}>
+            <path d={p.d} stroke={p.color} strokeOpacity="0.85" strokeWidth="20" />
+            <path
+              d={p.d}
+              stroke="white"
+              strokeOpacity="0.75"
+              strokeWidth="3"
+              strokeDasharray="7 10"
+            />
+          </g>
+        ))}
+      </g>
+    </svg>
+  );
+}
+
+export function NetworkSection({
+  showCta = true,
+  compact = false,
+  className,
+}: {
+  /** Landing page register cards under the hub. */
+  showCta?: boolean;
+  /** Tighter padding for dashboard footer use. */
+  compact?: boolean;
+  className?: string;
+}) {
   const { data: manufacturers = [], isLoading } = useManufacturers();
 
   const logosForPrefix = (prefix: string) =>
@@ -150,57 +277,53 @@ export function NetworkSection() {
   const rightLogos = logosForPrefix("s");
 
   return (
-    <section className="overflow-hidden bg-surface py-20 sm:py-24 lg:pb-32 lg:pt-28">
+    <section
+      className={cn(
+        "overflow-hidden bg-surface",
+        compact ? "py-10 sm:py-12" : "py-20 sm:py-24 lg:pb-32 lg:pt-28",
+        className,
+      )}
+    >
       <div className="container-page">
         <div className="text-center">
-          <h2 className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl md:text-4xl">
-            Building a wide network of
-          </h2>
-          <p className="mt-2 font-display text-lg font-semibold tracking-tight text-brand sm:text-xl">
+          {!compact && (
+            <h2 className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl md:text-4xl">
+              Building a wide network of
+            </h2>
+          )}
+          <p
+            className={cn(
+              "font-display font-semibold tracking-tight text-brand",
+              compact ? "text-base sm:text-lg" : "mt-2 text-lg sm:text-xl",
+            )}
+          >
             — Sellers &amp; Customers —
           </p>
         </div>
       </div>
 
       <div className="relative mt-6 w-full px-2 sm:mt-8 sm:px-4">
-          <svg
-            aria-hidden
-            viewBox="0 0 1000 300"
-            preserveAspectRatio="none"
-            className="pointer-events-none absolute inset-y-0 left-1/2 h-full w-full max-w-4xl -translate-x-1/2"
-          >
-            <g
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeDasharray="6 10"
-              strokeLinecap="round"
-              className="text-brand/40"
-            >
-              <path d="M300 50  C 400 50, 420 150, 500 150" />
-              <path d="M300 150 L 500 150" />
-              <path d="M300 250 C 400 250, 420 150, 500 150" />
-              <path d="M500 150 C 580 150, 600 50, 700 50" />
-              <path d="M500 150 L 700 150" />
-              <path d="M500 150 C 580 150, 600 250, 700 250" />
-            </g>
-          </svg>
+          <EdgeFade side="left" />
+          <EdgeFade side="right" />
 
-          <div className="relative grid grid-cols-1 items-center gap-y-8 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:gap-x-8">
-            <div className="flex flex-col justify-center gap-8 sm:gap-10">
+          <FlowConnectors />
+
+          <div className="relative z-10 grid grid-cols-1 items-center gap-y-8 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:gap-x-4">
+            <div className="flex flex-col justify-center gap-6 sm:gap-8 lg:gap-10">
               {LEFT_LABELS.map((label, i) => (
-                <div key={label} className="flex items-center">
-                  <div className="relative z-[1] min-w-0 flex-1">
+                <div key={label} className="flex min-h-16 items-center gap-1.5 sm:min-h-20 lg:min-h-[5.5rem]">
+                  <div className="relative z-[1] min-w-0 flex-1 overflow-hidden">
                     <AvatarRow
                       images={leftLogos}
                       offset={i * 3}
                       reverse
                       durationSec={24 + i * 5}
                       loading={isLoading}
+                      scaleMode="shrink-to-right"
                     />
                     <JunctionFade side="left" />
                   </div>
-                  <div className="relative hidden shrink-0 lg:block">
+                  <div className="relative z-20 hidden shrink-0 lg:flex">
                     <LabelPill>{label}</LabelPill>
                   </div>
                 </div>
@@ -212,31 +335,32 @@ export function NetworkSection() {
               whileInView={{ scale: 1, opacity: 1 }}
               viewport={{ once: true }}
               transition={{ type: "spring", stiffness: 200, damping: 18 }}
-              className="mx-auto grid h-32 w-32 place-items-center rounded-2xl border border-border bg-card text-center shadow-elevated sm:h-36 sm:w-36"
+              className="relative z-10 mx-auto grid h-24 w-24 place-items-center rounded-xl border border-border bg-card text-center shadow-elevated sm:h-28 sm:w-28 sm:rounded-2xl"
             >
               <div>
-                <div className="font-display text-lg font-extrabold tracking-tight text-brand sm:text-xl">
+                <div className="font-display text-sm font-extrabold tracking-tight text-brand sm:text-base">
                   VyaparSetu
                 </div>
-                <div className="mt-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                <div className="mt-0.5 text-[8px] font-semibold uppercase tracking-widest text-muted-foreground sm:text-[9px]">
                   B2B Marketplace
                 </div>
               </div>
             </motion.div>
 
-            <div className="flex flex-col justify-center gap-8 sm:gap-10">
+            <div className="flex flex-col justify-center gap-6 sm:gap-8 lg:gap-10">
               {RIGHT_LABELS.map((label, i) => (
-                <div key={label} className="flex items-center">
-                  <div className="relative hidden shrink-0 lg:block">
-                    <LabelPill>{label}</LabelPill>
+                <div key={label} className="flex min-h-16 items-center gap-1.5 sm:min-h-20 lg:min-h-[5.5rem]">
+                  <div className="relative z-20 hidden shrink-0 lg:block">
+                    <LabelPill wide>{label}</LabelPill>
                   </div>
-                  <div className="relative z-[1] min-w-0 flex-1">
+                  <div className="relative z-[1] min-w-0 flex-1 overflow-hidden">
                     <AvatarRow
                       images={rightLogos}
                       offset={i * 3}
                       reverse
                       durationSec={24 + i * 5}
                       loading={isLoading}
+                      scaleMode="grow-to-right"
                     />
                     <JunctionFade side="right" />
                   </div>
@@ -246,6 +370,7 @@ export function NetworkSection() {
           </div>
       </div>
 
+      {showCta ? (
       <div className="container-page">
         <div className="mt-24 grid gap-5 sm:mt-28 sm:grid-cols-2 sm:gap-6">
           <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
@@ -254,7 +379,8 @@ export function NetworkSection() {
               tone="light"
               sticker="Sell on VyaparSetu"
             />
-            <div className="p-7 sm:p-8">              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <div className="p-7 sm:p-8">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 For manufacturers &amp; distributors
               </p>
               <h3 className="mt-2 font-display text-xl font-bold text-foreground">
@@ -277,7 +403,8 @@ export function NetworkSection() {
 
           <div className="overflow-hidden rounded-2xl bg-brand shadow-soft">
             <CardIconHeader icon={Store} tone="brand" sticker="Shop wholesale" />
-            <div className="p-7 sm:p-8">              <p className="text-xs font-semibold uppercase tracking-wider text-brand-foreground/80">
+            <div className="p-7 sm:p-8">
+              <p className="text-xs font-semibold uppercase tracking-wider text-brand-foreground/80">
                 For kirana &amp; retail buyers
               </p>
               <h3 className="mt-2 font-display text-xl font-bold text-brand-foreground">
@@ -299,6 +426,7 @@ export function NetworkSection() {
           </div>
         </div>
       </div>
+      ) : null}
     </section>
   );
 }

@@ -8,12 +8,14 @@ import { RatingBadge } from "@/components/common/RatingBadge";
 import { VerifiedBadge } from "@/components/common/VerifiedBadge";
 import { SaveProductButton } from "@/components/product/SaveProductButton";
 import { AddToCartControl } from "@/components/cart/AddToCartControl";
+import { getProductDisplayImage } from "@/lib/productImages";
 
 export function ProductListItem({ product, onQuickView }: { product: Product; onQuickView?: (p: Product) => void }) {
+  const banner = getProductDisplayImage(product);
   return (
     <article className="grid grid-cols-[112px_minmax(0,1fr)] gap-4 rounded-2xl border border-border bg-card p-4 shadow-soft transition-shadow hover:shadow-elevated sm:grid-cols-[160px_minmax(0,1fr)_auto]">
       <div className="relative aspect-square overflow-hidden rounded-xl bg-secondary">
-        <img src={product.image} alt={product.name} className="h-full w-full object-cover" loading="lazy" />
+        <img src={banner} alt={product.name} className="h-full w-full object-cover" loading="lazy" />
         <div className="absolute right-2 top-2 z-10">
           <SaveProductButton product={product} variant="icon" />
         </div>

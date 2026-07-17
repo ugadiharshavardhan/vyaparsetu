@@ -94,7 +94,7 @@ export function Header() {
     >
       <div className="mx-auto flex h-[4.5rem] w-full max-w-[100rem] items-center gap-3 px-4 sm:h-[5rem] sm:px-6 lg:gap-5 lg:px-10 xl:px-12">
         <div className="flex shrink-0 items-center gap-3 sm:gap-4 lg:gap-5">
-          <Logo className="shrink-0 scale-110 origin-left" />
+          <Logo className="shrink-0" />
           <div className="hidden sm:block">
             <LocationPicker location={location} onSelect={selectLocation} />
           </div>

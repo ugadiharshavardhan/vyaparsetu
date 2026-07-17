@@ -156,13 +156,105 @@
 
 # Current Project State
 
-- **Current Phase:** Category cover images corrected
+- **Current Phase:** Network animation spacing and flow polish
 - **Current Branch:** N/A
-- **Current Module:** Marketplace categories / Our Categories
-- **Overall Progress:** Fixed wrong `spices` cover (was Tikhalal+Tata Salt collage → Everest Coriander pack); cache-busted `pulses-dal` / `salt-sugar` / `spices` URLs.
+- **Current Module:** `NetworkSection.tsx`
+- **Overall Progress:** Connector paths now extend behind all tags; colored flow width reduced to 20px and dashed paths to 2.5px.
 - **Last Updated:** 2026-07-17
 
 # Development History
+
+## 2026-07-17 - Network right tags and row spacing
+
+### Changes
+- `NetworkSection.tsx` — Kirana & Retail / Marts / Institutions use consistent wider pills
+- Extended right paths to x=690 and left paths to x=270 so lines continue behind pills
+- Reduced colored flow thickness to 20px (white dash 3px) and left dashed paths to 2.5px
+- Reduced vertical row gaps from 12/16/20 to 6/8/10 for a tighter animation
+
+## 2026-07-17 - Network animation landing-only + Add-to-cart return URL
+
+### Why
+Sellers & customers network animation was mounted on every buyer/seller dashboard page; guests who clicked Add were not reliably returned to the product/marketplace page after sign-in.
+
+### Changes
+- `DashboardLayout.tsx` — removed `NetworkSection` footer (animation stays on landing `index.tsx` only)
+- `postLoginRedirect.ts` — priority: explicit `redirect` → pending cart `returnTo` → marketplace
+- `SignInForm.tsx` / `SignUpForm.tsx` — use that resolver; paths with query use `location.assign`
+- `AddToCartControl.tsx` — auth search includes `role=buyer` + `redirect` to current page
+- `auth.tsx` — beforeLoad also respects pending/redirect return path
+
+## 2026-07-17 - Post-login lands on marketplace (not buyer dashboard)
+
+### Why
+Successful buyer login was sending users to `/buyer/dashboard`; product-first UX should open the marketplace.
+
+### Changes
+- `postLoginRedirect.ts` — buyer/seller/default → `/marketplace` (admin still `/admin`)
+- `SignInForm.tsx` — role redirect uses `/marketplace`
+- `SignUpForm.tsx` — post-OTP continue uses `/marketplace`
+
+## 2026-07-17 - Buyer/Seller auth page redesign
+
+### Why
+Sign-in and sign-up required a separate role-select step and used a green marketing panel on the right, which felt cluttered and unlike the clean split-card reference.
+
+### Changes
+- `AuthLayout.tsx` — left soft-gray panel with centered app logo; right white form area with lock icon, title, subtitle
+- `AuthRoleToggle.tsx` — Buyer | Seller segmented control above the form heading
+- `auth.tsx` — removed RoleSelect step; role lives in URL search (`role=buyer|seller`); default Buyer; Create account / Sign in footer links
+- `SignInForm.tsx` — email/password with icons, uppercase labels, Forgot password, full-width SIGN IN
+- `SignUpForm.tsx` — removed RoleBanner; shared Create account CTA styling
+- `SiteLayout.tsx` — hide marketing Header/Footer on `/auth`, `/forgot-password`, `/reset-password`
+
+## 2026-07-17 - Remove Google from auth forms
+
+### Why
+Operator asked to drop Continue with Google on sign-in / sign-up.
+
+### Changes
+- `SignInForm.tsx` — removed Google OAuth button, divider, and Lovable OAuth handler
+
+## 2026-07-17 - Network section labels, colors, sticker symmetry
+
+### Changes
+- `NetworkSection.tsx`: Hotels → Marts, Cloud Kitchens → Institutions
+- Hub label pills alternate green (brand) and orange (warning)
+- Removed tilted rotation from seller/retailer card stickers
+- Equal row heights + fixed pill widths for left/right column symmetry
+
+## 2026-07-17 - Enrich product prices and descriptions from market rates
+
+### Why
+Every catalog SKU used placeholder ₹99 wholesale / ₹129 MRP and one-line stub descriptions, so buyer/seller/landing prices were meaningless.
+
+### Changes
+- Researched mid-2026 Indian anchors (FCA mandi, Hyperpure, retail): sugar ~₹43/kg, toor dal ~₹115–125/kg, Everest garam masala 500g ~₹400, Catch turmeric 1kg ~₹260, Fortune sunflower 5L ~₹950–1,100, Tata Salt 1kg ~₹28–30, Daawat rice packs, etc.
+- `scratch/enrich-products-prices-descriptions.mjs` — pack-size parser, category/keyword pricing, brand extraction, multi-paragraph descriptions + highlights
+- Applied to all **409** products (0 errors): `wholesale_price`, `mrp`, `description`, `highlights`, `brand`, `unit`, `packaging_details`
+- UI already reads these via `mapDbProduct` / product cards — hard refresh to see new prices
+
+## 2026-07-17 - Brand logo across navbar, footer, dashboards
+
+### Changes
+- Replaced text mark in `Logo.tsx` with `public/logo.png` wordmark
+- Compact mode crops to hexagonal icon for collapsed sidebar
+- `onBrand` variant adds white plate for footer / auth brand panels
+- Dashboard sidebar uses `asLink={false}` to avoid nested links
+- Favicon points to `/logo.png`
+
+## 2026-07-17 - Outfit font + first-image product banner queue
+
+### Why
+Operator wanted Outfit across the app (titles/headings 600, descriptions 400) and product cards/banners to follow the seller image queue so the first image is always the primary banner.
+
+### Changes
+- `__root.tsx` + `styles.css` — load Outfit; set `--font-display` / `--font-sans` to Outfit; body weight 400; headings 600; map Tailwind `font-bold` → 600
+- `productImages.ts` — `normalizeProductImages` / `getProductDisplayImage` / `moveImageToFront` (queue[0] = banner)
+- `ImageManager.tsx` — first slot is banner; star moves image to front; always emits `thumbnailIndex: 0`
+- `supplierProductMap.ts` / `catalogMap.ts` — save and map `image` from `images[0]`
+- `ProductCard`, `FeaturedProducts`, `ProductListItem`, `QuickViewDialog`, seller product/inventory lists — display via queue[0]
+- Ran `scratch/sync-product-primary-image.mjs` to sync DB `products.image` ← `images[0]`
 
 ## 2026-07-17 - Fix wrong Spices category cover in Our Categories
 

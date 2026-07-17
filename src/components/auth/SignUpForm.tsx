@@ -2,13 +2,12 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ArrowLeft, CheckCircle2, Eye, EyeOff, Factory, ShoppingBag } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
 import { useSearch } from "@tanstack/react-router";
 import { setSessionMode } from "@/lib/sessionMode";
 import { establishSessionAfterSignup, registerWithOtp } from "@/lib/otp";
-import { peekPendingCartAdd } from "@/lib/pendingCart";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -94,20 +93,14 @@ function showSignUpError(message: string) {
   }
 }
 
-export function SignUpForm({
-  role,
-  onBack,
-}: {
-  role: BusinessRole;
-  onBack?: () => void;
-}) {
+export function SignUpForm({ role }: { role: BusinessRole; onBack?: () => void }) {
   if (role === "seller") {
-    return <SellerSignUp onBack={onBack} />;
+    return <SellerSignUp />;
   }
-  return <BuyerSignUp onBack={onBack} />;
+  return <BuyerSignUp />;
 }
 
-function BuyerSignUp({ onBack }: { onBack?: () => void }) {
+function BuyerSignUp() {
   const [show, setShow] = useState(false);
   const [pendingVerify, setPendingVerify] = useState<{
     email: string;
@@ -176,7 +169,6 @@ function BuyerSignUp({ onBack }: { onBack?: () => void }) {
 
   return (
     <div className="space-y-5">
-      <RoleBanner role="buyer" onBack={onBack} />
       <form onSubmit={form.handleSubmit(submit)} className="space-y-4" noValidate>
         <div>
           <Label htmlFor="fullName">Name</Label>
@@ -279,15 +271,20 @@ function BuyerSignUp({ onBack }: { onBack?: () => void }) {
           error={form.formState.errors.acceptTerms?.message}
         />
 
-        <Button type="submit" size="lg" loading={form.formState.isSubmitting} className="w-full shadow-brand">
-          {form.formState.isSubmitting ? "Creating account…" : "Create customer account"}
+        <Button
+          type="submit"
+          size="lg"
+          loading={form.formState.isSubmitting}
+          className="h-12 w-full rounded-xl text-sm font-semibold uppercase tracking-[0.08em] shadow-brand"
+        >
+          {form.formState.isSubmitting ? "Creating account…" : "Create account"}
         </Button>
       </form>
     </div>
   );
 }
 
-function SellerSignUp({ onBack }: { onBack?: () => void }) {
+function SellerSignUp() {
   const [show, setShow] = useState(false);
   const [logoAsset, setLogoAsset] = useState<LocalAsset | null>(null);
   const [shopAsset, setShopAsset] = useState<LocalAsset | null>(null);
@@ -372,7 +369,6 @@ function SellerSignUp({ onBack }: { onBack?: () => void }) {
 
   return (
     <div className="space-y-5">
-      <RoleBanner role="seller" onBack={onBack} />
       <form onSubmit={form.handleSubmit(submit)} className="space-y-4" noValidate>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
@@ -498,37 +494,15 @@ function SellerSignUp({ onBack }: { onBack?: () => void }) {
           error={form.formState.errors.acceptTerms?.message}
         />
 
-        <Button type="submit" size="lg" loading={form.formState.isSubmitting} className="w-full shadow-brand">
-          {form.formState.isSubmitting ? "Creating account…" : "Create seller account"}
+        <Button
+          type="submit"
+          size="lg"
+          loading={form.formState.isSubmitting}
+          className="h-12 w-full rounded-xl text-sm font-semibold uppercase tracking-[0.08em] shadow-brand"
+        >
+          {form.formState.isSubmitting ? "Creating account…" : "Create account"}
         </Button>
       </form>
-    </div>
-  );
-}
-
-function RoleBanner({ role, onBack }: { role: BusinessRole; onBack?: () => void }) {
-  const isSeller = role === "seller";
-  const RoleIcon = isSeller ? Factory : ShoppingBag;
-  return (
-    <div className="flex items-center justify-between rounded-xl border border-border bg-brand-soft/40 px-3 py-2">
-      <div className="flex items-center gap-2 text-sm">
-        <div className="grid h-8 w-8 place-items-center rounded-lg gradient-brand text-white">
-          <RoleIcon className="h-4 w-4" />
-        </div>
-        <div>
-          <div className="font-semibold leading-tight">
-            {isSeller ? "Seller sign up" : "Customer sign up"}
-          </div>
-          <div className="text-xs text-muted-foreground">
-            {isSeller ? "Full business details required" : "Name, business, email & password"}
-          </div>
-        </div>
-      </div>
-      {onBack && (
-        <Button variant="ghost" size="sm" onClick={onBack} className="text-xs">
-          <ArrowLeft className="mr-1 h-3.5 w-3.5" /> Change
-        </Button>
-      )}
     </div>
   );
 }
@@ -598,11 +572,8 @@ function SignupOtpStep({
                     ? "Account verified — pending admin approval"
                     : "Account verified — you're signed in!",
                 );
-                const pending = peekPendingCartAdd();
-                const next =
-                  search.redirect ||
-                  pending?.returnTo ||
-                  (role === "seller" ? "/seller/dashboard" : "/buyer/dashboard");
+                const { resolvePostLoginPath } = await import("@/lib/postLoginRedirect");
+                const next = await resolvePostLoginPath(session.userId || userId, search.redirect);
                 window.location.assign(next);
               } catch (e) {
                 toast.error(e instanceof Error ? e.message : "Sign in failed after verification");

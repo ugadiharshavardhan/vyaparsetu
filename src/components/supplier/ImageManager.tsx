@@ -1,19 +1,27 @@
 import { useCallback, useRef, useState } from "react";
 import { ImagePlus, Star, Trash2, GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { moveImageToFront } from "@/lib/productImages";
 
 export function ImageManager({
   images,
-  thumbnailIndex,
   onChange,
 }: {
   images: string[];
-  thumbnailIndex: number;
+  /** @deprecated First image is always primary; kept for call-site compat. */
+  thumbnailIndex?: number;
   onChange: (next: { images: string[]; thumbnailIndex: number }) => void;
 }) {
   const dragIndex = useRef<number | null>(null);
   const [draggingOver, setDraggingOver] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const emit = useCallback(
+    (nextImages: string[]) => {
+      onChange({ images: nextImages, thumbnailIndex: 0 });
+    },
+    [onChange],
+  );
 
   const addFiles = useCallback(
     (files: FileList | null) => {
@@ -27,16 +35,14 @@ export function ImageManager({
           }),
       );
       Promise.all(readers).then((urls) => {
-        onChange({ images: [...images, ...urls], thumbnailIndex });
+        emit([...images, ...urls]);
       });
     },
-    [images, thumbnailIndex, onChange],
+    [images, emit],
   );
 
   const remove = (idx: number) => {
-    const next = images.filter((_, i) => i !== idx);
-    const nextThumb = idx === thumbnailIndex ? 0 : idx < thumbnailIndex ? thumbnailIndex - 1 : thumbnailIndex;
-    onChange({ images: next, thumbnailIndex: Math.max(0, nextThumb) });
+    emit(images.filter((_, i) => i !== idx));
   };
 
   const reorder = (from: number, to: number) => {
@@ -44,8 +50,11 @@ export function ImageManager({
     const next = [...images];
     const [moved] = next.splice(from, 1);
     next.splice(to, 0, moved);
-    const thumbUrl = images[thumbnailIndex];
-    onChange({ images: next, thumbnailIndex: Math.max(0, next.indexOf(thumbUrl)) });
+    emit(next);
+  };
+
+  const makePrimary = (idx: number) => {
+    emit(moveImageToFront(images, idx));
   };
 
   return (
@@ -53,7 +62,7 @@ export function ImageManager({
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
         {images.map((src, i) => (
           <div
-            key={`${src}-${i}`}
+            key={`${src.slice(0, 48)}-${i}`}
             draggable
             onDragStart={() => (dragIndex.current = i)}
             onDragOver={(e) => {
@@ -68,19 +77,24 @@ export function ImageManager({
             }}
             className={cn(
               "group relative aspect-square overflow-hidden rounded-xl border border-border bg-muted",
+              i === 0 && "ring-2 ring-brand/40",
               draggingOver === i && "ring-2 ring-brand",
             )}
           >
             <img src={src} alt="" className="h-full w-full object-cover" />
+            <div className="absolute left-1.5 top-1.5 rounded-full bg-black/70 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white">
+              {i === 0 ? "1 · Banner" : i + 1}
+            </div>
             <div className="absolute inset-0 flex items-end justify-between gap-1 bg-gradient-to-t from-black/60 via-transparent p-1.5 opacity-0 transition-opacity group-hover:opacity-100">
               <button
                 type="button"
-                onClick={() => onChange({ images, thumbnailIndex: i })}
+                onClick={() => makePrimary(i)}
+                disabled={i === 0}
                 className={cn(
                   "grid h-7 w-7 place-items-center rounded-full bg-white/95 text-foreground shadow",
-                  thumbnailIndex === i && "bg-brand text-white",
+                  i === 0 && "bg-brand text-white",
                 )}
-                title="Set as thumbnail"
+                title={i === 0 ? "Banner image" : "Make banner (move to first)"}
               >
                 <Star className="h-3.5 w-3.5" />
               </button>
@@ -93,11 +107,6 @@ export function ImageManager({
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
             </div>
-            {thumbnailIndex === i && (
-              <span className="absolute left-1.5 top-1.5 rounded-full bg-brand px-1.5 py-0.5 text-[9px] font-bold uppercase text-white">
-                Thumbnail
-              </span>
-            )}
           </div>
         ))}
         <button
@@ -122,7 +131,10 @@ export function ImageManager({
         className="hidden"
         onChange={(e) => addFiles(e.target.files)}
       />
-      <p className="text-xs text-muted-foreground">Drag to reorder. Click the star to set the thumbnail.</p>
+      <p className="text-xs text-muted-foreground">
+        Drag to reorder. Image <span className="font-semibold text-foreground">#1</span> is the
+        product banner on marketplace, landing, and product pages. Star moves an image to first.
+      </p>
     </div>
   );
 }

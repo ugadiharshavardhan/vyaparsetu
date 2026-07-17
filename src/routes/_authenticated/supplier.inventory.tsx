@@ -102,7 +102,7 @@ function InventoryPage() {
                   header: "Product",
                   cell: (p) => (
                     <div className="flex items-center gap-3">
-                      <img src={p.images[p.thumbnailIndex] ?? p.images[0]} alt="" className="h-10 w-10 rounded-lg object-cover border border-border" />
+                      <img src={p.images[0] ?? ""} alt="" className="h-10 w-10 rounded-lg object-cover border border-border" />
                       <div className="min-w-0">
                         <div className="truncate font-semibold">{p.name}</div>
                         <div className="text-xs text-muted-foreground">SKU {p.sku} · {p.category}</div>
@@ -167,7 +167,7 @@ function InventoryPage() {
                   header: "Product",
                   cell: (p) => (
                     <div className="flex items-center gap-3">
-                      <img src={p.images[p.thumbnailIndex] ?? p.images[0]} alt="" className="h-10 w-10 rounded-lg object-cover border border-border" />
+                      <img src={p.images[0] ?? ""} alt="" className="h-10 w-10 rounded-lg object-cover border border-border" />
                       <div className="min-w-0">
                         <div className="truncate font-semibold">{p.name}</div>
                         <div className="text-xs text-muted-foreground">SKU {p.sku}</div>

@@ -2,11 +2,13 @@ import type { Product } from "@/types";
 import type { SupplierProduct } from "@/types/supplier";
 import type { Database } from "@/integrations/supabase/types";
 import { supabase } from "@/integrations/supabase/client";
+import { normalizeProductImages } from "@/lib/productImages";
 
 type ProductInsert = Database["public"]["Tables"]["products"]["Insert"];
 type ProductUpdate = Database["public"]["Tables"]["products"]["Update"];
 
 export function mapCatalogProductToSupplier(p: Product): SupplierProduct {
+  const { images } = normalizeProductImages(p.images, p.image);
   return {
     id: p.id,
     name: p.name,
@@ -20,7 +22,7 @@ export function mapCatalogProductToSupplier(p: Product): SupplierProduct {
     highlights: p.highlights ?? [],
     specifications: p.specifications ?? {},
     countryOfOrigin: "India",
-    images: p.images?.length ? p.images : [p.image],
+    images,
     thumbnailIndex: 0,
     moq: p.moq,
     unit: p.unit,
@@ -77,6 +79,7 @@ export function supplierDraftToInsert(
   },
 ): ProductInsert {
   const images = draft.images.length ? draft.images : ["https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=800&q=70"];
+  const { images: queue, image: primary } = normalizeProductImages(images);
   const slug = `${slugifyProductName(draft.name)}-${id}`;
   const sellerId = options?.sellerId;
   const supplier =
@@ -100,8 +103,8 @@ export function supplierDraftToInsert(
     sub_category: draft.subCategory || null,
     subcategory_id: null,
     sku: draft.sku || null,
-    image: images[draft.thumbnailIndex] ?? images[0],
-    images,
+    image: primary,
+    images: queue,
     wholesale_price: draft.wholesalePrice,
     mrp: draft.mrp,
     moq: Math.max(1, draft.moq),
@@ -134,11 +137,10 @@ export function supplierPatchToUpdate(patch: Partial<SupplierProduct>): ProductU
   }
   if (patch.sku != null) update.sku = patch.sku || null;
   if (patch.images != null) {
-    const images = patch.images.length ? patch.images : undefined;
-    if (images) {
-      update.images = images;
-      const idx = patch.thumbnailIndex ?? 0;
-      update.image = images[idx] ?? images[0];
+    const { images: queue, image: primary } = normalizeProductImages(patch.images);
+    if (queue.length) {
+      update.images = queue;
+      update.image = primary;
     }
   }
   if (patch.wholesalePrice != null) update.wholesale_price = patch.wholesalePrice;

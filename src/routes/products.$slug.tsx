@@ -106,7 +106,8 @@ function ProductPage() {
     cartActive.length > 0 && cartRelated.length > 0
       ? cartRelated
       : sameCategory;
-  const gallery = product.images ?? [product.image];
+  const gallery =
+    product.images?.length > 0 ? product.images : product.image ? [product.image] : [];
   const { ids, push } = useRecentlyViewed();
   const recentIds = ids.filter((id) => id !== product.id).slice(0, 4);
   const { data: recentlyViewed = [], isLoading: recentLoading } = useProductsByIds(recentIds);

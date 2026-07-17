@@ -368,11 +368,14 @@ export function ProductForm({
         {step === 3 && (
           <div className="space-y-6">
             <h2 className="text-xl font-bold">Product Images</h2>
-            <p className="text-sm text-muted-foreground">Upload multiple high-quality images. The first image will be used as the thumbnail.</p>
+            <p className="text-sm text-muted-foreground">
+              Upload images in display order. The first image is the product banner on marketplace,
+              landing, and product detail pages.
+            </p>
             <ImageManager
               images={draft.images}
-              thumbnailIndex={draft.thumbnailIndex}
-              onChange={({ images, thumbnailIndex }) => setDraft((d) => ({ ...d, images, thumbnailIndex }))}
+              thumbnailIndex={0}
+              onChange={({ images }) => setDraft((d) => ({ ...d, images, thumbnailIndex: 0 }))}
             />
             <Field label="Product video URL (optional)">
               <Input value={draft.videoUrl ?? ""} onChange={(e) => set("videoUrl", e.target.value)} placeholder="https://…" />

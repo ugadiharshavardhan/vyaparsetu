@@ -7,16 +7,18 @@ import { CategoryImage } from "@/components/marketplace/CategoryCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AddToCartControl } from "@/components/cart/AddToCartControl";
 import { inr } from "@/lib/format";
+import { getProductDisplayImage } from "@/lib/productImages";
 
 const SCROLL_HIDE =
   "[scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden";
 
 function LandingProductCard({ product }: { product: Product }) {
   const [imgFailed, setImgFailed] = useState(false);
+  const banner = getProductDisplayImage(product);
   const src =
-    !product.image || imgFailed
+    !banner || imgFailed
       ? "https://images.unsplash.com/photo-1604719312566-8912e9227c6a?auto=format&fit=crop&w=600&q=70"
-      : product.image;
+      : banner;
 
   return (
     <article className="flex w-[11.5rem] shrink-0 flex-col sm:w-[13rem]">

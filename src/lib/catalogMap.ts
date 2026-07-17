@@ -1,4 +1,5 @@
 import type { Category, Product, SubCategory, Supplier } from "@/types";
+import { normalizeProductImages } from "@/lib/productImages";
 
 export type DbSubcategory = {
   id: string;
@@ -114,7 +115,10 @@ export function mapDbCategory(row: DbCategory): Category {
 }
 
 export function mapDbProduct(row: DbProduct): Product {
-  const images = Array.isArray(row.images) ? row.images.map(String) : [row.image];
+  const { images, image } = normalizeProductImages(
+    Array.isArray(row.images) ? row.images.map(String) : null,
+    row.image,
+  );
   const specs =
     row.specifications && typeof row.specifications === "object" && !Array.isArray(row.specifications)
       ? (row.specifications as Record<string, string>)
@@ -129,7 +133,7 @@ export function mapDbProduct(row: DbProduct): Product {
     category: row.category_slug,
     subCategory: row.sub_category ?? undefined,
     sku: row.sku ?? undefined,
-    image: row.image,
+    image,
     images,
     wholesalePrice: num(row.wholesale_price),
     mrp: num(row.mrp),

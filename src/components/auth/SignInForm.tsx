@@ -2,40 +2,38 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { CheckCircle2, Eye, EyeOff } from "lucide-react";
+import { CheckCircle2, Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { EmailOtpForm } from "@/components/auth/EmailOtpForm";
 import { resolvePostLoginPath } from "@/lib/postLoginRedirect";
 import { setSessionMode, clearSessionMode } from "@/lib/sessionMode";
 import { assertAccountMembership } from "@/lib/accountMembership";
 import { establishSessionAfterSignup, sendEmailOtp, checkLoginHelp } from "@/lib/otp";
+import { cn } from "@/lib/utils";
 
 const schema = z.object({
   email: z.string().trim().email("Please enter a valid email").max(255),
   password: z.string().min(1, "Password is required").max(72),
-  remember: z.boolean().optional(),
 });
 type FormValues = z.infer<typeof schema>;
 
-export function SignInForm({ role, onBack }: { role?: "buyer" | "seller"; onBack?: () => void } = {}) {
+export function SignInForm({ role }: { role?: "buyer" | "seller" } = {}) {
   const [show, setShow] = useState(false);
-  const [pendingVerify, setPendingVerify] = useState<{ email: string; password: string } | null>(null);
+  const [pendingVerify, setPendingVerify] = useState<{ email: string; password: string } | null>(
+    null,
+  );
   const navigate = useNavigate();
   const search = useSearch({ strict: false }) as { redirect?: string };
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { email: "", password: "", remember: true },
+    defaultValues: { email: "", password: "" },
   });
-
-  const roleRedirect = (fallback: string) =>
-    role === "seller" ? "/seller/dashboard" : role === "buyer" ? "/buyer/dashboard" : fallback;
 
   const persistMode = () => {
     if (role === "seller") setSessionMode("seller");
@@ -56,9 +54,12 @@ export function SignInForm({ role, onBack }: { role?: "buyer" | "seller"; onBack
 
     persistMode();
     toast.success("Welcome back!");
-    const fallback = await resolvePostLoginPath(userId);
-    // Prefer return URL from "Add to cart" so the pending item can flush on that page
-    const path = search.redirect ?? roleRedirect(fallback);
+    const path = await resolvePostLoginPath(userId, search.redirect);
+    // Full path+query must use assign so marketplace filters / product URLs survive
+    if (path.includes("?") || path.includes("#")) {
+      window.location.assign(path);
+      return;
+    }
     navigate({ to: path as never });
   };
 
@@ -87,8 +88,8 @@ export function SignInForm({ role, onBack }: { role?: "buyer" | "seller"; onBack
           if (help.exists && help.hasRole === false && role) {
             toast.error(
               role === "seller"
-                ? "No seller account for this email. Sign in as Customer or create a seller account."
-                : "No customer account for this email. Sign in as Seller or create a customer account.",
+                ? "No seller account for this email. Sign in as Buyer or create a seller account."
+                : "No buyer account for this email. Sign in as Seller or create a buyer account.",
             );
             return;
           }
@@ -121,7 +122,7 @@ export function SignInForm({ role, onBack }: { role?: "buyer" | "seller"; onBack
   if (pendingVerify) {
     return (
       <div className="space-y-5">
-        <div className="rounded-2xl border border-border bg-card p-6 shadow-soft">
+        <div className="rounded-2xl border border-border bg-muted/30 p-6">
           <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-brand-soft text-brand">
             <CheckCircle2 className="h-6 w-6" />
           </div>
@@ -162,59 +163,45 @@ export function SignInForm({ role, onBack }: { role?: "buyer" | "seller"; onBack
     );
   }
 
+  const fieldLabel = "text-[11px] font-semibold uppercase tracking-[0.12em] text-foreground/70";
+  const inputWithIcon =
+    "h-12 rounded-xl border-border bg-white pl-10 pr-3 shadow-none focus-visible:ring-brand/30";
+
   return (
     <div className="space-y-5">
-      {role && (
-        <div className="flex items-center justify-between rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs">
-          <span className="text-muted-foreground">
-            Signing in as{" "}
-            <span className="font-semibold text-foreground">
-              {role === "seller" ? "Seller" : "Customer"}
-            </span>
-          </span>
-          {onBack && (
-            <button
-              type="button"
-              onClick={onBack}
-              disabled={loading}
-              className="cursor-pointer font-semibold text-brand hover:underline disabled:opacity-50"
-            >
-              Change
-            </button>
-          )}
-        </div>
-      )}
-
       <form onSubmit={form.handleSubmit(submit)} className="space-y-4" noValidate>
         <div>
-          <Label htmlFor="email">{role === "seller" ? "Work email" : "Email"}</Label>
-          <Input
-            id="email"
-            type="email"
-            placeholder="you@company.com"
-            className="mt-1.5 h-11"
-            autoComplete="email"
-            disabled={loading}
-            {...form.register("email")}
-          />
+          <Label htmlFor="email" className={fieldLabel}>
+            Email
+          </Label>
+          <div className="relative mt-1.5">
+            <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              id="email"
+              type="email"
+              placeholder="you@company.com"
+              className={inputWithIcon}
+              autoComplete="email"
+              disabled={loading}
+              {...form.register("email")}
+            />
+          </div>
           {form.formState.errors.email && (
             <p className="mt-1 text-xs text-destructive">{form.formState.errors.email.message}</p>
           )}
         </div>
 
         <div>
-          <div className="flex items-center justify-between">
-            <Label htmlFor="password">Password</Label>
-            <Link to="/forgot-password" className="cursor-pointer text-xs font-medium text-brand hover:underline">
-              Forgot password?
-            </Link>
-          </div>
+          <Label htmlFor="password" className={fieldLabel}>
+            Password
+          </Label>
           <div className="relative mt-1.5">
+            <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               id="password"
               type={show ? "text" : "password"}
               placeholder="Enter password"
-              className="h-11 pr-10"
+              className={cn(inputWithIcon, "pr-10")}
               autoComplete="current-password"
               disabled={loading}
               {...form.register("password")}
@@ -233,19 +220,21 @@ export function SignInForm({ role, onBack }: { role?: "buyer" | "seller"; onBack
           )}
         </div>
 
-        <div className="flex items-center gap-2">
-          <Checkbox
-            id="remember"
-            checked={!!form.watch("remember")}
-            disabled={loading}
-            onCheckedChange={(v) => form.setValue("remember", !!v)}
-          />
-          <Label htmlFor="remember" className="cursor-pointer text-sm font-normal">
-            Remember me for 30 days
-          </Label>
+        <div className="flex justify-end">
+          <Link
+            to="/forgot-password"
+            className="text-sm font-semibold text-brand underline underline-offset-2 hover:opacity-90"
+          >
+            Forgot password?
+          </Link>
         </div>
 
-        <Button type="submit" size="lg" loading={loading} className="w-full shadow-brand">
+        <Button
+          type="submit"
+          size="lg"
+          loading={loading}
+          className="h-12 w-full rounded-xl text-sm font-semibold uppercase tracking-[0.08em] shadow-brand"
+        >
           {loading ? "Signing in…" : "Sign in"}
         </Button>
       </form>

@@ -1,27 +1,44 @@
-import { supabase } from "@/integrations/supabase/client";
 import { getSessionMode } from "@/lib/sessionMode";
 import { getUserRole } from "@/lib/rbac";
+import { peekPendingCartAdd } from "@/lib/pendingCart";
 
 /**
  * Resolve where a user should land after a successful auth event.
  *
  * Priority:
- *  1. Session mode chosen at sign-in (buyer → /buyer/dashboard, seller → /seller/dashboard)
- *  2. Admin table → /admin/dashboard
- *  3. Sellers table → /seller/dashboard
- *  4. Buyers / unknown → /buyer/dashboard
+ *  1. Explicit `redirect` search param (e.g. Add-to-cart return URL)
+ *  2. Pending cart add `returnTo` (guest clicked Add before sign-in)
+ *  3. Session mode / role defaults → marketplace (admin → /admin)
  */
-export async function resolvePostLoginPath(userId: string): Promise<string> {
+export async function resolvePostLoginPath(
+  userId: string,
+  explicitRedirect?: string | null,
+): Promise<string> {
+  const fromQuery = sanitizeReturnPath(explicitRedirect);
+  if (fromQuery) return fromQuery;
+
+  const pendingReturn = sanitizeReturnPath(peekPendingCartAdd()?.returnTo);
+  if (pendingReturn) return pendingReturn;
+
   const mode = getSessionMode();
-  if (mode === "seller") return "/marketplace";
-  if (mode === "buyer") return "/buyer/dashboard";
+  if (mode === "seller" || mode === "buyer") return "/marketplace";
 
   try {
     const role = await getUserRole(userId);
     if (role === "admin") return "/admin";
-    if (role === "seller") return "/marketplace";
-    return "/buyer/dashboard";
+    return "/marketplace";
   } catch {
-    return "/buyer/dashboard";
+    return "/marketplace";
   }
+}
+
+/** Only allow same-origin relative paths (block open redirects). */
+export function sanitizeReturnPath(path?: string | null): string | null {
+  if (!path) return null;
+  const trimmed = path.trim();
+  if (!trimmed.startsWith("/") || trimmed.startsWith("//")) return null;
+  if (trimmed.startsWith("/auth") || trimmed.startsWith("/forgot-password") || trimmed.startsWith("/reset-password")) {
+    return null;
+  }
+  return trimmed;
 }

@@ -8,6 +8,7 @@ import { VerifiedBadge } from "@/components/common/VerifiedBadge";
 import { AddToCartControl } from "@/components/cart/AddToCartControl";
 import { SaveProductButton } from "@/components/product/SaveProductButton";
 import { discountPct, inr } from "@/lib/format";
+import { getProductDisplayImage } from "@/lib/productImages";
 
 export function QuickViewDialog({
   product,
@@ -17,13 +18,14 @@ export function QuickViewDialog({
   onOpenChange: (v: boolean) => void;
 }) {
   const off = product ? discountPct(product.mrp, product.wholesalePrice) : 0;
+  const banner = product ? getProductDisplayImage(product) : "";
   return (
     <Dialog open={!!product} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl overflow-hidden p-0">
         {product && (
           <div className="grid gap-0 md:grid-cols-2">
             <div className="relative bg-secondary">
-              <img src={product.image} alt={product.name} className="h-full w-full object-cover" />
+              <img src={banner} alt={product.name} className="h-full w-full object-cover" />
               {off > 0 && (
                 <span className="absolute left-4 top-4 rounded-full bg-brand px-3 py-1 text-xs font-semibold text-white shadow-brand">
                   {off}% OFF

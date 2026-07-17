@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { Product } from "@/types";
 import { AddToCartControl } from "@/components/cart/AddToCartControl";
 import { discountPct, inr } from "@/lib/format";
+import { getProductDisplayImage } from "@/lib/productImages";
 
 const PRODUCT_FALLBACK =
   "https://images.unsplash.com/photo-1604719312566-8912e9227c6a?auto=format&fit=crop&w=800&q=70";
@@ -29,14 +30,6 @@ function ProductImage({
   );
 }
 
-/** Pick the best display image: prefer first entry from images array, fall back to image field. */
-function getDisplayImage(product: Product): string {
-  if (product.images && product.images.length > 0 && product.images[0]) {
-    return product.images[0];
-  }
-  return product.image || "";
-}
-
 type Props = {
   product: Product;
   onQuickView?: (p: Product) => void;
@@ -44,7 +37,7 @@ type Props = {
 
 export function ProductCard({ product, onQuickView }: Props) {
   const off = discountPct(product.mrp, product.wholesalePrice);
-  const displayImage = getDisplayImage(product);
+  const displayImage = getProductDisplayImage(product);
 
   return (
     <article className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card transition-colors duration-200 hover:border-brand/40">

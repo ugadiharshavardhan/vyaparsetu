@@ -1,5 +1,6 @@
 export const SITE = {
   name: "VyaparSetu",
+  logo: "/logo.png",
   tagline: "India's B2B Wholesale Marketplace",
   description:
     "Source verified wholesale products at factory prices. Connect directly with manufacturers, distributors and suppliers across India.",

@@ -17,6 +17,9 @@ const APP_PREFIXES = [
   "/addresses", "/supplier",
 ];
 
+/** Full-bleed auth chrome (no marketing header/footer). */
+const AUTH_PREFIXES = ["/auth", "/forgot-password", "/reset-password"];
+
 // Public routes that should adopt the dashboard shell when the visitor is
 // signed in — e.g. Marketplace is exposed both as a public landing surface
 // and as a workspace destination from the buyer sidebar.
@@ -40,6 +43,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
   }, [pathname, hash]);
 
   const isApp = APP_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
+  const isAuth = AUTH_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
   const isShared = SHARED_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
 
   const chrome = (
@@ -49,7 +53,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
     </>
   );
 
-  if (isApp) {
+  if (isApp || isAuth) {
     return (
       <div className="min-h-screen bg-background text-foreground">
         {children}

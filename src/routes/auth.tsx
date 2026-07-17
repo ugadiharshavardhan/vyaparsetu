@@ -3,15 +3,18 @@ import { useEffect, useState } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { AuthLayout } from "@/components/auth/AuthLayout";
+import { AuthRoleToggle } from "@/components/auth/AuthRoleToggle";
 import { SignInForm } from "@/components/auth/SignInForm";
 import { SignUpForm } from "@/components/auth/SignUpForm";
 import { AdminSignInForm } from "@/components/auth/AdminSignInForm";
-import { RoleSelect, type BusinessRole } from "@/components/auth/RoleSelect";
+import type { BusinessRole } from "@/components/auth/RoleSelect";
 import { resolvePostLoginPath } from "@/lib/postLoginRedirect";
 import { peekPendingCartAdd } from "@/lib/pendingCart";
+import { SITE } from "@/constants/site";
 
 const searchSchema = z.object({
   mode: z.enum(["signin", "signup"]).optional(),
+  role: z.enum(["buyer", "seller"]).optional(),
   redirect: z.string().optional(),
 });
 
@@ -29,23 +32,22 @@ export const Route = createFileRoute("/auth")({
     const pendingReturn = peekPendingCartAdd()?.returnTo;
     const dest = search.redirect || pendingReturn;
 
-    // If returning to admin, only continue when this session is actually an admin.
     if (dest && (dest === "/admin" || dest.startsWith("/admin/"))) {
       const { data: isAdmin } = await supabase.rpc("is_admin", {
         _user_id: data.session.user.id,
       });
       if (isAdmin) {
-        throw redirect({ to: dest });
+        throw redirect({ href: dest });
       }
       await supabase.auth.signOut();
       return;
     }
 
     if (dest && dest.startsWith("/")) {
-      throw redirect({ to: dest });
+      throw redirect({ href: dest });
     }
-    const path = await resolvePostLoginPath(data.session.user.id);
-    throw redirect({ to: path });
+    const path = await resolvePostLoginPath(data.session.user.id, search.redirect);
+    throw redirect({ href: path });
   },
   head: () => ({
     meta: [
@@ -61,34 +63,49 @@ function AuthPage() {
   const navigate = useNavigate();
   const mode = search.mode ?? "signin";
   const adminLogin = isAdminRedirect(search.redirect);
-  const [role, setRole] = useState<BusinessRole | null>(null);
-  const [step, setStep] = useState<"role" | "form">("role");
+  const [role, setRole] = useState<BusinessRole>(search.role ?? "buyer");
   const [pendingProduct, setPendingProduct] = useState(false);
+
+  useEffect(() => {
+    if (search.role) setRole(search.role);
+  }, [search.role]);
 
   useEffect(() => {
     const pending = peekPendingCartAdd();
     if (!pending || adminLogin) return;
     setPendingProduct(true);
     setRole("buyer");
-    setStep("form");
   }, [adminLogin]);
+
+  const setRoleAndUrl = (next: BusinessRole) => {
+    if (pendingProduct && next === "seller") return;
+    setRole(next);
+    navigate({
+      to: "/auth",
+      search: {
+        mode,
+        role: next,
+        redirect: search.redirect,
+      },
+      replace: true,
+    });
+  };
 
   const switchMode = (m: "signin" | "signup") => {
     if (adminLogin) {
-      navigate({ to: "/auth", search: { mode: "signin", redirect: search.redirect } });
+      navigate({ to: "/auth", search: { mode: "signin", role: "buyer", redirect: search.redirect } });
       return;
     }
     const pending = peekPendingCartAdd();
+    const nextRole = pending ? "buyer" : role;
     if (pending) {
-      setRole("buyer");
-      setStep("form");
       setPendingProduct(true);
-    } else {
-      setStep("role");
-      setRole(null);
-      setPendingProduct(false);
+      setRole("buyer");
     }
-    navigate({ to: "/auth", search: { mode: m, redirect: search.redirect } });
+    navigate({
+      to: "/auth",
+      search: { mode: m, role: nextRole, redirect: search.redirect },
+    });
   };
 
   if (adminLogin) {
@@ -97,92 +114,86 @@ function AuthPage() {
         eyebrow="Admin access"
         title="Sign in to admin dashboard"
         subtitle="Use the platform admin credentials to manage sellers and verifications."
+        footerSlot={
+          <p className="text-center text-sm text-muted-foreground">
+            Not an admin?{" "}
+            <button
+              type="button"
+              onClick={() => navigate({ to: "/auth", search: { mode: "signin", role: "buyer" } })}
+              className="font-semibold text-brand underline underline-offset-2 hover:opacity-90"
+            >
+              Buyer / Seller sign in
+            </button>
+          </p>
+        }
       >
         <AdminSignInForm />
-        <p className="mt-6 text-center text-sm text-muted-foreground">
-          Not an admin?{" "}
-          <button
-            type="button"
-            onClick={() => navigate({ to: "/auth", search: { mode: "signin" } })}
-            className="font-semibold text-brand hover:underline"
-          >
-            Customer / Seller sign in
-          </button>
-        </p>
       </AuthLayout>
     );
   }
 
-  const isRoleStep = step === "role";
+  const isSignIn = mode === "signin";
+  const roleLabel = role === "seller" ? "seller" : "buyer";
 
   return (
     <AuthLayout
-      eyebrow={pendingProduct ? "Almost there" : mode === "signin" ? "Welcome back" : "Get started"}
+      eyebrow={pendingProduct ? "Almost there" : undefined}
       title={
         pendingProduct
-          ? mode === "signin"
+          ? isSignIn
             ? "Sign in to add to cart"
             : "Create an account to add to cart"
-          : isRoleStep
-            ? mode === "signin"
-              ? "How would you like to sign in?"
-              : "How will you use VyaparSetu?"
-            : mode === "signin"
-              ? "Sign in to VyaparSetu"
-              : "Create your business account"
+          : isSignIn
+            ? "Welcome Back"
+            : "Create your account"
       }
       subtitle={
         pendingProduct
           ? "After you sign in, the item you selected will be added to your cart automatically."
-          : isRoleStep
-            ? "Choose Customer or Seller — each account type is stored separately."
-            : mode === "signin"
-              ? "Sign in with the same account type you registered as."
-              : "Join 84,000+ Indian businesses trading on VyaparSetu."
+          : isSignIn
+            ? role === "seller"
+              ? "Sign in to manage inventory, orders, and your seller dashboard."
+              : "Sign in to manage your profile, delivery address, and orders."
+            : role === "seller"
+              ? "Join as a verified manufacturer, distributor, or wholesaler."
+              : "Join thousands of retailers sourcing wholesale on VyaparSetu."
+      }
+      headerSlot={
+        <AuthRoleToggle
+          value={role}
+          onChange={setRoleAndUrl}
+          disabled={pendingProduct}
+        />
+      }
+      footerSlot={
+        <p className="text-center text-sm text-muted-foreground">
+          {isSignIn ? (
+            <>
+              New to {SITE.name}?{" "}
+              <button
+                type="button"
+                onClick={() => switchMode("signup")}
+                className="font-semibold text-brand underline underline-offset-2 hover:opacity-90"
+              >
+                Create an account
+              </button>
+            </>
+          ) : (
+            <>
+              Already have a {roleLabel} account?{" "}
+              <button
+                type="button"
+                onClick={() => switchMode("signin")}
+                className="font-semibold text-brand underline underline-offset-2 hover:opacity-90"
+              >
+                Sign in
+              </button>
+            </>
+          )}
+        </p>
       }
     >
-      <div className="mb-6 inline-flex rounded-full border border-border bg-card p-1 shadow-soft">
-        {(["signin", "signup"] as const).map((m) => (
-          <button
-            key={m}
-            onClick={() => switchMode(m)}
-            className={`rounded-full px-4 py-1.5 text-sm font-medium transition-all ${
-              mode === m
-                ? "bg-brand text-white shadow-brand"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {m === "signin" ? "Sign in" : "Sign up"}
-          </button>
-        ))}
-      </div>
-
-      {isRoleStep && (
-        <RoleSelect
-          value={role}
-          onChange={setRole}
-          onContinue={(r) => {
-            setRole(r);
-            setStep("form");
-          }}
-        />
-      )}
-      {!isRoleStep && mode === "signin" && role && (
-        <SignInForm role={role} onBack={() => setStep("role")} />
-      )}
-      {!isRoleStep && mode === "signup" && role && (
-        <SignUpForm role={role} onBack={() => setStep("role")} />
-      )}
-
-      <p className="mt-6 text-sm text-muted-foreground">
-        {mode === "signin" ? "New to VyaparSetu? " : "Already have an account? "}
-        <button
-          onClick={() => switchMode(mode === "signin" ? "signup" : "signin")}
-          className="font-semibold text-brand hover:underline"
-        >
-          {mode === "signin" ? "Create an account" : "Sign in"}
-        </button>
-      </p>
+      {isSignIn ? <SignInForm role={role} /> : <SignUpForm role={role} />}
     </AuthLayout>
   );
 }

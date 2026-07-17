@@ -287,7 +287,7 @@ function SupplierProductsPage() {
               cell: (p) => (
                 <div className="flex items-center gap-3.5 group">
                   <div className="h-11 w-11 shrink-0 overflow-hidden rounded-xl border border-border/50 bg-secondary shadow-sm transition-transform duration-200 group-hover:scale-[1.02]">
-                    <img src={p.images[p.thumbnailIndex] ?? p.images[0]} alt="" className="h-full w-full object-cover" />
+                    <img src={p.images[0] ?? ""} alt="" className="h-full w-full object-cover" />
                   </div>
                   <div className="min-w-0">
                     <div className="font-semibold text-sm text-foreground/90 break-words leading-tight">{p.name}</div>

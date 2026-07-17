@@ -1,59 +1,68 @@
 import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
+import { SITE } from "@/constants/site";
 
 export function Logo({
   compact = false,
   hideSubtitle = false,
   variant = "default",
+  asLink = true,
   className,
 }: {
   compact?: boolean;
+  /** Kept for callers; wordmark image already includes the tagline. */
   hideSubtitle?: boolean;
   variant?: "default" | "onBrand";
+  /** Set false when Logo is already wrapped in a parent Link. */
+  asLink?: boolean;
   className?: string;
 }) {
+  void hideSubtitle;
   const onBrand = variant === "onBrand";
-  return (
-    <Link
-      to="/marketplace"
+
+  const mark = compact ? (
+    <span
+      aria-hidden
       className={cn(
-        "group inline-flex shrink-0 flex-nowrap items-center gap-2.5 whitespace-nowrap",
-        compact && "justify-center",
-        className,
+        "relative block shrink-0 overflow-hidden rounded-lg bg-white",
+        "h-9 w-9",
       )}
     >
-      <span
-        aria-hidden
-        className={cn(
-          "grid shrink-0 place-items-center rounded-xl font-bold shadow-soft transition-transform group-hover:scale-105",
-          onBrand ? "bg-white text-brand" : "bg-brand text-brand-foreground",
-          compact ? "h-8 w-8 text-sm" : "h-9 w-9 text-base",
-        )}
-      >
-        वि
-      </span>
-      {!compact && (
-        <span className="flex flex-col leading-none">
-          <span
-            className={cn(
-              "font-display text-lg font-bold tracking-tight",
-              onBrand ? "text-white" : "text-foreground",
-            )}
-          >
-            VyaparSetu
-          </span>
-          {!hideSubtitle && (
-            <span
-              className={cn(
-                "hidden text-[10px] uppercase tracking-[0.16em] sm:inline",
-                onBrand ? "text-white/70" : "text-muted-foreground",
-              )}
-            >
-              B2B Marketplace
-            </span>
-          )}
-        </span>
+      {/* Crop to the hexagonal mark on the left of the wordmark */}
+      <img
+        src={SITE.logo}
+        alt=""
+        className="absolute left-[-8%] top-1/2 h-[155%] w-auto max-w-none -translate-y-1/2 object-cover object-left"
+      />
+    </span>
+  ) : (
+    <img
+      src={SITE.logo}
+      alt={SITE.name}
+      className={cn(
+        "h-10 w-auto object-contain object-left sm:h-11",
+        onBrand && "rounded-md bg-white px-2 py-1 shadow-soft",
       )}
+    />
+  );
+
+  const classes = cn(
+    "group inline-flex shrink-0 flex-nowrap items-center whitespace-nowrap",
+    compact && "justify-center",
+    className,
+  );
+
+  if (!asLink) {
+    return (
+      <span className={classes} aria-label={SITE.name}>
+        {mark}
+      </span>
+    );
+  }
+
+  return (
+    <Link to="/marketplace" className={classes} aria-label={`${SITE.name} home`}>
+      {mark}
     </Link>
   );
 }

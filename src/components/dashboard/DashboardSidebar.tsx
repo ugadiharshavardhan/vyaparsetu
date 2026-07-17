@@ -171,7 +171,7 @@ export function DashboardSidebar() {
             collapsed ? "justify-center px-0" : "gap-2.5 px-1.5"
           )}
         >
-          <Logo compact={collapsed} hideSubtitle />
+          <Logo asLink={false} compact={collapsed} hideSubtitle />
         </Link>
       </SidebarHeader>
 
