@@ -96,7 +96,7 @@ function SellerSamplesPage() {
     <div className="container-page space-y-6 py-8">
       <PageHeader
         title="Samples"
-        description="Paid ₹100 sample orders from buyers. Ship the sample, then send an approval request — once the buyer approves, they place the bulk order."
+        description="Paid ₹100 sample orders from buyers. Step 1: mark the sample delivered. Step 2: send the approval request — once the buyer approves, they place the bulk order."
         action={
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -135,10 +135,10 @@ function SellerSamplesPage() {
             {sampleLines.map((line) => {
               const request = requestByItem.get(line.id);
               const buyerLabel = line.buyerBusiness || line.buyerName || line.customer;
+              // Step 1: mark the sample delivered. Step 2: send the approval request.
               const canSend =
                 !request &&
-                line.status !== "cancelled" &&
-                line.status !== "returned" &&
+                line.status === "delivered" &&
                 !!line.orderId &&
                 !!line.buyerId;
               return (
@@ -177,7 +177,8 @@ function SellerSamplesPage() {
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2">
-                      {line.status !== "delivered" &&
+                      {!request &&
+                        line.status !== "delivered" &&
                         line.status !== "cancelled" &&
                         line.status !== "returned" && (
                           <Button

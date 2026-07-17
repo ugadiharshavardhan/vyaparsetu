@@ -4,7 +4,6 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import type { CartItem } from "@/types/commerce";
 import { inr } from "@/lib/format";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { useRemoveCartItem, useUpdateCartItem } from "@/hooks/useCart";
 import { useToggleWishlist } from "@/hooks/useWishlist";
 import { useAuth } from "@/hooks/useAuth";
@@ -145,37 +144,6 @@ export function CartItemRow({ item }: { item: CartItem }) {
             </Button>
           </div>
         </div>
-
-        {!isSample && (
-        <label
-          className={`flex w-fit cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-            item.sample_requested
-              ? "border-brand/40 bg-brand-soft/40 text-brand"
-              : "border-border bg-secondary/50 text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <FlaskConical className="h-3.5 w-3.5" />
-          Send me a sample of this item
-          <Switch
-            checked={item.sample_requested}
-            onCheckedChange={(checked) =>
-              update.mutate(
-                { id: item.id, sample_requested: checked },
-                {
-                  onSuccess: () =>
-                    toast.success(
-                      checked
-                        ? "Sample requested — it will reach you 1–2 days before delivery, and your order confirms after you approve it"
-                        : "Sample request removed",
-                    ),
-                },
-              )
-            }
-            className="ml-1 scale-90"
-            aria-label="Send sample for this item"
-          />
-        </label>
-        )}
 
         <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
           {isSample ? (

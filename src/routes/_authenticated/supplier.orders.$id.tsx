@@ -225,7 +225,12 @@ function OrderDetailsPage() {
                             : "Sample requested — ship the sample 1–2 days before the final delivery."}
                         </span>
                       </div>
-                      {!sampleReq && (
+                      {!sampleReq && item.isSample && item.status !== "delivered" && (
+                        <span className="rounded-full bg-secondary px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+                          Mark the sample as delivered first, then send the approval request
+                        </span>
+                      )}
+                      {!sampleReq && (!item.isSample || item.status === "delivered") && (
                         <Button
                           size="sm"
                           className="h-8 rounded-full bg-brand px-4 text-xs font-semibold text-white hover:bg-brand/90"
