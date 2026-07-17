@@ -16,6 +16,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { OfflineIndicator } from "@/components/common/OfflineIndicator";
+import { Chatbot } from "@/components/common/Chatbot";
 
 function NotFoundComponent() {
   return (
@@ -186,6 +187,7 @@ function RootComponent() {
         </SiteLayout>
         <OfflineIndicator />
         <Toaster richColors position="top-center" />
+        <Chatbot />
       </AuthProvider>
     </QueryClientProvider>
   );

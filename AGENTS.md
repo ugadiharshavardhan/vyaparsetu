@@ -156,12 +156,27 @@
 
 # Current Project State
 
-- **Current Phase:** Seller Buyers = real order data + bigger navbar logo
-- **Current Module:** `get_seller_buyers()` RPC, `useSupplierCustomers`, `supplier.customers*`, `Logo`
-- **Overall Progress:** Seller "Buyers" now shows the real retailers who ordered that seller's items (orders, lifetime value, last order, favorite product, contact/GST). New sellers still auto-own the default catalog categories. Navbar/sidebar logo enlarged.
+- **Current Phase:** Supabase Auth & Chatbot Integration
+- **Current Module:** `useAuth`, `apiClient`, `Chatbot`, `__root.tsx`
+- **Overall Progress:** Auth context extended to expose accessToken, login, and logout. Reusable apiClient created to fetch the token dynamically and include the Authorization header. Integrated floating AI Chatbot widget visible only to authenticated buyers that interacts with the FastAPI backend.
 - **Last Updated:** 2026-07-18
 
 # Development History
+
+## 2026-07-18 - Supabase Auth & Chatbot Integration
+
+### Why
+The buyer interface needed an integrated AI Chatbot widget that securely communicates with the FastAPI backend. Every API request to the backend must dynamically contain the authenticated Supabase JWT. Additionally, the auth context needed extension to expose accessToken, login, and logout.
+
+### Changes
+- `.env` [NEW] / `.env.example` [MODIFY] — Added `VITE_BACKEND_API_URL`.
+- `src/hooks/useAuth.tsx` — Extended `AuthContextValue` and `AuthProvider` to expose `accessToken`, `login`, and `logout`. Clear session mode and redirect to `/auth` on logout.
+- `src/lib/apiClient.ts` [NEW] — Created reusable fetch wrapper that automatically retrieves and attaches the Supabase JWT `Authorization: Bearer <access_token>` header. Signs out and redirects on 401/403 errors.
+- `src/components/common/Chatbot.tsx` [NEW] — Floating bottom-right chatbot widget visible only to authenticated buyers. Contains dynamic message bubbles, animated typing indicator, clear history button, and quick-prompt suggestion chips. Upgraded styling to meet modern Intercom/HubSpot standards with a custom pulsing gradient FAB and a dismissible floating welcome helper.
+- `src/routes/__root.tsx` — Mounted `<Chatbot />` under `<AuthProvider>` context wrapper.
+
+### Verified
+Ran `npm run build` with success. The application builds and compiles cleanly.
 
 ## 2026-07-18 - Buyer navbar spacing fix + shorter height
 
