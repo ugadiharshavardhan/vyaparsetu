@@ -34,12 +34,21 @@ export function PriceSummary({
             {row(`SGST`, inr(breakup.sgst), true)}
           </>
         )}
-      {row(
-        breakup.shippingTotal === 0 ? "Shipping (FREE)" : "Shipping",
-        breakup.shippingTotal === 0 ? "FREE" : inr(breakup.shippingTotal),
-        true,
-        breakup.shippingTotal === 0,
-      )}
+      {(() => {
+        const sampleFee = breakup.sampleDeliveryTotal ?? 0;
+        const regularShipping = Math.max(breakup.shippingTotal - sampleFee, 0);
+        return (
+          <>
+            {row(
+              regularShipping === 0 ? "Shipping (FREE)" : "Shipping",
+              regularShipping === 0 ? "FREE" : inr(regularShipping),
+              true,
+              regularShipping === 0,
+            )}
+            {sampleFee > 0 && row("Sample delivery", inr(sampleFee), true)}
+          </>
+        );
+      })()}
       <div className="mt-2 border-t border-border pt-3">
         <div className="flex items-baseline justify-between">
           <span className="text-sm font-medium">Grand total</span>

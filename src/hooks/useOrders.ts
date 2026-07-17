@@ -130,7 +130,12 @@ export function usePlaceOrder() {
       if (orderErr) throw orderErr;
       const order = orderData as unknown as Order;
 
-      const productIds = [...new Set(items.map((i) => i.product_id))];
+      // Sample lines carry a synthetic `sample:<id>` cart product_id — orders
+      // are always written against the real product id from the snapshot.
+      const realProductId = (i: CartItem) =>
+        i.product_snapshot.isSample ? i.product_snapshot.id : i.product_id;
+
+      const productIds = [...new Set(items.map(realProductId))];
       const { data: productOwners, error: ownersErr } = await supabase
         .from("products")
         .select("id, seller_id")
@@ -150,7 +155,7 @@ export function usePlaceOrder() {
           ? taxable - taxable / (1 + rate / 100)
           : (taxable * rate) / 100;
         // Prefer DB owner; fall back to snapshot only when it looks like a real seller UUID
-        const fromDb = sellerByProduct.get(i.product_id) ?? null;
+        const fromDb = sellerByProduct.get(realProductId(i)) ?? null;
         const fromSnap = i.product_snapshot.supplierId?.trim() || "";
         const snapLooksLikeUuid =
           /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
@@ -159,7 +164,7 @@ export function usePlaceOrder() {
         const seller_id = fromDb ?? (snapLooksLikeUuid ? fromSnap : null);
         return {
           order_id: order.id,
-          product_id: i.product_id,
+          product_id: realProductId(i),
           product_snapshot: i.product_snapshot as never,
           quantity: i.quantity,
           unit_price: i.product_snapshot.wholesalePrice,

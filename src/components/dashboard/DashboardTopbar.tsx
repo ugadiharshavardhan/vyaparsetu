@@ -132,6 +132,10 @@ export function DashboardTopbar({ isBuyerLayout = false }: { isBuyerLayout?: boo
                     <Heart className="h-4 w-4 text-muted-foreground" />
                     Saved Items
                   </Link>
+                  <Link to="/samples" activeProps={{ className: "text-brand bg-brand-soft/20" }} className="flex items-center gap-3 rounded-lg px-4 py-3 text-base font-medium text-foreground hover:bg-secondary">
+                    <FlaskConical className="h-4 w-4 text-muted-foreground" />
+                    Samples
+                  </Link>
                   <Link to="/requests" activeProps={{ className: "text-brand bg-brand-soft/20" }} className="flex items-center gap-3 rounded-lg px-4 py-3 text-base font-medium text-foreground hover:bg-secondary">
                     <FlaskConical className="h-4 w-4 text-muted-foreground" />
                     Requests
@@ -233,6 +237,13 @@ export function DashboardTopbar({ isBuyerLayout = false }: { isBuyerLayout?: boo
             className="whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
           >
             Saved
+          </Link>
+          <Link
+            to="/samples"
+            activeProps={{ className: "text-brand bg-brand-soft/30 font-semibold" }}
+            className="whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          >
+            Samples
           </Link>
           <Link
             to="/requests"

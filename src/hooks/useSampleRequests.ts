@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { mapDbProduct, type DbProduct } from "@/lib/catalogMap";
+import type { Product } from "@/types";
 import { toast } from "sonner";
 
 /**
@@ -138,6 +140,35 @@ export function useSendSampleRequest() {
       toast.success("Request sent to the buyer — they can approve it under Requests");
     },
     onError: (e: Error) => toast.error(e.message || "Could not send the request"),
+  });
+}
+
+/**
+ * Buyer: resolve the live product behind a sample request so the checked
+ * item can be ordered in bulk (fresh price/MOQ — not the ₹100 sample line).
+ */
+export function useResolveRequestProduct() {
+  return useMutation({
+    mutationFn: async (request: SampleRequest): Promise<Product> => {
+      const { data: line, error } = await supabase
+        .from("order_items")
+        .select("product_id")
+        .eq("id", request.order_item_id)
+        .maybeSingle();
+      if (error) throw error;
+      const productId = line?.product_id;
+      if (!productId) throw new Error("Could not find the product for this request");
+
+      const { data: product, error: pErr } = await supabase
+        .from("products")
+        .select("*")
+        .eq("id", productId)
+        .maybeSingle();
+      if (pErr) throw pErr;
+      if (!product) throw new Error("This product is no longer available");
+      return mapDbProduct(product as unknown as DbProduct);
+    },
+    onError: (e: Error) => toast.error(e.message || "Could not load the product"),
   });
 }
 

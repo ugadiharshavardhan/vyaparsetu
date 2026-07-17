@@ -3,6 +3,29 @@ import type { Product } from "@/types";
 
 const SELLER_STATE = "Maharashtra";
 
+/** Flat charge for one product sample (per item). */
+export const SAMPLE_ITEM_PRICE = 100;
+/** Flat delivery charge whenever an order contains sample items. */
+export const SAMPLE_DELIVERY_FEE = 50;
+
+/** True when a cart/order line is a paid sample (₹100 + ₹50 delivery flow). */
+export function isSampleLine(item: Pick<CartItem, "product_snapshot">): boolean {
+  return Boolean(item.product_snapshot?.isSample);
+}
+
+/** Frozen snapshot for a paid sample of a product: fixed ₹100, qty 1, no GST/MOQ. */
+export function toSampleSnapshot(p: Product): ProductSnapshot {
+  return {
+    ...toSnapshot(p),
+    wholesalePrice: SAMPLE_ITEM_PRICE,
+    mrp: SAMPLE_ITEM_PRICE,
+    moq: 1,
+    gstRate: 0,
+    gstIncluded: true,
+    isSample: true,
+  };
+}
+
 export function toSnapshot(p: Product): ProductSnapshot {
   return {
     id: p.id,
@@ -70,7 +93,14 @@ export function computeTotals(
   const sgst = interstate ? 0 : gstTotal / 2;
   const igst = interstate ? gstTotal : 0;
 
-  const shippingTotal = estimateShipping(taxableBase);
+  // Samples ship on a flat ₹50 delivery fee; regular items use the slab rates.
+  const sampleSubtotal = safeItems.filter(isSampleLine).reduce((s, i) => s + lineNet(i), 0);
+  const hasSamples = sampleSubtotal > 0;
+  const regularSubtotal = subtotal - sampleSubtotal;
+  const regularTaxable = Math.max(regularSubtotal - discountTotal, 0);
+  const sampleDeliveryTotal = hasSamples ? SAMPLE_DELIVERY_FEE : 0;
+  const shippingTotal =
+    (regularSubtotal > 0 ? estimateShipping(regularTaxable) : 0) + sampleDeliveryTotal;
   // Grand total = item total (− discount) + GST + shipping.
   const grandTotal = taxableBase + gstTotal + shippingTotal;
 
@@ -83,6 +113,7 @@ export function computeTotals(
     igst: round(igst),
     gstTotal: round(gstTotal),
     shippingTotal: round(shippingTotal),
+    sampleDeliveryTotal: round(sampleDeliveryTotal),
     grandTotal: round(grandTotal),
     interstate,
   };

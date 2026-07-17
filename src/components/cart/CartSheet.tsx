@@ -138,6 +138,10 @@ export function CartSheet() {
                               type="button"
                               className="grid h-8 w-8 place-items-center text-muted-foreground hover:bg-secondary"
                               onClick={() => {
+                                if (p.isSample) {
+                                  toast.message("Samples are limited to 1 unit");
+                                  return;
+                                }
                                 const next = item.quantity + 1;
                                 if (next > p.stockCount) {
                                   toast.error(`Only ${p.stockCount} in stock`);

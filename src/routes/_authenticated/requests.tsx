@@ -1,12 +1,15 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { CheckCircle2, FlaskConical, Inbox, XCircle } from "lucide-react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { CheckCircle2, FlaskConical, Inbox, ShoppingCart, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   useBuyerSampleRequests,
   useRespondSampleRequest,
+  useResolveRequestProduct,
   type SampleRequest,
 } from "@/hooks/useSampleRequests";
+import { useAddToCart } from "@/hooks/useCart";
+import { toSnapshot } from "@/lib/commerce";
 
 export const Route = createFileRoute("/_authenticated/requests")({
   head: () => ({ meta: [{ title: "Requests — VyaparSetu" }] }),
@@ -22,10 +25,14 @@ function RequestCard({
   request,
   onRespond,
   responding,
+  onOrder,
+  ordering,
 }: {
   request: SampleRequest;
   onRespond?: (approve: boolean) => void;
   responding?: boolean;
+  onOrder?: () => void;
+  ordering?: boolean;
 }) {
   const pending = request.status === "sent";
   return (
@@ -63,6 +70,23 @@ function RequestCard({
         )}
       </div>
 
+      {request.status === "approved" && onOrder && (
+        <div className="mt-4 flex flex-wrap items-center justify-end gap-2 border-t border-border/60 pt-4">
+          <p className="mr-auto text-xs text-muted-foreground">
+            Happy with the sample? Order the item in bulk now.
+          </p>
+          <Button
+            size="sm"
+            className="rounded-full bg-brand text-white hover:bg-brand/90"
+            disabled={ordering}
+            onClick={onOrder}
+          >
+            <ShoppingCart className="mr-1.5 h-4 w-4" />
+            {ordering ? "Adding…" : "Order this item"}
+          </Button>
+        </div>
+      )}
+
       {pending && onRespond && (
         <div className="mt-4 flex flex-wrap items-center justify-end gap-2 border-t border-border/60 pt-4">
           <Button
@@ -93,9 +117,24 @@ function RequestCard({
 function RequestsPage() {
   const { data: requests = [], isLoading } = useBuyerSampleRequests();
   const respond = useRespondSampleRequest();
+  const resolveProduct = useResolveRequestProduct();
+  const addToCart = useAddToCart();
+  const navigate = useNavigate();
 
   const pending = requests.filter((r) => r.status === "sent");
   const answered = requests.filter((r) => r.status !== "sent");
+
+  const ordering = resolveProduct.isPending || addToCart.isPending;
+
+  const orderItem = async (request: SampleRequest) => {
+    try {
+      const product = await resolveProduct.mutateAsync(request);
+      await addToCart.mutateAsync({ snapshot: toSnapshot(product) });
+      void navigate({ to: "/cart" });
+    } catch {
+      // errors surface via each mutation's own toast
+    }
+  };
 
   return (
     <div className="container-page space-y-6 py-8">
@@ -137,6 +176,8 @@ function RequestsPage() {
                   request={r}
                   responding={respond.isPending}
                   onRespond={(approve) => respond.mutate({ request: r, approve })}
+                  ordering={ordering}
+                  onOrder={() => void orderItem(r)}
                 />
               ))}
             </section>
@@ -148,7 +189,12 @@ function RequestsPage() {
                 Responded
               </h2>
               {answered.map((r) => (
-                <RequestCard key={r.id} request={r} />
+                <RequestCard
+                  key={r.id}
+                  request={r}
+                  ordering={ordering}
+                  onOrder={() => void orderItem(r)}
+                />
               ))}
             </section>
           )}

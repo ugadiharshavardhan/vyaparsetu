@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  BarChart3, Bell, Boxes, FileText, Heart, Info, LayoutDashboard, LifeBuoy,
+  BarChart3, Bell, Boxes, FileText, FlaskConical, Heart, Info, LayoutDashboard, LifeBuoy,
   LineChart, LogOut, Mail, Megaphone, Package, PackageOpen, ReceiptText,
   Settings, ShieldCheck, ShoppingCart, Store, Tag, User, Users, Warehouse, FileQuestion
 } from "lucide-react";
@@ -47,6 +47,7 @@ const SUPPLIER = [
   { title: "Dashboard", url: "/seller/dashboard", icon: LayoutDashboard },
   { title: "Products", url: "/supplier/products", icon: PackageOpen },
   { title: "Orders", url: "/supplier/orders", icon: ReceiptText },
+  { title: "Samples", url: "/supplier/samples", icon: FlaskConical },
   { title: "Buyers", url: "/supplier/customers", icon: Users },
   { title: "Inventory", url: "/supplier/inventory", icon: Boxes },
   { title: "Payments", url: "/supplier/payments", icon: ReceiptText },

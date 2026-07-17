@@ -719,6 +719,7 @@ async function fetchSellerOrders(sellerId: string): Promise<SupplierOrder[]> {
       destination: destinationFromAddress(order?.shipping_address),
       paymentStatus: paymentStatus === "success" || paymentStatus === "paid" ? "paid" : "pending",
       sampleRequested: Boolean(row.sample_requested),
+      isSample: Boolean(snap.isSample),
       gstRate: snap.gstRate != null ? Number(snap.gstRate) : (snap.gst_rate != null ? Number(snap.gst_rate) : 18),
       gstIncluded: snap.gstIncluded != null ? Boolean(snap.gstIncluded) : (snap.gst_included != null ? Boolean(snap.gst_included) : true),
       porterName: order?.delivery_partner ? String(order.delivery_partner) : undefined,

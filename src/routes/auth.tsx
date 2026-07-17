@@ -7,7 +7,8 @@ import { SignInForm } from "@/components/auth/SignInForm";
 import { SignUpForm } from "@/components/auth/SignUpForm";
 import { AdminSignInForm } from "@/components/auth/AdminSignInForm";
 import type { BusinessRole } from "@/components/auth/RoleSelect";
-import { resolvePostLoginPath, sanitizeReturnPath } from "@/lib/postLoginRedirect";
+import { resolvePostLoginPath, sanitizeReturnPath, isSellerWorkspacePath } from "@/lib/postLoginRedirect";
+import { getSessionMode } from "@/lib/sessionMode";
 import { peekPendingCartAdd } from "@/lib/pendingCart";
 import { resolveAuthedUser } from "@/lib/resolveAuthedUser";
 
@@ -42,7 +43,14 @@ export const Route = createFileRoute("/auth")({
       if (!user) return;
 
       const pendingReturn = sanitizeReturnPath(peekPendingCartAdd()?.returnTo);
-      const dest = sanitizeReturnPath(search.redirect) || pendingReturn;
+      let dest = sanitizeReturnPath(search.redirect) || pendingReturn;
+
+      // A seller-mode session always lands in the seller workspace: drop any
+      // stale buyer-side destination (cart/marketplace/product URLs) so the
+      // resolver below sends them to /seller/dashboard.
+      if (getSessionMode() === "seller" && dest && !isSellerWorkspacePath(dest)) {
+        dest = null;
+      }
 
       if (dest && (dest === "/admin" || dest.startsWith("/admin/"))) {
         const { data: isAdmin } = await supabase.rpc("is_admin", {

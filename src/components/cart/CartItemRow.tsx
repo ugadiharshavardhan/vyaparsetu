@@ -31,8 +31,9 @@ export function CartItemRow({ item }: { item: CartItem }) {
     );
   }
 
+  const isSample = Boolean(p.isSample);
   const moq = lineMoq(item);
-  const belowMoq = item.quantity < moq;
+  const belowMoq = !isSample && item.quantity < moq;
 
   const lineTotal = (p.wholesalePrice || 0) * item.quantity;
   // Cart totals always add GST on top of the listed wholesale price.
@@ -65,6 +66,12 @@ export function CartItemRow({ item }: { item: CartItem }) {
             >
               {p.name}
             </Link>
+            {isSample && (
+              <span className="mt-1 inline-flex w-fit items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
+                <FlaskConical className="h-3 w-3" />
+                Sample · ₹100 flat
+              </span>
+            )}
             <div className="mt-1 text-xs text-muted-foreground">Supplier: {p.supplierName}</div>
           </div>
           <div className="text-right">
@@ -79,6 +86,11 @@ export function CartItemRow({ item }: { item: CartItem }) {
         </div>
 
         <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
+          {isSample ? (
+            <span className="rounded-full border border-border bg-secondary/50 px-3 py-1.5 text-xs font-medium text-muted-foreground">
+              1 sample unit · fixed quantity
+            </span>
+          ) : (
           <CartQuantityStepper
             quantity={item.quantity}
             moq={moq}
@@ -92,6 +104,7 @@ export function CartItemRow({ item }: { item: CartItem }) {
               }
             }}
           />
+          )}
 
           <div className="flex items-center gap-2">
             <Button
@@ -133,6 +146,7 @@ export function CartItemRow({ item }: { item: CartItem }) {
           </div>
         </div>
 
+        {!isSample && (
         <label
           className={`flex w-fit cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
             item.sample_requested
@@ -161,8 +175,15 @@ export function CartItemRow({ item }: { item: CartItem }) {
             aria-label="Send sample for this item"
           />
         </label>
+        )}
 
         <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+          {isSample ? (
+            <span className="rounded-full bg-amber-50 px-2 py-0.5 font-medium text-amber-700">
+              Sample charge ₹100 · ₹50 delivery applies at checkout
+            </span>
+          ) : (
+            <>
           <span className="rounded-full bg-secondary px-2 py-0.5 font-medium text-foreground">
             MOQ {p.moq} {p.unit}
           </span>
@@ -176,6 +197,8 @@ export function CartItemRow({ item }: { item: CartItem }) {
             <span className="rounded-full bg-emerald-50 px-2 py-0.5 font-medium text-emerald-700">
               Bulk order — eligible for extra discount
             </span>
+          )}
+            </>
           )}
         </div>
       </div>

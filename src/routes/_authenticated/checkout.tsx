@@ -338,9 +338,19 @@ function CheckoutPage() {
                         <div key={it.id} className="flex items-center gap-3 py-3">
                           <img src={it.product_snapshot.image} alt="" className="h-14 w-14 rounded-lg object-cover" />
                           <div className="flex-1 min-w-0">
-                            <div className="line-clamp-1 text-sm font-medium">{it.product_snapshot.name}</div>
+                            <div className="line-clamp-1 text-sm font-medium">
+                              {it.product_snapshot.name}
+                              {it.product_snapshot.isSample && (
+                                <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">
+                                  SAMPLE
+                                </span>
+                              )}
+                            </div>
                             <div className="text-[11px] text-muted-foreground">
-                              {it.quantity} × {inr(it.product_snapshot.wholesalePrice)} · GST {it.product_snapshot.gstRate}%
+                              {it.quantity} × {inr(it.product_snapshot.wholesalePrice)}
+                              {it.product_snapshot.isSample
+                                ? " · flat sample charge"
+                                : ` · GST ${it.product_snapshot.gstRate}%`}
                             </div>
                           </div>
                           <div className="text-sm font-semibold">

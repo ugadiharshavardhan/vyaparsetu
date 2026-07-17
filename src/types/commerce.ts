@@ -147,6 +147,8 @@ export type PriceBreakup = {
   igst: number;
   gstTotal: number;
   shippingTotal: number;
+  /** Portion of shippingTotal that is the flat ₹50 sample delivery fee. */
+  sampleDeliveryTotal: number;
   grandTotal: number;
   interstate: boolean;
 };

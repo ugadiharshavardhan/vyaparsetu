@@ -48,6 +48,7 @@ const PRODUCT_LIST_COLUMNS = [
 
 async function fetchProductList(options?: {
   categorySlug?: string;
+  categorySlugs?: string[];
   featured?: boolean;
   supplierId?: string;
   limit?: number;
@@ -67,6 +68,9 @@ async function fetchProductList(options?: {
 
   if (options?.categorySlug) {
     q = q.eq("category_slug", options.categorySlug);
+  }
+  if (options?.categorySlugs?.length) {
+    q = q.in("category_slug", options.categorySlugs);
   }
   if (options?.featured) {
     q = q.eq("featured", true);
@@ -251,6 +255,17 @@ export function useProductsByCategory(categorySlug: string | undefined, limit = 
     enabled: !!categorySlug,
     staleTime: 5 * 60_000,
     queryFn: () => fetchProductList({ categorySlug: categorySlug!, limit }),
+  });
+}
+
+/** Products across multiple main categories (e.g. the Sample Store list). */
+export function useProductsByCategories(categorySlugs: string[], limit = 300) {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: [...PRODUCTS_KEY, "categories", categorySlugs.join("+"), limit, catalogAuthKey(user?.id)],
+    enabled: categorySlugs.length > 0,
+    staleTime: 5 * 60_000,
+    queryFn: () => fetchProductList({ categorySlugs, limit }),
   });
 }
 

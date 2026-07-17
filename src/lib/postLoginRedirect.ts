@@ -15,19 +15,28 @@ export async function resolvePostLoginPath(
   explicitRedirect?: string | null,
 ): Promise<string> {
   const mode = getSessionMode();
+  const fromQuery = sanitizeReturnPath(explicitRedirect);
+
+  // A seller-mode sign-in ALWAYS opens the seller workspace. Buyer-side
+  // redirect/pending-cart paths (marketplace, cart, product pages…) are
+  // ignored; only a deep link already inside the seller workspace (e.g. a
+  // bounced /supplier/orders/… URL) is honored.
+  if (mode === "seller") {
+    if (fromQuery && isSellerWorkspacePath(fromQuery)) return fromQuery;
+    return "/seller/dashboard";
+  }
+
   // A buyer-mode sign-in must never be sent into the seller workspace, even if a
   // stale `redirect`/pending-cart path points at /supplier/* or /seller/*.
   const preferBuyer = mode === "buyer";
   const allow = (path: string | null): path is string =>
     !!path && !(preferBuyer && isSellerWorkspacePath(path));
 
-  const fromQuery = sanitizeReturnPath(explicitRedirect);
   if (allow(fromQuery)) return fromQuery;
 
   const pendingReturn = sanitizeReturnPath(peekPendingCartAdd()?.returnTo);
   if (allow(pendingReturn)) return pendingReturn;
 
-  if (mode === "seller") return "/seller/dashboard";
   if (mode === "buyer") return "/marketplace";
 
   try {

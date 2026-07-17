@@ -135,6 +135,8 @@ export type SupplierOrder = {
   paymentStatus: "paid" | "pending";
   /** Buyer toggled "send sample" for this line in the cart. */
   sampleRequested?: boolean;
+  /** This line is a paid ₹100 sample order from the Sample Store. */
+  isSample?: boolean;
   gstDetails?: string;
   gstRate?: number;
   gstIncluded?: boolean;

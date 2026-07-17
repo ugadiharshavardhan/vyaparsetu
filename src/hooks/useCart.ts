@@ -44,8 +44,17 @@ export function normalizeSnapshot(raw: unknown, productId?: string): ProductSnap
     category: String(s.category ?? ""),
     supplierName: String(s.supplierName ?? "Supplier"),
     supplierId: String(s.supplierId ?? ""),
+    ...(s.isSample ? { isSample: true } : {}),
   };
 }
+
+/**
+ * Sample cart lines use a synthetic `sample:<productId>` cart product_id so a
+ * sample can sit in the cart next to a regular line for the same product
+ * (cart_items has UNIQUE(user_id, product_id)). The snapshot keeps the REAL
+ * product id — orders are placed against the real product.
+ */
+export const sampleCartProductId = (productId: string) => `sample:${productId}`;
 
 function normalizeCartRow(row: Record<string, unknown>): CartItem | null {
   const snapshot = normalizeSnapshot(row.product_snapshot, row.product_id as string | undefined);
@@ -282,6 +291,13 @@ export function useCartLine(productId: string | undefined) {
   return items.find((i) => i.product_id === productId && !i.saved_for_later);
 }
 
+/** Sample cart line (if any) for a product — stored under `sample:<productId>`. */
+export function useSampleCartLine(productId: string | undefined) {
+  const { data: items = [] } = useCart();
+  if (!productId) return undefined;
+  return items.find((i) => i.product_id === sampleCartProductId(productId) && !i.saved_for_later);
+}
+
 export function useAddToCart() {
   const qc = useQueryClient();
   const { user } = useAuth();
@@ -350,6 +366,47 @@ export function useAddToCart() {
       if (res?.openSheet === true) openCartSheet();
     },
     onError: (e: Error) => toast.error(e.message || "Could not add to cart"),
+  });
+}
+
+/**
+ * Add a paid product sample to the cart: fixed ₹100 line (qty 1, no GST,
+ * no MOQ) + flat ₹50 sample delivery applied at checkout. The line is stored
+ * under `sample:<productId>` so it can coexist with a regular line.
+ */
+export function useAddSampleToCart() {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: async ({ snapshot }: { snapshot: ProductSnapshot }) => {
+      if (!user) throw new Error("Please sign in to order samples");
+      const safe = normalizeSnapshot({ ...snapshot, isSample: true });
+      if (!safe) throw new Error("Invalid product");
+
+      const cartProductId = sampleCartProductId(safe.id);
+      const { data: existing } = await supabase
+        .from("cart_items")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("product_id", cartProductId)
+        .maybeSingle();
+      if (existing) {
+        throw new Error("A sample of this item is already in your cart");
+      }
+
+      const { error } = await supabase.from("cart_items").insert({
+        user_id: user.id,
+        product_id: cartProductId,
+        product_snapshot: safe as never,
+        quantity: 1,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: CART_KEY });
+      toast.success("Sample added to cart — ₹100 per sample + ₹50 delivery");
+    },
+    onError: (e: Error) => toast.error(e.message || "Could not add the sample"),
   });
 }
 

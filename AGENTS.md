@@ -163,6 +163,18 @@
 
 # Development History
 
+## 2026-07-18 - Seller login always lands on /seller/dashboard
+
+### Why
+A seller signing in on the Seller tab could be bounced to a buyer page (marketplace, cart, product URL) when a stale `redirect` search param or pending-cart `returnTo` was present — the redirect priority honored those before the seller-mode default.
+
+### Changes
+- `src/lib/postLoginRedirect.ts` — `resolvePostLoginPath` now short-circuits when session mode is `seller`: it returns `/seller/dashboard` unconditionally, honoring an explicit `redirect` only if it already points inside the seller workspace (`/supplier/*` or `/seller/*`, e.g. a bounced deep link). Buyer-side redirect/pending-cart paths are ignored for seller-mode sign-ins. Buyer behavior unchanged.
+- `src/routes/auth.tsx` — `beforeLoad` (already-signed-in visitor on `/auth`) applies the same rule: when `getSessionMode() === "seller"`, any non-seller-workspace `dest` is dropped so the resolver sends them to the dashboard.
+
+### Notes
+Covers all entry points: password sign-in and OTP sign-in (`SignInForm.finishSignIn` calls `persistMode()` before resolving), seller signup post-OTP (`SignUpForm` sets mode before resolving), and revisiting `/auth` while signed in. Landing-page redirect (`index.tsx`) already sent seller sessions to the dashboard.
+
 ## 2026-07-18 - Round browser-tab favicon
 
 ### Why
