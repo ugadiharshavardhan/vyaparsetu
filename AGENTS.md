@@ -156,12 +156,27 @@
 
 # Current Project State
 
-- **Current Phase:** Seller can toggle payment status (pending ↔ completed)
-- **Current Module:** `useSupplier.updatePaymentStatus`, seller orders list + detail
-- **Overall Progress:** The Payment pill in the seller orders list and on the order detail header is now a click-to-toggle: pending → completed → pending, persisted to `orders.payment_status` (`success`/`pending`). Order-wise grouped list, Pending-on-placement, Mark-as-Delivered, invoice download, and the sample loop remain in place.
+- **Current Phase:** Merged main (Supabase Auth & Chatbot integration) with local seller/sample work
+- **Current Module:** `useSupplier.updatePaymentStatus`, seller orders list + detail; `useAuth`, `apiClient`, `Chatbot`
+- **Overall Progress:** The Payment pill in the seller orders list and on the order detail header is now a click-to-toggle: pending → completed → pending, persisted to `orders.payment_status` (`success`/`pending`). Order-wise grouped list, Pending-on-placement, Mark-as-Delivered, invoice download, and the sample loop remain in place. Merged from main: floating AI Chatbot widget for authenticated buyers backed by a FastAPI backend, with `apiClient` attaching the Supabase JWT to every request.
 - **Last Updated:** 2026-07-18
 
 # Development History
+
+## 2026-07-18 - Merge main: Supabase Auth & Chatbot Integration
+
+### Why
+The buyer interface needed an integrated AI Chatbot widget that securely communicates with the FastAPI backend. Every API request to the backend must dynamically contain the authenticated Supabase JWT. Additionally, the auth context needed extension to expose accessToken, login, and logout. (Merged from `origin/main`; only `AGENTS.md` conflicted and both histories were kept.)
+
+### Changes
+- `.env` [NEW] / `.env.example` [MODIFY] — Added `VITE_BACKEND_API_URL`.
+- `src/hooks/useAuth.tsx` — Extended `AuthContextValue` and `AuthProvider` to expose `accessToken`, `login`, and `logout`. Clear session mode and redirect to `/auth` on logout.
+- `src/lib/apiClient.ts` [NEW] — Created reusable fetch wrapper that automatically retrieves and attaches the Supabase JWT `Authorization: Bearer <access_token>` header. Signs out and redirects on 401/403 errors.
+- `src/components/common/Chatbot.tsx` [NEW] — Floating bottom-right chatbot widget visible only to authenticated buyers. Contains dynamic message bubbles, animated typing indicator, clear history button, and quick-prompt suggestion chips. Upgraded styling to meet modern Intercom/HubSpot standards with a custom pulsing gradient FAB and a dismissible floating welcome helper.
+- `src/routes/__root.tsx` — Mounted `<Chatbot />` under `<AuthProvider>` context wrapper.
+
+### Verified
+Ran `npm run build` with success. The application builds and compiles cleanly.
 
 ## 2026-07-18 - Seller payment-status toggle (click pill: pending ↔ completed)
 
