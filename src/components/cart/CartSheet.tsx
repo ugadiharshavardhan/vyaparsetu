@@ -15,13 +15,14 @@ import { useCart, useRemoveCartItem, useUpdateCartItem } from "@/hooks/useCart";
 import { useCartSheet } from "@/hooks/useCartSheet";
 import { computeTotals } from "@/lib/commerce";
 import { inr } from "@/lib/format";
+import { findBelowMoqItems, moqErrorMessage } from "@/lib/moq";
 import { toast } from "sonner";
 
 export function CartSheet() {
   const { open, setOpen } = useCartSheet();
   // Prefer cached cart when closed; refetch kick starts when opened
   const { data: items = [], isLoading, isFetching } = useCart();
-  const { user } = useAuth();
+  const { isAuthenticated, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const update = useUpdateCartItem();
   const remove = useRemoveCartItem();
@@ -29,14 +30,23 @@ export function CartSheet() {
 
   const active = items.filter((i) => !i.saved_for_later);
   const breakup = useMemo(() => computeTotals(active, null, null), [active]);
+  const belowMoq = useMemo(() => findBelowMoqItems(active), [active]);
 
   const goCheckout = () => {
-    setOpen(false);
-    if (!user) {
-      navigate({ to: "/auth", search: { mode: "signin", redirect: "/checkout" } });
+    if (authLoading) {
+      toast.message("Checking your session…");
       return;
     }
-    navigate({ to: "/checkout", search: { coupon: "" } });
+    if (belowMoq.length > 0) {
+      toast.error(moqErrorMessage(belowMoq[0]));
+      return;
+    }
+    setOpen(false);
+    if (!isAuthenticated) {
+      navigate({ to: "/auth", search: { mode: "signin", role: "buyer", redirect: "/checkout" } });
+      return;
+    }
+    void navigate({ to: "/checkout" });
   };
 
   return (
@@ -46,7 +56,7 @@ export function CartSheet() {
           <SheetTitle className="font-display text-xl">Your cart</SheetTitle>
           <p className="text-sm text-muted-foreground">
             {active.length} {active.length === 1 ? "item" : "items"}
-            {!user ? " · Guest cart (saved on this device)" : ""}
+            {!isAuthenticated ? " · Guest cart (saved on this device)" : ""}
             {busy ? (
               <span className="ml-2 inline-flex items-center gap-1 text-brand">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" /> Updating…
@@ -171,8 +181,14 @@ export function CartSheet() {
               <span>Est. total</span>
               <span>{inr(breakup.grandTotal)}</span>
             </div>
-            <Button className="w-full shadow-brand" size="lg" onClick={goCheckout}>
-              Checkout <ArrowRight className="ml-2 h-4 w-4" />
+            <Button
+              className="w-full shadow-brand"
+              size="lg"
+              disabled={belowMoq.length > 0}
+              onClick={goCheckout}
+            >
+              {isAuthenticated ? "Checkout" : "Sign in to checkout"}{" "}
+              <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
             <Button variant="outline" className="w-full" asChild>
               <Link to="/cart" onClick={() => setOpen(false)}>View full cart</Link>

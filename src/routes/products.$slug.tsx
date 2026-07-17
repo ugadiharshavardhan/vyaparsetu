@@ -168,16 +168,31 @@ function ProductPage() {
         <Link to="/" className="hover:text-brand transition-colors">Home</Link>
         <ChevronRight className="h-3 w-3 text-muted-foreground/60" />
         <Link to="/marketplace" className="hover:text-brand transition-colors">Marketplace</Link>
-        <ChevronRight className="h-3 w-3 text-muted-foreground/60" />
-        <Link to="/marketplace" search={{ category: product.category } as never} className="capitalize hover:text-brand transition-colors">
-          {product.category?.replace(/-/g, " ")}
-        </Link>
-        {product.subCategory && (
+        {product.category ? (
           <>
             <ChevronRight className="h-3 w-3 text-muted-foreground/60" />
-            <span className="capitalize text-muted-foreground">{product.subCategory?.replace(/-/g, " ")}</span>
+            <Link
+              to="/categories/$slug"
+              params={{ slug: product.category }}
+              className="capitalize hover:text-brand transition-colors"
+            >
+              {product.category.replace(/-/g, " ")}
+            </Link>
           </>
-        )}
+        ) : null}
+        {product.subCategory ? (
+          <>
+            <ChevronRight className="h-3 w-3 text-muted-foreground/60" />
+            <Link
+              to="/categories/$slug"
+              params={{ slug: product.category }}
+              search={{ sub: product.subCategory }}
+              className="capitalize hover:text-brand transition-colors"
+            >
+              {product.subCategory.replace(/-/g, " ")}
+            </Link>
+          </>
+        ) : null}
         <ChevronRight className="h-3 w-3 text-muted-foreground/60" />
         <span className="line-clamp-1 text-foreground font-semibold">{product.name}</span>
       </nav>

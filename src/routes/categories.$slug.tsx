@@ -32,6 +32,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useBrowseScrollRestore } from "@/hooks/useBrowseScrollRestore";
 import { filterProducts, sortProducts } from "@/lib/productFilters";
 
 const searchSchema = z.object({
@@ -83,6 +84,7 @@ const PAGE_SIZE = 12;
 
 function CategoryPage() {
   const { category } = Route.useLoaderData();
+  useBrowseScrollRestore();
   const { data: subImages = {} } = useSubcategoryImages();
   const search = Route.useSearch();
   const navigate = useNavigate({ from: "/categories/$slug" });
@@ -234,7 +236,7 @@ function CategoryPage() {
           {/* Title Header */}
           <div>
             <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl text-foreground">
-              {subName ? `Buy ${subName} Online` : `Buy ${category.name} Online`}
+              {subName ? subName : category.name}
             </h1>
             <p className="mt-1 text-xs text-muted-foreground">
               {filtered.length.toLocaleString("en-IN")} wholesale products available at scale

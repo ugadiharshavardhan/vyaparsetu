@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, ArrowRight, Loader2, MapPin, Plus, ShieldCheck, Sparkles, Truck } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Loader2, MapPin, Plus, ShieldCheck, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CheckoutStepper } from "@/components/checkout/CheckoutStepper";
 import { PaymentMethodPicker } from "@/components/checkout/PaymentCard";
@@ -16,6 +16,7 @@ import { usePlaceOrder } from "@/hooks/useOrders";
 import { useValidateCoupon } from "@/hooks/useCoupon";
 import { useProductsByIds } from "@/hooks/useCatalog";
 import { computeTotals, DELIVERY_PARTNERS, estimatedDeliveryDate } from "@/lib/commerce";
+import { findBelowMoqItems, moqErrorMessage } from "@/lib/moq";
 import { inr } from "@/lib/format";
 import type { Coupon, PaymentMethod, ShippingAddress } from "@/types/commerce";
 import { toast } from "sonner";
@@ -42,7 +43,7 @@ const STEPS = [
 function CheckoutPage() {
   const navigate = useNavigate();
   const { coupon: couponCode, buyNowProductId, buyNowQuantity } = Route.useSearch();
-  const { data: cart = [], isLoading: cartLoading } = useCart();
+  const { data: cart = [], isLoading: cartLoading, isFetching: cartFetching } = useCart();
   const { data: buyNowProducts = [], isLoading: buyNowLoading } = useProductsByIds(
     buyNowProductId ? [buyNowProductId] : undefined
   );
@@ -71,7 +72,7 @@ function CheckoutPage() {
     return cart.filter((i) => !i.saved_for_later);
   }, [buyNowProductId, buyNowProduct, buyNowQuantity, cart]);
 
-  const isLoading = cartLoading || (!!buyNowProductId && buyNowLoading);
+  const isLoading = cartLoading || cartFetching || (!!buyNowProductId && buyNowLoading);
 
   const { data: addresses = [] } = useAddresses();
 
@@ -86,6 +87,7 @@ function CheckoutPage() {
 
   const address = addresses.find((a) => a.id === selectedAddress) ?? null;
   const breakup = useMemo(() => computeTotals(items, address, coupon), [items, address, coupon]);
+  const belowMoq = useMemo(() => findBelowMoqItems(items as any[]), [items]);
 
   const validate = useValidateCoupon();
   const place = usePlaceOrder();
@@ -131,11 +133,8 @@ function CheckoutPage() {
           Add products from the marketplace, then come back to checkout.
         </p>
         <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
-          <Button className="shadow-brand" onClick={() => navigate({ to: "/marketplace" })}>
-            Browse marketplace
-          </Button>
           <Button variant="outline" onClick={() => navigate({ to: "/cart" })}>
-            View cart
+            Back to cart
           </Button>
         </div>
       </div>
@@ -143,6 +142,10 @@ function CheckoutPage() {
   }
 
   const next = () => {
+    if (belowMoq.length > 0) {
+      toast.error(moqErrorMessage(belowMoq[0]));
+      return;
+    }
     if (step === 0 && !address) {
       toast.error("Please select a shipping address");
       return;
@@ -155,6 +158,10 @@ function CheckoutPage() {
   };
 
   const submitPayment = () => {
+    if (belowMoq.length > 0) {
+      toast.error(moqErrorMessage(belowMoq[0]));
+      return;
+    }
     if (!address || !payment) return;
     setProcessingPayment(true);
     // Simulated payment gateway
@@ -307,15 +314,15 @@ function CheckoutPage() {
                   key="confirm"
                   initial={{ opacity: 0, scale: 0.96 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="rounded-3xl border border-border bg-card p-10 text-center shadow-elevated"
+                  className="mx-auto flex max-w-xl flex-col items-center rounded-3xl border border-border bg-card p-10 text-center shadow-elevated"
                 >
                   <motion.div
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ type: "spring", stiffness: 200, damping: 12 }}
-                    className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-emerald-100 text-emerald-600"
+                    className="grid h-20 w-20 place-items-center rounded-full bg-emerald-100 text-emerald-600"
                   >
-                    <Sparkles className="h-10 w-10" />
+                    <Check className="h-10 w-10" strokeWidth={3} />
                   </motion.div>
                   <h3 className="mt-4 text-2xl font-bold">Order placed successfully!</h3>
                   <p className="mt-1 text-sm text-muted-foreground">

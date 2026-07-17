@@ -39,7 +39,7 @@ export function SaveProductButton({
     if (!user) {
       navigate({
         to: "/auth",
-        search: { mode: "signin", redirect: `/products/${snapshot.slug}` },
+        search: { mode: "signin", role: "buyer", redirect: `/products/${snapshot.slug}` },
       });
       return;
     }

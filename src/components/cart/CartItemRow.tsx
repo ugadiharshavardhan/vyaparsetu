@@ -43,6 +43,8 @@ export function CartItemRow({ item }: { item: CartItem }) {
 
   const lineTotal = (p.wholesalePrice || 0) * item.quantity;
   const gst = p.gstIncluded ? 0 : (lineTotal * (p.gstRate || 0)) / 100;
+  const moq = Math.max(1, p.moq);
+  const belowMoq = item.quantity < moq;
 
   return (
     <motion.div
@@ -88,21 +90,21 @@ export function CartItemRow({ item }: { item: CartItem }) {
         </div>
 
         <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
-          <div className="inline-flex items-center rounded-full border border-border bg-background">
+          <div className="inline-flex items-center rounded-full border border-brand/40 bg-white">
             <button
               onClick={() => changeQty(item.quantity - 1)}
-              className="grid h-9 w-9 place-items-center rounded-l-full text-muted-foreground hover:bg-secondary"
+              className="grid h-9 w-9 place-items-center rounded-l-full text-brand transition-colors hover:bg-brand hover:text-white"
               aria-label="Decrease"
             >
-              <Minus className="h-4 w-4" />
+              <Minus className="h-4 w-4" strokeWidth={2.5} />
             </button>
-            <div className="min-w-[3rem] px-3 text-center text-sm font-semibold">{item.quantity}</div>
+            <div className="min-w-[3rem] px-3 text-center text-sm font-semibold text-foreground">{item.quantity}</div>
             <button
               onClick={() => changeQty(item.quantity + 1)}
-              className="grid h-9 w-9 place-items-center rounded-r-full text-muted-foreground hover:bg-secondary"
+              className="grid h-9 w-9 place-items-center rounded-r-full text-brand transition-colors hover:bg-brand hover:text-white"
               aria-label="Increase"
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="h-4 w-4" strokeWidth={2.5} />
             </button>
           </div>
 
@@ -125,7 +127,7 @@ export function CartItemRow({ item }: { item: CartItem }) {
               variant="ghost"
               onClick={() => {
                 if (!user) {
-                  navigate({ to: "/auth", search: { mode: "signin", redirect: "/cart" } });
+                  navigate({ to: "/auth", search: { mode: "signin", role: "buyer", redirect: "/cart" } });
                   return;
                 }
                 wish.mutate({ snapshot: p });
@@ -151,7 +153,12 @@ export function CartItemRow({ item }: { item: CartItem }) {
             MOQ {p.moq} {p.unit}
           </span>
           <span className="rounded-full bg-secondary px-2 py-0.5">Stock: {p.stockCount}</span>
-          {item.quantity >= p.moq * 5 && (
+          {belowMoq && (
+            <span className="rounded-full bg-destructive/10 px-2 py-0.5 font-medium text-destructive">
+              Add at least {moq} {p.unit} to order
+            </span>
+          )}
+          {!belowMoq && item.quantity >= p.moq * 5 && (
             <span className="rounded-full bg-emerald-50 px-2 py-0.5 font-medium text-emerald-700">
               Bulk order — eligible for extra discount
             </span>

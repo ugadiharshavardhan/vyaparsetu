@@ -35,7 +35,7 @@ function CategoriesIndexPage() {
         align="left"
         eyebrow="Wholesale categories"
         title="Shop by business category"
-        description="Udaan-style B2B categories for retailers, kiranas and HORECA — browse SKUs by the way you restock."
+        description="B2B categories for retailers, kiranas and HORECA — browse SKUs by the way you restock."
       />
       <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2">
         {isLoading

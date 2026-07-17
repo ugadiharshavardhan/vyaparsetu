@@ -156,13 +156,93 @@
 
 # Current Project State
 
-- **Current Phase:** Auth page navigation
-- **Current Branch:** main
-- **Current Module:** `AuthLayout.tsx`
-- **Overall Progress:** Auth card now has a "Back to home" link to the landing page (shared by sign-in, sign-up, and admin login).
+- **Current Phase:** Landing auth chrome + checkout redirect reliability
+- **Current Module:** `Header`, `CartSheet`, `auth`, `_authenticated/route`, `checkout`
+- **Overall Progress:** Landing navbar shows profile + cart when signed in; cart Checkout opens `/checkout` reliably for authenticated buyers; auth gate retries session before bouncing.
 - **Last Updated:** 2026-07-17
 
 # Development History
+
+## 2026-07-17 - Landing navbar profile + cart checkout redirect fix
+
+### Why
+Logged-in buyers on the landing page still saw “Login / Signup” in the navbar instead of their profile. Clicking **Checkout** in the cart drawer could bounce to `/marketplace` or the auth landing page instead of `/checkout`.
+
+### Root cause
+- `Header.tsx` always rendered Login / Signup and never read auth state.
+- Cart checkout used `user` (can lag behind session) and sent logged-in users through `/auth`; auth `beforeLoad` used a single `getSession()` and `resolvePostLoginPath` fallback → `/marketplace` when redirect was lost.
+- Checkout could render the empty-cart state (with a marketplace CTA) while the cart query was still refetching.
+
+### Changes
+- `Header.tsx` — when authenticated: `CartButton` + `UserMenu` profile avatar; when guest: Login / Signup (desktop + mobile drawer).
+- `lib/resolveAuthedUser.ts` [NEW] — shared session resolver (retry + `getUser()` fallback).
+- `_authenticated/route.tsx`, `auth.tsx` — use shared resolver; auth redirect uses `sanitizeReturnPath` + TanStack `redirect({ to, search })`; guest checkout bounce includes `role: buyer`.
+- `CartSheet.tsx`, `cart.tsx` — checkout uses `isAuthenticated` (not stale `user`), waits for auth load, MOQ guard, navigates to `/checkout` directly.
+- `checkout.tsx` — wait for cart fetch before empty state; empty checkout offers “Back to cart” instead of pushing marketplace.
+
+## 2026-07-17 - Fix logged-in user bounced to auth/marketplace on Proceed to checkout
+
+### Why
+Clicking "Proceed to checkout" (only shown to signed-in buyers) sometimes bounced the user to the auth page (which now looks like a marketing landing page) or to `/marketplace` instead of opening the checkout address/payment flow.
+
+### Root cause
+`/_authenticated/route.tsx` gates every protected route on a single `supabase.auth.getSession()` in `beforeLoad`. On a client navigation right after the Supabase client (re)initializes or rotates its token, that one call can transiently return `null` for a genuinely signed-in user, so the gate redirected to `/auth`; re-auth with no `redirect` then resolved to `/marketplace`.
+
+### Changes
+- `src/routes/_authenticated/route.tsx` — added `resolveAuthedUser()` that retries `getSession()` up to 3 times (120ms spacing) and falls back to `getUser()` (server revalidation) before treating the visitor as a guest. `beforeLoad` now uses it instead of a single `getSession()` call.
+
+### No backend changes
+Pure frontend guard hardening. Redirect/`resolvePostLoginPath` logic (which already honors `redirect=/checkout`) is unchanged.
+
+## 2026-07-17 - MOQ enforcement, category copy cleanup, stepper colors, order-success tick
+
+### Why
+Category titles said "Buy … Online" and categories index mentioned "Udaan-style"; quantity +/- buttons had washed-out colors; orders below MOQ could still check out; order-success screen used a Sparkles icon instead of a tick.
+
+### Changes
+- `categories.$slug.tsx` — title shows the category/subcategory name (no "Buy … Online")
+- `categories.index.tsx` — removed "Udaan-style" from the description
+- `AddToCartControl.tsx` / `CartItemRow.tsx` — quantity steppers use brand text with `hover:bg-brand hover:text-white` and a brand-tinted border
+- `lib/moq.ts` [NEW] — `isBelowMoq` / `findBelowMoqItems` / `moqErrorMessage` helpers
+- `cart.tsx` — checkout disabled + toast when any line is below MOQ; warning banner
+- `CartItemRow.tsx` — per-item "Add at least N unit" warning when below MOQ
+- `checkout.tsx` — `next()` / `submitPayment()` block when below MOQ; order-success icon is a centered `Check` tick
+
+## 2026-07-17 - Category browse: stable order, breadcrumbs, scroll restore, post-login catalog
+
+### Why
+Product list order shuffled on return from PDP; breadcrumbs opened wrong marketplace filter UI; scroll jumped to top; category grids empty or stale after login.
+
+### Changes
+- `marketplace.tsx` — removed random shelf shuffle; redirect `?category=` to `/categories/$slug`; scroll restore hook
+- `products.$slug.tsx` — breadcrumbs link to `/categories/$slug` (+ `sub` for subcategory)
+- `SiteLayout.tsx` — removed global scroll-to-top override (router scroll restoration works)
+- `DashboardLayout.tsx` — buyer layout no longer remounts main on every path change
+- `browseScroll.ts` / `useBrowseScrollRestore.ts` — sessionStorage scroll restore for list → PDP → back
+- `ProductCard.tsx`, `ProductListItem.tsx` — save list scroll before opening a product
+- `useCatalog.ts` — auth-aware query keys + higher product limits (500 list / 200 category)
+- `productFilters.ts` — subcategory filter matches slug or display name
+
+## 2026-07-17 - Buyer/seller auth navigation + retailers CTA card styling
+
+### Why
+Guest Add-to-cart and network CTAs did not always open the correct buyer/seller auth; retailers card was solid green instead of two-tone like the seller card.
+
+### Changes
+- `NetworkSection.tsx` — seller CTA → `/auth?mode=signup&role=seller`; buyer CTA → `/auth?mode=signin&role=buyer`; retailers card uses light header + white body (matches seller card)
+- `auth.tsx` — role derived synchronously from URL + pending cart (always buyer when guest clicked Add)
+- `Header.tsx`, `CartSheet.tsx`, `CartItemRow.tsx`, `cart.tsx`, `SaveProductButton.tsx` — buyer auth links include `role=buyer`
+- `AddToCartControl.tsx` — already navigates guest Add → buyer sign-in with return URL
+
+## 2026-07-17 - Bigger navbar logo + remove sign-in role gate
+
+### Why
+Navbar wordmark looked small, and the Buyer/Seller sign-in role-membership check was blocking valid logins (signing users out with "No buyer/seller account" errors when they used the "wrong" tab).
+
+### Changes
+- `Logo.tsx` — new optional `imgClassName` prop to override wordmark height (default stays `h-10 sm:h-11`)
+- `Header.tsx` — navbar logo enlarged via `imgClassName="h-14 sm:h-16"`
+- `SignInForm.tsx` — removed the `assertAccountMembership` gate in `finishSignIn` (no more forced sign-out on role mismatch) and the "No buyer/seller account for this email" early-return in the invalid-credentials branch. Valid credentials now always sign in from either tab; dropped the unused import. Email-not-confirmed OTP flow is unchanged.
 
 ## 2026-07-17 - Back-to-home button on auth pages
 

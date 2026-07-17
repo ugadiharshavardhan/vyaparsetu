@@ -91,7 +91,7 @@ export function AddToCartControl({
     return (
       <div
         className={cn(
-          "inline-flex flex-1 items-center justify-between rounded-full border border-border bg-background shadow-soft",
+          "inline-flex flex-1 items-center justify-between rounded-full border border-brand/40 bg-white shadow-soft",
           size === "lg" ? "h-11" : "h-9",
           className,
         )}
@@ -105,12 +105,12 @@ export function AddToCartControl({
             e.stopPropagation();
             changeQty(line.quantity - 1);
           }}
-          className="grid h-full w-10 place-items-center text-muted-foreground transition hover:bg-secondary disabled:opacity-50"
+          className="grid h-full w-10 place-items-center rounded-l-full text-brand transition-colors hover:bg-brand hover:text-white disabled:opacity-50"
           aria-label="Decrease quantity"
         >
-          <Minus className="h-4 w-4" />
+          <Minus className="h-4 w-4" strokeWidth={2.5} />
         </button>
-        <div className="min-w-[2.5rem] px-1 text-center text-sm font-semibold tabular-nums">
+        <div className="min-w-[2.5rem] px-1 text-center text-sm font-semibold tabular-nums text-foreground">
           {line.quantity}
         </div>
         <button
@@ -121,10 +121,10 @@ export function AddToCartControl({
             e.stopPropagation();
             changeQty(line.quantity + 1);
           }}
-          className="grid h-full w-10 place-items-center text-muted-foreground transition hover:bg-secondary disabled:opacity-50"
+          className="grid h-full w-10 place-items-center rounded-r-full text-brand transition-colors hover:bg-brand hover:text-white disabled:opacity-50"
           aria-label="Increase quantity"
         >
-          <Plus className="h-4 w-4" />
+          <Plus className="h-4 w-4" strokeWidth={2.5} />
         </button>
       </div>
     );

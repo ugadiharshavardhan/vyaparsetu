@@ -14,6 +14,8 @@ import { CartItemRow } from "@/components/cart/CartItemRow";
 import { PriceSummary } from "@/components/cart/PriceSummary";
 import { CouponInput } from "@/components/cart/CouponInput";
 import { computeTotals } from "@/lib/commerce";
+import { findBelowMoqItems, moqErrorMessage } from "@/lib/moq";
+import { toast } from "sonner";
 import type { Coupon } from "@/types/commerce";
 
 export const Route = createFileRoute("/cart")({
@@ -22,7 +24,7 @@ export const Route = createFileRoute("/cart")({
 });
 
 function CartPage() {
-  const { user } = useAuth();
+  const { isAuthenticated, loading: authLoading } = useAuth();
   const { data: items = [], isLoading, isError, error, refetch, isFetching } = useCart();
   const [coupon, setCoupon] = useState<Coupon | null>(null);
   const navigate = useNavigate();
@@ -57,15 +59,32 @@ function CartPage() {
     }
   }, [active, coupon]);
 
+  const belowMoq = useMemo(() => findBelowMoqItems(active), [active]);
+
   const goCheckout = () => {
-    if (!user) {
+    if (authLoading) {
+      toast.message("Checking your session…");
+      return;
+    }
+    if (!isAuthenticated) {
       navigate({
         to: "/auth",
-        search: { mode: "signin", redirect: `/checkout${coupon?.code ? `?coupon=${coupon.code}` : ""}` },
+        search: {
+          mode: "signin",
+          role: "buyer",
+          redirect: `/checkout${coupon?.code ? `?coupon=${coupon.code}` : ""}`,
+        },
       });
       return;
     }
-    navigate({ to: "/checkout", search: { coupon: coupon?.code ?? "" } });
+    if (belowMoq.length > 0) {
+      toast.error(moqErrorMessage(belowMoq[0]));
+      return;
+    }
+    void navigate({
+      to: "/checkout",
+      search: coupon?.code ? { coupon: coupon.code } : {},
+    });
   };
 
   if (isError) {
@@ -89,7 +108,7 @@ function CartPage() {
       <PageHeader
         title="Your cart"
         description={
-          !user
+          !isAuthenticated
             ? `${active.length} ${active.length === 1 ? "item" : "items"} · Guest cart (sign in to checkout)`
             : `${active.length} ${active.length === 1 ? "item" : "items"} · Bulk pricing applied`
         }
@@ -140,7 +159,7 @@ function CartPage() {
           </div>
 
           <aside className="space-y-4 lg:sticky lg:top-24 lg:h-max">
-            {user ? (
+            {isAuthenticated ? (
               <CouponInput
                 subtotal={breakup.subtotal}
                 coupon={coupon}
@@ -153,13 +172,18 @@ function CartPage() {
               </div>
             )}
             <PriceSummary breakup={breakup} itemCount={active.length} />
+            {belowMoq.length > 0 && (
+              <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-[11px] font-medium text-destructive">
+                Some items are below their minimum order quantity. Increase them to place your order.
+              </div>
+            )}
             <Button
               size="lg"
               className="w-full shadow-brand"
-              disabled={active.length === 0}
+              disabled={active.length === 0 || belowMoq.length > 0}
               onClick={goCheckout}
             >
-              {user ? "Proceed to checkout" : "Sign in to checkout"}{" "}
+              {isAuthenticated ? "Proceed to checkout" : "Sign in to checkout"}{" "}
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
             <div className="rounded-xl bg-secondary/60 p-3 text-[11px] text-muted-foreground">
@@ -183,8 +207,12 @@ function CartPage() {
                   })}
                 </div>
               </div>
-              <Button className="shadow-brand" disabled={active.length === 0} onClick={goCheckout}>
-                {user ? "Checkout" : "Sign in"}
+              <Button
+                className="shadow-brand"
+                disabled={active.length === 0 || belowMoq.length > 0}
+                onClick={goCheckout}
+              >
+                {isAuthenticated ? "Checkout" : "Sign in"}
               </Button>
             </div>
           </motion.div>

@@ -8,6 +8,7 @@ export function Logo({
   variant = "default",
   asLink = true,
   className,
+  imgClassName,
 }: {
   compact?: boolean;
   /** Kept for callers; wordmark image already includes the tagline. */
@@ -16,6 +17,8 @@ export function Logo({
   /** Set false when Logo is already wrapped in a parent Link. */
   asLink?: boolean;
   className?: string;
+  /** Override the wordmark height (defaults to `h-10 sm:h-11`). */
+  imgClassName?: string;
 }) {
   void hideSubtitle;
   const onBrand = variant === "onBrand";
@@ -42,7 +45,8 @@ export function Logo({
       alt={SITE.name}
       decoding="async"
       className={cn(
-        "h-10 w-auto object-contain object-left sm:h-11",
+        "w-auto object-contain object-left",
+        imgClassName ?? "h-10 sm:h-11",
         onBrand && "rounded-md bg-white px-2 py-1 shadow-soft",
       )}
     />

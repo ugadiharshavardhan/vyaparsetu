@@ -11,6 +11,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Logo } from "@/components/common/Logo";
 import { SearchDialog } from "@/components/search/SearchDialog";
+import { UserMenu } from "@/components/layout/UserMenu";
+import { CartButton } from "@/components/cart/CartButton";
+import { useAuth } from "@/hooks/useAuth";
 import {
   DELIVERY_LOCATIONS,
   readDeliveryLocation,
@@ -69,6 +72,7 @@ export function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [location, setLocation] = useState<DeliveryLocation | null>(null);
+  const { isAuthenticated, loading: authLoading } = useAuth();
 
   useEffect(() => {
     setLocation(readDeliveryLocation());
@@ -94,7 +98,7 @@ export function Header() {
     >
       <div className="mx-auto flex h-[4.5rem] w-full max-w-[100rem] items-center gap-3 px-4 sm:h-[5rem] sm:px-6 lg:gap-5 lg:px-10 xl:px-12">
         <div className="flex shrink-0 items-center gap-3 sm:gap-4 lg:gap-5">
-          <Logo className="shrink-0" />
+          <Logo className="shrink-0" imgClassName="h-14 sm:h-16" />
           <div className="hidden sm:block">
             <LocationPicker location={location} onSelect={selectLocation} />
           </div>
@@ -137,14 +141,21 @@ export function Header() {
             <Search className="h-5 w-5 text-brand" />
           </button>
 
-          <Button
-            asChild
-            className="hidden h-11 rounded-full bg-brand px-6 text-base font-semibold text-brand-foreground hover:bg-brand/90 sm:inline-flex"
-          >
-            <Link to="/auth" search={{ mode: "signin" }}>
-              Login / Signup
-            </Link>
-          </Button>
+          {!authLoading && isAuthenticated ? (
+            <>
+              <CartButton className="hidden sm:inline-flex" />
+              <UserMenu />
+            </>
+          ) : !authLoading ? (
+            <Button
+              asChild
+              className="hidden h-11 rounded-full bg-brand px-6 text-base font-semibold text-brand-foreground hover:bg-brand/90 sm:inline-flex"
+            >
+              <Link to="/auth" search={{ mode: "signin", role: "buyer" }}>
+                Login / Signup
+              </Link>
+            </Button>
+          ) : null}
 
           <Sheet>
             <SheetTrigger asChild>
@@ -195,14 +206,24 @@ export function Header() {
                 ))}
 
                 <div className="mt-4 border-t border-border pt-4">
-                  <Button
-                    className="h-11 w-full rounded-full bg-brand text-base font-semibold text-brand-foreground hover:bg-brand/90"
-                    asChild
-                  >
-                    <Link to="/auth" search={{ mode: "signin" }}>
-                      Login / Signup
-                    </Link>
-                  </Button>
+                  {isAuthenticated ? (
+                    <div className="flex items-center justify-between gap-3 px-1">
+                      <span className="text-sm font-medium text-muted-foreground">Your account</span>
+                      <div className="flex items-center gap-2">
+                        <CartButton variant="ghost" />
+                        <UserMenu />
+                      </div>
+                    </div>
+                  ) : (
+                    <Button
+                      className="h-11 w-full rounded-full bg-brand text-base font-semibold text-brand-foreground hover:bg-brand/90"
+                      asChild
+                    >
+                      <Link to="/auth" search={{ mode: "signin", role: "buyer" }}>
+                        Login / Signup
+                      </Link>
+                    </Button>
+                  )}
                 </div>
               </div>
             </SheetContent>

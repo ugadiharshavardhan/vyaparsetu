@@ -1,5 +1,4 @@
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { AuthLayout } from "@/components/auth/AuthLayout";
@@ -8,8 +7,9 @@ import { SignInForm } from "@/components/auth/SignInForm";
 import { SignUpForm } from "@/components/auth/SignUpForm";
 import { AdminSignInForm } from "@/components/auth/AdminSignInForm";
 import type { BusinessRole } from "@/components/auth/RoleSelect";
-import { resolvePostLoginPath } from "@/lib/postLoginRedirect";
+import { resolvePostLoginPath, sanitizeReturnPath } from "@/lib/postLoginRedirect";
 import { peekPendingCartAdd } from "@/lib/pendingCart";
+import { resolveAuthedUser } from "@/lib/resolveAuthedUser";
 
 const searchSchema = z.object({
   mode: z.enum(["signin", "signup"]).optional(),
@@ -21,31 +21,46 @@ function isAdminRedirect(redirect?: string) {
   return !!redirect && (redirect === "/admin" || redirect.startsWith("/admin/"));
 }
 
+/** Pull query params off a sanitized return path for TanStack `redirect({ search })`. */
+function parseRedirectSearch(dest: string): Record<string, string> | undefined {
+  const query = dest.split("?")[1];
+  if (!query) return undefined;
+  const search: Record<string, string> = {};
+  new URLSearchParams(query).forEach((value, key) => {
+    search[key] = value;
+  });
+  return Object.keys(search).length ? search : undefined;
+}
+
 export const Route = createFileRoute("/auth")({
   validateSearch: searchSchema,
   beforeLoad: async ({ search }) => {
     if (typeof window === "undefined") return;
-    const { data } = await supabase.auth.getSession();
-    if (!data.session) return;
+    const user = await resolveAuthedUser();
+    if (!user) return;
 
-    const pendingReturn = peekPendingCartAdd()?.returnTo;
-    const dest = search.redirect || pendingReturn;
+    const pendingReturn = sanitizeReturnPath(peekPendingCartAdd()?.returnTo);
+    const dest = sanitizeReturnPath(search.redirect) || pendingReturn;
 
     if (dest && (dest === "/admin" || dest.startsWith("/admin/"))) {
       const { data: isAdmin } = await supabase.rpc("is_admin", {
-        _user_id: data.session.user.id,
+        _user_id: user.id,
       });
       if (isAdmin) {
-        throw redirect({ href: dest });
+        throw redirect({
+          to: dest.split("?")[0] as never,
+          search: parseRedirectSearch(dest) as never,
+        });
       }
       await supabase.auth.signOut();
       return;
     }
 
-    if (dest && dest.startsWith("/")) {
-      throw redirect({ href: dest });
+    if (dest) {
+      const pathname = dest.split("?")[0];
+      throw redirect({ to: pathname as never, search: parseRedirectSearch(dest) as never });
     }
-    const path = await resolvePostLoginPath(data.session.user.id, search.redirect);
+    const path = await resolvePostLoginPath(user.id, search.redirect);
     throw redirect({ href: path });
   },
   head: () => ({
@@ -62,23 +77,12 @@ function AuthPage() {
   const navigate = useNavigate();
   const mode = search.mode ?? "signin";
   const adminLogin = isAdminRedirect(search.redirect);
-  const [role, setRole] = useState<BusinessRole>(search.role ?? "buyer");
-  const [pendingProduct, setPendingProduct] = useState(false);
-
-  useEffect(() => {
-    if (search.role) setRole(search.role);
-  }, [search.role]);
-
-  useEffect(() => {
-    const pending = peekPendingCartAdd();
-    if (!pending || adminLogin) return;
-    setPendingProduct(true);
-    setRole("buyer");
-  }, [adminLogin]);
+  const pendingCart = peekPendingCartAdd();
+  const pendingProduct = !!pendingCart && !adminLogin;
+  const role: BusinessRole = pendingProduct ? "buyer" : (search.role ?? "buyer");
 
   const setRoleAndUrl = (next: BusinessRole) => {
     if (pendingProduct && next === "seller") return;
-    setRole(next);
     navigate({
       to: "/auth",
       search: {
@@ -95,15 +99,9 @@ function AuthPage() {
       navigate({ to: "/auth", search: { mode: "signin", role: "buyer", redirect: search.redirect } });
       return;
     }
-    const pending = peekPendingCartAdd();
-    const nextRole = pending ? "buyer" : role;
-    if (pending) {
-      setPendingProduct(true);
-      setRole("buyer");
-    }
     navigate({
       to: "/auth",
-      search: { mode: m, role: nextRole, redirect: search.redirect },
+      search: { mode: m, role: pendingProduct ? "buyer" : role, redirect: search.redirect },
     });
   };
 

@@ -3,6 +3,18 @@ import type { Filters } from "@/components/marketplace/FilterSidebar";
 
 export type SortKey = "featured" | "price-asc" | "price-desc" | "rating" | "newest";
 
+function normalizeSlug(value: string) {
+  return value.trim().toLowerCase().replace(/\s+/g, "-");
+}
+
+function matchesSubCategory(product: Product, filterSub: string) {
+  const productSub = product.subCategory?.trim();
+  if (!productSub) return false;
+  const filterNorm = normalizeSlug(filterSub);
+  const productNorm = normalizeSlug(productSub);
+  return productNorm === filterNorm || productSub.toLowerCase() === filterSub.toLowerCase();
+}
+
 export function filterProducts(
   products: Product[],
   filters: Filters,
@@ -13,7 +25,7 @@ export function filterProducts(
 
   return products.filter((p) => {
     if (filters.category && p.category !== filters.category) return false;
-    if (filters.subCategory && p.subCategory !== filters.subCategory) return false;
+    if (filters.subCategory && !matchesSubCategory(p, filters.subCategory)) return false;
     if (p.wholesalePrice > filters.priceMax) return false;
     if (p.moq > filters.moqMax) return false;
     if (p.rating < filters.minRating) return false;

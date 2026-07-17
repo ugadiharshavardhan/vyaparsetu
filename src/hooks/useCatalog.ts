@@ -2,9 +2,14 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Category, Product } from "@/types";
 import { mapDbCategory, mapDbProduct, type DbCategory, type DbProduct } from "@/lib/catalogMap";
+import { useAuth } from "@/hooks/useAuth";
 
 const PRODUCTS_KEY = ["catalog-products"] as const;
 const CATEGORIES_KEY = ["catalog-categories"] as const;
+
+function catalogAuthKey(userId: string | undefined) {
+  return userId ?? "guest";
+}
 
 /** Columns needed for cards/grids — avoid select("*") payloads. */
 const PRODUCT_LIST_COLUMNS = [
@@ -140,9 +145,10 @@ async function fetchCategories(): Promise<Category[]> {
 
 /** Marketplace / browse list — projected columns, capped for fast first paint. */
 export function useProducts(options?: { limit?: number; enabled?: boolean }) {
-  const limit = options?.limit ?? 120;
+  const { user } = useAuth();
+  const limit = options?.limit ?? 500;
   return useQuery({
-    queryKey: [...PRODUCTS_KEY, "list", limit],
+    queryKey: [...PRODUCTS_KEY, "list", limit, catalogAuthKey(user?.id)],
     enabled: options?.enabled ?? true,
     staleTime: 5 * 60_000,
     queryFn: () => fetchProductList({ limit }),
@@ -160,8 +166,9 @@ export function useAllProducts(options?: { enabled?: boolean }) {
 }
 
 export function useCategories(options?: { enabled?: boolean }) {
+  const { user } = useAuth();
   return useQuery({
-    queryKey: CATEGORIES_KEY,
+    queryKey: [...CATEGORIES_KEY, catalogAuthKey(user?.id)],
     enabled: options?.enabled ?? true,
     staleTime: 10 * 60_000,
     queryFn: fetchCategories,
@@ -204,8 +211,9 @@ export function useManufacturers(options?: { enabled?: boolean }) {
 }
 
 export function useProductBySlug(slug: string | undefined) {
+  const { user } = useAuth();
   return useQuery({
-    queryKey: [...PRODUCTS_KEY, "slug", slug],
+    queryKey: [...PRODUCTS_KEY, "slug", slug, catalogAuthKey(user?.id)],
     enabled: !!slug,
     staleTime: 5 * 60_000,
     queryFn: async (): Promise<Product | null> => {
@@ -222,16 +230,18 @@ export function useProductBySlug(slug: string | undefined) {
 }
 
 export function useFeaturedProducts(limit = 8) {
+  const { user } = useAuth();
   return useQuery({
-    queryKey: [...PRODUCTS_KEY, "featured", limit],
+    queryKey: [...PRODUCTS_KEY, "featured", limit, catalogAuthKey(user?.id)],
     staleTime: 5 * 60_000,
     queryFn: () => fetchProductList({ featured: true, limit }),
   });
 }
 
-export function useProductsByCategory(categorySlug: string | undefined, limit = 96) {
+export function useProductsByCategory(categorySlug: string | undefined, limit = 200) {
+  const { user } = useAuth();
   return useQuery({
-    queryKey: [...PRODUCTS_KEY, "category", categorySlug, limit],
+    queryKey: [...PRODUCTS_KEY, "category", categorySlug, limit, catalogAuthKey(user?.id)],
     enabled: !!categorySlug,
     staleTime: 5 * 60_000,
     queryFn: () => fetchProductList({ categorySlug: categorySlug!, limit }),

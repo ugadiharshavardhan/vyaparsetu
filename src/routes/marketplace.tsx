@@ -23,6 +23,7 @@ import {
   PaginationLink, PaginationNext, PaginationPrevious,
 } from "@/components/ui/pagination";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useBrowseScrollRestore } from "@/hooks/useBrowseScrollRestore";
 import { filterProducts, sortProducts } from "@/lib/productFilters";
 import { useCategories, useProducts } from "@/hooks/useCatalog";
 import { MarketplacePending } from "@/components/common/LoadingSpinner";
@@ -177,6 +178,7 @@ function PromotionalBanners() {
 
 function MarketplacePage() {
   const search = Route.useSearch();
+  useBrowseScrollRestore();
   const navigate = useNavigate({ from: "/marketplace" });
   const { data: products = [], isLoading: productsLoading } = useProducts();
   const { data: categories = [], isLoading: categoriesLoading } = useCategories();
@@ -216,10 +218,19 @@ function MarketplacePage() {
       .filter((s) => s.products.length > 0)
       .map((shelf) => ({
         ...shelf,
-        products: [...shelf.products].sort(() => 0.5 - Math.random()),
+        products: sortProducts(shelf.products, "featured"),
       }))
       .sort((a, b) => a.categoryName.localeCompare(b.categoryName));
   }, [products, categories, isDefaultView]);
+
+  useEffect(() => {
+    if (!search.category) return;
+    void navigate({
+      to: "/categories/$slug",
+      params: { slug: search.category },
+      replace: true,
+    });
+  }, [search.category, navigate]);
 
   useEffect(() => {
     setQuery(search.q ?? "");
@@ -256,10 +267,17 @@ function MarketplacePage() {
   const handleFiltersChange = (next: Filters) => {
     setFilters(next);
     if (next.category !== filters.category) {
+      if (next.category) {
+        void navigate({
+          to: "/categories/$slug",
+          params: { slug: next.category },
+        });
+        return;
+      }
       void navigate({
         search: (prev) => ({
           ...prev,
-          category: next.category ?? undefined,
+          category: undefined,
         }),
         replace: true,
       });

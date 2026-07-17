@@ -12,7 +12,6 @@ import { Label } from "@/components/ui/label";
 import { EmailOtpForm } from "@/components/auth/EmailOtpForm";
 import { resolvePostLoginPath } from "@/lib/postLoginRedirect";
 import { setSessionMode, clearSessionMode } from "@/lib/sessionMode";
-import { assertAccountMembership } from "@/lib/accountMembership";
 import { establishSessionAfterSignup, sendEmailOtp, checkLoginHelp } from "@/lib/otp";
 import { cn } from "@/lib/utils";
 import { authFieldLabel, authInputWithIcon, authSubmitButton } from "@/components/auth/AuthLayout";
@@ -43,16 +42,8 @@ export function SignInForm({ role }: { role?: "buyer" | "seller" } = {}) {
   };
 
   const finishSignIn = async (userId: string) => {
-    if (role) {
-      const membership = await assertAccountMembership(userId, role);
-      if (!membership.ok) {
-        await supabase.auth.signOut();
-        clearSessionMode();
-        toast.error(membership.message);
-        return;
-      }
-    }
-
+    // No role-membership gate: valid credentials always sign in. Buyers and
+    // sellers can log in from either tab without being blocked or signed out.
     persistMode();
     toast.success("Welcome back!");
     const path = await resolvePostLoginPath(userId, search.redirect);
@@ -86,14 +77,6 @@ export function SignInForm({ role }: { role?: "buyer" | "seller" } = {}) {
       if (msg.includes("invalid")) {
         try {
           const help = await checkLoginHelp(email, role);
-          if (help.exists && help.hasRole === false && role) {
-            toast.error(
-              role === "seller"
-                ? "No seller account for this email. Sign in as Buyer or create a seller account."
-                : "No buyer account for this email. Sign in as Seller or create a buyer account.",
-            );
-            return;
-          }
           if (help.exists && help.confirmed === false) {
             await sendEmailOtp(email, "signup", { userId: help.userId, force: true });
             setPendingVerify({ email, password: values.password });

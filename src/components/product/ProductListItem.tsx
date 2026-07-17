@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import { Eye, MapPin, ShieldCheck } from "lucide-react";
 import type { Product } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -9,9 +9,16 @@ import { VerifiedBadge } from "@/components/common/VerifiedBadge";
 import { SaveProductButton } from "@/components/product/SaveProductButton";
 import { AddToCartControl } from "@/components/cart/AddToCartControl";
 import { getProductDisplayImage } from "@/lib/productImages";
+import { browseScrollKey, saveBrowseScroll } from "@/lib/browseScroll";
 
 export function ProductListItem({ product, onQuickView }: { product: Product; onQuickView?: (p: Product) => void }) {
   const banner = getProductDisplayImage(product);
+  const location = useRouterState({ select: (r) => r.location });
+  const rememberScroll = () => {
+    saveBrowseScroll(
+      browseScrollKey(location.pathname, location.search as Record<string, unknown>),
+    );
+  };
   return (
     <article className="grid grid-cols-[112px_minmax(0,1fr)] gap-4 rounded-2xl border border-border bg-card p-4 shadow-soft transition-shadow hover:shadow-elevated sm:grid-cols-[160px_minmax(0,1fr)_auto]">
       <div className="relative aspect-square overflow-hidden rounded-xl bg-secondary">
@@ -29,6 +36,7 @@ export function ProductListItem({ product, onQuickView }: { product: Product; on
         <Link
           to="/products/$slug"
           params={{ slug: product.slug }}
+          onClick={rememberScroll}
           className="mt-1 line-clamp-2 text-base font-semibold text-foreground hover:text-brand"
         >
           {product.name}

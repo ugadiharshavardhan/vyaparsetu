@@ -394,31 +394,31 @@ export function NetworkSection({
                 variant="outline"
                 className="mt-6 rounded-xl border-brand text-brand hover:bg-brand-soft"
               >
-                <Link to="/auth" search={{ mode: "signup" }}>
+                <Link to="/auth" search={{ mode: "signup", role: "seller" }}>
                   Register as a seller
                 </Link>
               </Button>
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-2xl bg-brand shadow-soft">
-            <CardIconHeader icon={Store} tone="brand" sticker="Shop wholesale" />
+          <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
+            <CardIconHeader icon={Store} tone="light" sticker="Shop wholesale" />
             <div className="p-7 sm:p-8">
-              <p className="text-xs font-semibold uppercase tracking-wider text-brand-foreground/80">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 For kirana &amp; retail buyers
               </p>
-              <h3 className="mt-2 font-display text-xl font-bold text-brand-foreground">
+              <h3 className="mt-2 font-display text-xl font-bold text-foreground">
                 Retailers
               </h3>
-              <p className="mt-2 text-sm text-brand-foreground/85">
+              <p className="mt-2 text-sm text-muted-foreground">
                 Source at wholesale prices with MOQ clarity, GST invoices, and reliable delivery.
               </p>
               <Button
                 asChild
                 variant="outline"
-                className="mt-6 rounded-xl border-white/50 bg-transparent text-brand-foreground hover:bg-white hover:text-brand"
+                className="mt-6 rounded-xl border-brand text-brand hover:bg-brand-soft"
               >
-                <Link to="/auth" search={{ mode: "signup" }}>
+                <Link to="/auth" search={{ mode: "signin", role: "buyer" }}>
                   Login / Sign up
                 </Link>
               </Button>

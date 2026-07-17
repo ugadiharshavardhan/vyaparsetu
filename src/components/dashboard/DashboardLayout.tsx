@@ -24,7 +24,6 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
       <div className="flex min-h-screen w-full flex-col bg-background">
         <DashboardTopbar isBuyerLayout={true} />
         <motion.main
-          key={pathname}
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25 }}

@@ -1,10 +1,11 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import { Star } from "lucide-react";
 import { useState } from "react";
 import type { Product } from "@/types";
 import { AddToCartControl } from "@/components/cart/AddToCartControl";
 import { discountPct, inr } from "@/lib/format";
 import { getProductDisplayImage } from "@/lib/productImages";
+import { browseScrollKey, saveBrowseScroll } from "@/lib/browseScroll";
 
 const PRODUCT_FALLBACK =
   "https://images.unsplash.com/photo-1604719312566-8912e9227c6a?auto=format&fit=crop&w=800&q=70";
@@ -39,6 +40,12 @@ type Props = {
 export function ProductCard({ product, onQuickView }: Props) {
   const off = discountPct(product.mrp, product.wholesalePrice);
   const displayImage = getProductDisplayImage(product);
+  const location = useRouterState({ select: (r) => r.location });
+  const rememberScroll = () => {
+    saveBrowseScroll(
+      browseScrollKey(location.pathname, location.search as Record<string, unknown>),
+    );
+  };
 
   return (
     <article className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card transition-colors duration-200 hover:border-brand/40">
@@ -46,6 +53,7 @@ export function ProductCard({ product, onQuickView }: Props) {
       <Link
         to="/products/$slug"
         params={{ slug: product.slug }}
+        onClick={rememberScroll}
         className="relative block aspect-[4/5] w-full overflow-hidden bg-secondary/30"
       >
         <ProductImage
@@ -90,6 +98,7 @@ export function ProductCard({ product, onQuickView }: Props) {
         <Link
           to="/products/$slug"
           params={{ slug: product.slug }}
+          onClick={rememberScroll}
           className="line-clamp-2 text-sm font-medium leading-snug text-foreground group-hover:text-brand"
         >
           {product.name}
