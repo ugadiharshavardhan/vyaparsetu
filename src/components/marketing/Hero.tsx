@@ -4,9 +4,9 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 /** Pre-designed 2:1 banner art in /public — text/CTA is baked into the image. */
 const SLIDES = [
-  { id: 1, image: "/hero-banner1.png" },
-  { id: 2, image: "/hero-banner2.png" },
-  { id: 3, image: "/hero-banner3.png" },
+  { id: 1, image: "/hero-banner1.jpg" },
+  { id: 2, image: "/hero-banner2.jpg" },
+  { id: 3, image: "/hero-banner3.jpg" },
 ];
 
 export function Hero() {
@@ -37,7 +37,10 @@ export function Hero() {
               src={slide.image}
               alt="VyaparSetu wholesale for retailers"
               className="h-full w-full object-cover"
-              fetchPriority="high"
+              width={1600}
+              height={800}
+              decoding="async"
+              fetchPriority={index === 0 ? "high" : "low"}
             />
           </motion.div>
         </AnimatePresence>

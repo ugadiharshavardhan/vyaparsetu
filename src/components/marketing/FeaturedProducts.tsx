@@ -33,6 +33,7 @@ function LandingProductCard({ product }: { product: Product }) {
             src={src}
             alt={product.name}
             loading="lazy"
+            decoding="async"
             onError={() => setImgFailed(true)}
             className="h-full w-full object-contain"
           />

@@ -24,6 +24,7 @@ function ProductImage({
       src={!src || failed ? PRODUCT_FALLBACK : src}
       alt={alt}
       loading="lazy"
+      decoding="async"
       onError={() => setFailed(true)}
       className={className}
     />

@@ -24,6 +24,7 @@ export function CategoryImage({
       src={url}
       alt={alt}
       loading="lazy"
+      decoding="async"
       onError={() => setFailed(true)}
       className={className}
     />

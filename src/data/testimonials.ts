@@ -12,7 +12,7 @@ export const TESTIMONIALS: Testimonial[] = [
       "VyaparSetu changed how I stock my shop. I save ₹18,000 every month and my orders arrive within 2 days. Their platform simplifies browse to delivery.",
     rating: 5,
     accent: "#7A8F6A",
-    photo: "/retailers/retailer-1.png",
+    photo: "/retailers/retailer-1.jpg",
   },
   {
     id: "t2",
@@ -24,7 +24,7 @@ export const TESTIMONIALS: Testimonial[] = [
       "Verified sellers and clear MOQs help me order with confidence. GST invoices are ready for my accountant every week.",
     rating: 5,
     accent: "#8B7355",
-    photo: "/retailers/retailer-2.png",
+    photo: "/retailers/retailer-2.jpg",
   },
   {
     id: "t3",
@@ -36,7 +36,7 @@ export const TESTIMONIALS: Testimonial[] = [
       "Factory pricing without middlemen means better margins for my kirana. Reorders take minutes on VyaparSetu.",
     rating: 5,
     accent: "#5C6B7A",
-    photo: "/retailers/retailer-3.png",
+    photo: "/retailers/retailer-3.jpg",
   },
   {
     id: "t4",
@@ -48,7 +48,7 @@ export const TESTIMONIALS: Testimonial[] = [
       "Onboarding was simple and seller verification gives us confidence. Our shelves stay full without over-ordering.",
     rating: 5,
     accent: "#6B7C5E",
-    photo: "/retailers/retailer-4.png",
+    photo: "/retailers/retailer-4.jpg",
   },
   {
     id: "t5",
@@ -60,6 +60,6 @@ export const TESTIMONIALS: Testimonial[] = [
       "MOQ clarity and delivery ETAs are reliable. VyaparSetu is how we restock staples across our two shops.",
     rating: 5,
     accent: "#4A5D4E",
-    photo: "/retailers/retailer-5.png",
+    photo: "/retailers/retailer-5.jpg",
   },
 ];

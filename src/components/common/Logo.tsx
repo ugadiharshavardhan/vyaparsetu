@@ -32,6 +32,7 @@ export function Logo({
       <img
         src={SITE.logo}
         alt=""
+        decoding="async"
         className="absolute left-[-8%] top-1/2 h-[155%] w-auto max-w-none -translate-y-1/2 object-cover object-left"
       />
     </span>
@@ -39,6 +40,7 @@ export function Logo({
     <img
       src={SITE.logo}
       alt={SITE.name}
+      decoding="async"
       className={cn(
         "h-10 w-auto object-contain object-left sm:h-11",
         onBrand && "rounded-md bg-white px-2 py-1 shadow-soft",

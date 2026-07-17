@@ -18,7 +18,7 @@ function nameParts(full: string) {
 function FlipTestimonialCard({ t }: { t: Testimonial }) {
   const { first, rest } = nameParts(t.name);
   const accent = t.accent ?? "#7A8F6A";
-  const photo = t.photo ?? "/retailers/retailer-1.png";
+  const photo = t.photo ?? "/retailers/retailer-1.jpg";
 
   return (
     <div
@@ -50,6 +50,10 @@ function FlipTestimonialCard({ t }: { t: Testimonial }) {
             <img
               src={photo}
               alt={t.name}
+              loading="lazy"
+              decoding="async"
+              width={320}
+              height={480}
               className="h-full w-full object-cover object-top"
               style={{
                 maskImage: "linear-gradient(to top, black 78%, transparent)",

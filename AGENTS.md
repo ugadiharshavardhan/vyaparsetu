@@ -156,13 +156,29 @@
 
 # Current Project State
 
-- **Current Phase:** Network animation spacing and flow polish
-- **Current Branch:** N/A
-- **Current Module:** `NetworkSection.tsx`
-- **Overall Progress:** Connector paths now extend behind all tags; colored flow width reduced to 20px and dashed paths to 2.5px.
+- **Current Phase:** Landing-page performance optimization (images + data fetching)
+- **Current Branch:** main
+- **Current Module:** `public/` assets, `Hero`, `Testimonials`, `useCatalog.ts`
+- **Overall Progress:** Compressed hero/retailer/banner/logo assets (~22MB → ~1.5MB), removed the all-products scan from `fetchCategories`, and added lazy/async image hints across the landing.
 - **Last Updated:** 2026-07-17
 
 # Development History
+
+## 2026-07-17 - Landing performance: image + data fetch optimization
+
+### Why
+Deployed landing page was slow to appear; hero/banner and section images loaded slowly and marketplace data was slow to populate.
+
+### Changes
+- `scratch/optimize-public-images.mjs` — jimp script that downscales + recompresses oversized `/public` marketing art
+  - hero-banner1–3: ~1.5 MB PNG → ~220 KB JPG each (`.png` → `.jpg`)
+  - bannerlanding: 1.5 MB PNG → 228 KB JPG
+  - retailers 1–5: ~2.4 MB PNG → ~120 KB JPG each
+  - logo.png: 904 KB → 35 KB (resized in place, kept PNG for transparency)
+- `Hero.tsx` / `CtaBanner.tsx` / `data/testimonials.ts` — point to new `.jpg` assets; deleted old PNG originals
+- Image hints: added `loading="lazy"` + `decoding="async"` (+ intrinsic width/height where safe) to `Hero`, `Testimonials`, `CtaBanner`, `ImpactSection`, `DeliveryModels`, `QualityAtEveryStep`, `Logo`, `ProductCard`, `CategoryCard`, `FeaturedProducts`
+- `useCatalog.ts` — `fetchCategories` no longer scans all ~409 products (and no longer pulls the heavy `images` JSON). It only queries product cover images for categories still missing a DB image, capped at 300 rows; skips the query entirely when every category already has an image
+- `__root.tsx` — narrowed Google Fonts Outfit axis from `100..900` to `400..800` to shrink the render-blocking font payload
 
 ## 2026-07-17 - Sync local work with main
 

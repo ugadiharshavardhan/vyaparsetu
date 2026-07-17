@@ -93,42 +93,47 @@ async function fetchCategories(): Promise<Category[]> {
     rawCats = legacy.data as unknown as DbCategory[];
   }
 
-  // Query products to find representative category images dynamically
-  const { data: productsData } = await supabase
-    .from("products")
-    .select("category_slug, image, images");
+  const cats = rawCats.map(mapDbCategory);
 
-  const productMap: Record<string, string[]> = {};
-  if (productsData) {
-    for (const p of productsData) {
-      if (!p.category_slug) continue;
-      if (!productMap[p.category_slug]) {
-        productMap[p.category_slug] = [];
-      }
-      const imgs = Array.isArray(p.images) ? p.images.map(String) : [];
-      if (p.image) imgs.unshift(p.image);
-      productMap[p.category_slug].push(...imgs);
-    }
-  }
+  // Most categories already carry a DB cover image. Only fall back to scanning
+  // products for the ones that are still missing one — and never pull the heavy
+  // `images` JSON array or the whole catalog (that scan blocked first paint).
+  const missingSlugs = cats
+    .filter((c) => !c.image || c.image === "")
+    .map((c) => c.slug);
+
+  if (missingSlugs.length === 0) return cats;
 
   const EXCLUDE_KEYWORDS = [
     "back", "label", "nutrition", "facts", "ingredient",
     "barcode", "rear", "side", "table", "chart", "pkg-back",
-    "packaging-back"
+    "packaging-back",
   ];
 
-  return rawCats.map((row) => {
-    const cat = mapDbCategory(row);
-    if (!cat.image || cat.image === "") {
-      const allImgs = productMap[cat.slug] || [];
-      const bestImg = allImgs.find(imgUrl => {
+  const { data: productsData } = await supabase
+    .from("products")
+    .select("category_slug, image")
+    .in("category_slug", missingSlugs)
+    .not("image", "is", null)
+    .limit(300);
+
+  const productMap: Record<string, string[]> = {};
+  for (const p of productsData ?? []) {
+    const slug = p.category_slug as string | null;
+    const image = p.image as string | null;
+    if (!slug || !image) continue;
+    (productMap[slug] ??= []).push(image);
+  }
+
+  return cats.map((cat) => {
+    if (cat.image && cat.image !== "") return cat;
+    const allImgs = productMap[cat.slug] || [];
+    const bestImg =
+      allImgs.find((imgUrl) => {
         const lower = imgUrl.toLowerCase();
-        return !EXCLUDE_KEYWORDS.some(kw => lower.includes(kw));
+        return !EXCLUDE_KEYWORDS.some((kw) => lower.includes(kw));
       }) || allImgs[0];
-      if (bestImg) {
-        cat.image = bestImg;
-      }
-    }
+    if (bestImg) cat.image = bestImg;
     return cat;
   });
 }

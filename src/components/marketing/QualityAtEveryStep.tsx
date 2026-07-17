@@ -160,6 +160,8 @@ export function QualityAtEveryStep() {
                   key={step.id}
                   src={step.image}
                   alt={step.title}
+                  loading="lazy"
+                  decoding="async"
                   initial={{ opacity: 0.35, scale: 1.02 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0.35 }}

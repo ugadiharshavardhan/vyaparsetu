@@ -52,7 +52,15 @@ export function ImpactSection() {
               className="relative mx-2 w-[14.5rem] shrink-0 overflow-hidden rounded-2xl shadow-soft sm:mx-2.5 sm:w-[16.5rem]"
             >
               <div className="aspect-[3/4]">
-                <img src={card.image} alt="" className="h-full w-full object-cover" />
+                <img
+                  src={card.image}
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                  width={264}
+                  height={352}
+                  className="h-full w-full object-cover"
+                />
                 <div className="absolute inset-0 bg-foreground/35" />
                 <p className="absolute inset-x-0 top-0 p-4 font-display text-base font-bold leading-snug text-white sm:text-lg">
                   {card.title}

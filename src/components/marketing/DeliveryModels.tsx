@@ -25,6 +25,10 @@ function PorterBrandMark() {
       <img
         src="/porterlogo.png"
         alt="Porter"
+        loading="lazy"
+        decoding="async"
+        width={96}
+        height={96}
         className="h-20 w-20 rounded-[1.25rem] object-cover shadow-soft ring-1 ring-black/5 sm:h-24 sm:w-24"
       />
       <h3 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">Porter</h3>
