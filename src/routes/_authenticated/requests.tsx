@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import { CheckCircle2, FlaskConical, Inbox, ShoppingCart, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -124,15 +125,20 @@ function RequestsPage() {
   const pending = requests.filter((r) => r.status === "sent");
   const answered = requests.filter((r) => r.status !== "sent");
 
-  const ordering = resolveProduct.isPending || addToCart.isPending;
+  // Track which request is being ordered so only that card's button animates.
+  const [orderingId, setOrderingId] = useState<string | null>(null);
 
   const orderItem = async (request: SampleRequest) => {
+    if (orderingId) return;
+    setOrderingId(request.id);
     try {
       const product = await resolveProduct.mutateAsync(request);
       await addToCart.mutateAsync({ snapshot: toSnapshot(product) });
       void navigate({ to: "/cart" });
     } catch {
       // errors surface via each mutation's own toast
+    } finally {
+      setOrderingId(null);
     }
   };
 
@@ -176,7 +182,7 @@ function RequestsPage() {
                   request={r}
                   responding={respond.isPending}
                   onRespond={(approve) => respond.mutate({ request: r, approve })}
-                  ordering={ordering}
+                  ordering={orderingId === r.id}
                   onOrder={() => void orderItem(r)}
                 />
               ))}
@@ -192,7 +198,7 @@ function RequestsPage() {
                 <RequestCard
                   key={r.id}
                   request={r}
-                  ordering={ordering}
+                  ordering={orderingId === r.id}
                   onOrder={() => void orderItem(r)}
                 />
               ))}

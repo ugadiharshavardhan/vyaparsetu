@@ -163,39 +163,39 @@
 
 # Development History
 
-## 2026-07-18 - Hide buyer mobile number from the seller dashboard
+## 2026-07-18 - Seller Samples: show buyer map location + full delivery address
 
 ### Why
-Buyer privacy: sellers should not see (or call) the buyer's mobile number anywhere in the seller workspace. Email remains the seller-visible contact channel.
+On the seller **Samples** section each sample order only showed a "city, state" string ("Deliver to") — the map/location wasn't appearing and the buyer's full address wasn't visible.
+
+### Root cause
+`fetchSellerOrders` (`useSupplier.ts`) mapped only `destination` (city, state) from `orders.shipping_address`; the full address fields and the map pin (`latitude`/`longitude`) stored in the shipping-address JSON were never passed through to `SupplierOrder`, so the Samples page had nothing to render a map or full address from.
 
 ### Changes
-- `src/routes/_authenticated/supplier.customers.index.tsx` — Buyers list: Contact column shows email only (was phone + email); the row "call" icon button removed; search no longer matches on phone.
-- `src/routes/_authenticated/supplier.customers.$id.tsx` — buyer profile: header **Call** button and the Phone row in the details card removed (Email/Address/GST stay).
-- `src/routes/_authenticated/supplier.orders.$id.tsx` — Retailer Information: phone/tel: line removed; email kept.
-- `src/routes/_authenticated/supplier.samples.tsx` — sample order buyer card: Phone block removed; buyer/email/destination stay.
-- `src/lib/invoice/buildSellerInvoiceDocument.ts` — seller-generated invoices no longer print the buyer phone (`buyer.phone: null`).
-- Unused `Phone` icon imports dropped from all four routes. Data layer untouched (`buyerPhone` still mapped in `useSupplier`), so this is purely presentational and easy to re-enable.
-
-## 2026-07-18 - Samples and regular items are mutually exclusive in the cart
-
-### Why
-Operator: "if samples are added to the cart then items should be removed from the cart." Sample lines (`sample:<id>`, ₹100 flat + ₹50 delivery, no MOQ/GST) and regular bulk lines shouldn't coexist because they check out under different pricing/flows.
-
-### Changes (`src/hooks/useCart.ts`)
-- `useAddSampleToCart` — before inserting the sample line, deletes all regular (non-sample) lines for the user (`.not("product_id","like","sample:%")`). Toast now notes when cart items were removed; the cart becomes samples-only.
-- `useAddToCart` — before adding/updating a regular line, deletes all sample lines (`.like("product_id","sample:%")`). Toast notes when samples were removed; the cart becomes regular-only.
-- `useRepeatOrder` — clears any sample lines first (repeat order re-adds regular items).
+- `src/types/supplier.ts` — new `OrderShippingAddress` type (contactName/phone/line1/line2/landmark/city/state/pincode/country + `latitude`/`longitude`); `SupplierOrder` gained `shippingAddress?: OrderShippingAddress`.
+- `src/hooks/useSupplier.ts` — added `parseShippingAddress()` (reads all address fields + coerces `latitude/longitude`, tolerant of `lat/lng/lon` aliases) and set `shippingAddress` on every mapped order in `fetchSellerOrders`.
+- `src/components/address/LocationMap.tsx` [NEW] — read-only Leaflet map (SSR-safe `mounted` guard, same marker-icon setup as `AddressMapPicker`) that drops a pin at the order's coordinates, with an "Open in Maps" Google Maps link and a graceful "No map location saved" fallback when coordinates are absent.
+- `src/routes/_authenticated/supplier.samples.tsx` — buyer details block now spans two columns: left shows Buyer/Email + a full **Delivery address** (line1..country via new `fullAddress()` helper, plus contact phone), right renders `<LocationMap>` for the buyer's pinned location.
 
 ### Notes
-- Mutual exclusivity is enforced in both directions so the cart is always either all-samples or all-regular. Samples are logged-in only (guests can't add them), so guest paths are unaffected. No schema/RLS changes.
+- Orders placed before the map-pin flow (no `latitude`/`longitude` in `shipping_address`) show the address text + a "No map location saved" placeholder instead of an empty box. Pure frontend/data-mapping change — no schema/RLS changes.
+
+## 2026-07-18 - Operator-replaced hero-banner0 refit to 2:1 + hero-banner3 slide removed
+
+### Why
+Operator replaced `public/hero-banner0.jpg` with new 1600×900 retailer-lineup art and deleted `public/hero-banner3.jpg`. The hero canvas is 2:1 with `object-cover`, so the 16:9 image would have cropped the people at the bottom; the carousel also still referenced the deleted banner 3 (broken 4th slide).
+
+### Changes
+- `public/hero-banner0.jpg` — refit to exact 2:1 (1600×800) via `scratch/refit-hero-banner0.mjs` (jimp): cropped the 100px of empty background off the TOP so the retailers at the bottom are never cut by `object-cover`. Still the FIRST slide.
+- `src/components/marketing/Hero.tsx` — `SLIDES` reduced to banners 0–2 (removed the deleted `/hero-banner3.jpg` entry).
 
 ## 2026-07-18 - Requests page: only the clicked "Order this item" button animates
 
 ### Why
-On the buyer Requests page, clicking **Order this item** on one approved request made every card's order button show the "Adding…" spinner — the `ordering` prop was the page-wide `resolveProduct.isPending || addToCart.isPending` shared by all cards.
+Clicking **Order this item** on one approved request made every card's order button show the "Adding…" spinner — the `ordering` prop was the page-wide `resolveProduct.isPending || addToCart.isPending` shared by all cards.
 
 ### Changes
-- `src/routes/_authenticated/requests.tsx` — replaced the shared pending flag with an `orderingId` state (the id of the request being ordered, cleared in `finally`). Each `RequestCard` now receives `ordering={orderingId === r.id}`, so only the clicked button animates/disables; a second click while one is in flight is ignored.
+- `src/routes/_authenticated/requests.tsx` — replaced the shared pending flag with an `orderingId` state (the id of the request being ordered, cleared in `finally`). Each `RequestCard` now receives `ordering={orderingId === r.id}`, so only the clicked button animates/disables; clicks while an order is in flight are ignored.
 
 ## 2026-07-18 - New first hero slide ("Helping local retailers grow")
 

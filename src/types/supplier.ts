@@ -114,6 +114,21 @@ export type SupplierCustomer = {
   status?: "active" | "inactive";
 };
 
+/** Full shipping address snapshot stored on the order (with optional map pin). */
+export type OrderShippingAddress = {
+  contactName?: string;
+  phone?: string;
+  line1?: string;
+  line2?: string;
+  landmark?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  country?: string;
+  latitude?: number | null;
+  longitude?: number | null;
+};
+
 export type SupplierOrder = {
   id: string;
   /** Parent `orders.id` — multiple order_items (lines) can share this for the same order. */
@@ -132,6 +147,8 @@ export type SupplierOrder = {
   createdAt: string;
   expectedDelivery?: string;
   destination: string;
+  /** Full parsed shipping address (line1/city/state/pincode + map pin) for the order. */
+  shippingAddress?: OrderShippingAddress;
   paymentStatus: "paid" | "pending";
   /** Buyer toggled "send sample" for this line in the cart. */
   sampleRequested?: boolean;

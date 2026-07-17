@@ -647,6 +647,34 @@ function customerFromAddress(addr: unknown): string {
   return String(a.contact_name ?? a.label ?? "Buyer");
 }
 
+function toNum(v: unknown): number | null {
+  if (v == null || v === "") return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+function parseShippingAddress(addr: unknown): SupplierOrder["shippingAddress"] {
+  if (!addr || typeof addr !== "object") return undefined;
+  const a = addr as Record<string, unknown>;
+  const str = (v: unknown) => {
+    const s = v == null ? "" : String(v).trim();
+    return s || undefined;
+  };
+  return {
+    contactName: str(a.contact_name ?? a.contactName ?? a.label),
+    phone: str(a.phone),
+    line1: str(a.line1),
+    line2: str(a.line2),
+    landmark: str(a.landmark),
+    city: str(a.city),
+    state: str(a.state),
+    pincode: str(a.pincode),
+    country: str(a.country),
+    latitude: toNum(a.latitude ?? a.lat),
+    longitude: toNum(a.longitude ?? a.lng ?? a.lon),
+  };
+}
+
 async function fetchSellerOrders(sellerId: string): Promise<SupplierOrder[]> {
   const [itemsRes, buyersRes] = await Promise.all([
     supabase
@@ -717,6 +745,7 @@ async function fetchSellerOrders(sellerId: string): Promise<SupplierOrder[]> {
       createdAt: String(order?.created_at ?? new Date().toISOString()),
       expectedDelivery: order?.estimated_delivery ? String(order.estimated_delivery) : undefined,
       destination: destinationFromAddress(order?.shipping_address),
+      shippingAddress: parseShippingAddress(order?.shipping_address),
       paymentStatus: paymentStatus === "success" || paymentStatus === "paid" ? "paid" : "pending",
       sampleRequested: Boolean(row.sample_requested),
       isSample: Boolean(snap.isSample),

@@ -7,7 +7,6 @@ const SLIDES = [
   { id: 0, image: "/hero-banner0.jpg" },
   { id: 1, image: "/hero-banner1.jpg" },
   { id: 2, image: "/hero-banner2.jpg" },
-  { id: 3, image: "/hero-banner3.jpg" },
 ];
 
 export function Hero() {

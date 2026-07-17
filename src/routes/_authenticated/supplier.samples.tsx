@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Pill } from "@/components/supplier/Pill";
+import { LocationMap } from "@/components/address/LocationMap";
 import { useSupplierOrders } from "@/hooks/useSupplier";
 import { useProfile } from "@/hooks/useProfile";
 import { useSellerSampleRequests, useSendSampleRequest } from "@/hooks/useSampleRequests";
@@ -57,6 +58,20 @@ function formatDate(iso: string) {
   return Number.isNaN(d.getTime())
     ? "—"
     : d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+}
+
+function fullAddress(addr: SupplierOrder["shippingAddress"]): string {
+  if (!addr) return "";
+  const parts = [
+    addr.line1,
+    addr.line2,
+    addr.landmark,
+    addr.city,
+    addr.state,
+    addr.pincode,
+    addr.country,
+  ].filter((p) => p && p.trim());
+  return parts.join(", ");
 }
 
 function SellerSamplesPage() {
@@ -233,42 +248,64 @@ function SellerSamplesPage() {
                   </div>
 
                   {/* Buyer details */}
-                  <div className="mt-4 grid gap-3 rounded-xl border border-border/60 bg-secondary/30 p-4 sm:grid-cols-2 lg:grid-cols-4">
-                    <div>
-                      <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                        Buyer
+                  <div className="mt-4 grid gap-4 rounded-xl border border-border/60 bg-secondary/30 p-4 lg:grid-cols-[1fr_minmax(0,20rem)]">
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div>
+                        <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                          Buyer
+                        </div>
+                        <div className="mt-0.5 text-sm font-medium text-foreground">
+                          {buyerLabel}
+                        </div>
+                        {line.buyerName && line.buyerBusiness && line.buyerName !== line.buyerBusiness && (
+                          <div className="text-xs text-muted-foreground">{line.buyerName}</div>
+                        )}
                       </div>
-                      <div className="mt-0.5 text-sm font-medium text-foreground">
-                        {buyerLabel}
+                      <div>
+                        <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                          Email
+                        </div>
+                        {line.buyerEmail ? (
+                          <a
+                            href={`mailto:${line.buyerEmail}`}
+                            className="mt-0.5 inline-flex items-center gap-1.5 truncate text-sm font-medium text-brand hover:underline"
+                          >
+                            <Mail className="h-3.5 w-3.5 shrink-0" />
+                            <span className="truncate">{line.buyerEmail}</span>
+                          </a>
+                        ) : (
+                          <div className="mt-0.5 text-sm text-muted-foreground">Not available</div>
+                        )}
                       </div>
-                      {line.buyerName && line.buyerBusiness && line.buyerName !== line.buyerBusiness && (
-                        <div className="text-xs text-muted-foreground">{line.buyerName}</div>
-                      )}
+                      <div className="sm:col-span-2">
+                        <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                          Delivery address
+                        </div>
+                        <div className="mt-0.5 flex items-start gap-1.5 text-sm text-foreground">
+                          <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                          <span>{fullAddress(line.shippingAddress) || line.destination}</span>
+                        </div>
+                        {line.shippingAddress?.phone && (
+                          <div className="mt-1 pl-5 text-xs text-muted-foreground">
+                            Contact: {line.shippingAddress.phone}
+                          </div>
+                        )}
+                      </div>
                     </div>
+
                     <div>
-                      <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                        Email
+                      <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        Map location
                       </div>
-                      {line.buyerEmail ? (
-                        <a
-                          href={`mailto:${line.buyerEmail}`}
-                          className="mt-0.5 inline-flex items-center gap-1.5 truncate text-sm font-medium text-brand hover:underline"
-                        >
-                          <Mail className="h-3.5 w-3.5 shrink-0" />
-                          <span className="truncate">{line.buyerEmail}</span>
-                        </a>
-                      ) : (
-                        <div className="mt-0.5 text-sm text-muted-foreground">Not available</div>
-                      )}
-                    </div>
-                    <div>
-                      <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                        Deliver to
-                      </div>
-                      <div className="mt-0.5 inline-flex items-center gap-1.5 text-sm text-foreground">
-                        <MapPin className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                        {line.destination}
-                      </div>
+                      <LocationMap
+                        latitude={line.shippingAddress?.latitude}
+                        longitude={line.shippingAddress?.longitude}
+                        label={
+                          line.shippingAddress?.city && line.shippingAddress?.state
+                            ? `${line.shippingAddress.city}, ${line.shippingAddress.state}`
+                            : line.destination
+                        }
+                      />
                     </div>
                   </div>
                 </div>
