@@ -21,7 +21,7 @@ export const Route = createFileRoute("/_authenticated/supplier/customers")({
 });
 
 function BuyersPage() {
-  const { customers } = useSupplierCustomers();
+  const { customers, isLoading } = useSupplierCustomers();
   const navigate = useNavigate();
   const [q, setQ] = useState("");
 
@@ -125,8 +125,16 @@ function BuyersPage() {
                 <Users className="h-8 w-8 text-muted-foreground" />
               </div>
               <div>
-                <div className="text-lg font-semibold text-foreground">No buyers found</div>
-                <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">You don't have any buyers matching your search.</p>
+                <div className="text-lg font-semibold text-foreground">
+                  {isLoading ? "Loading buyers…" : "No buyers found"}
+                </div>
+                <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
+                  {isLoading
+                    ? "Fetching the retailers who ordered your products."
+                    : q
+                      ? "No buyers match your search."
+                      : "No one has ordered your products yet. Buyers appear here after they place an order."}
+                </p>
               </div>
             </div>
           }

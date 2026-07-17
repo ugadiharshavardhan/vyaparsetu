@@ -59,18 +59,6 @@ export function AddressCard({
               <Pencil className="h-3.5 w-3.5" />
             </button>
           )}
-          {onDelete && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete();
-              }}
-              className="grid h-8 w-8 place-items-center rounded-full text-destructive hover:bg-destructive/10"
-              aria-label="Delete"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
-          )}
         </div>
       </div>
       <div className="space-y-0.5 text-sm">
@@ -95,18 +83,35 @@ export function AddressCard({
           </div>
         )}
       </div>
-      {!address.is_default && onSetDefault && (
-        <Button
-          size="sm"
-          variant="ghost"
-          className="mt-2 h-7 px-2 text-xs"
-          onClick={(e) => {
-            e.stopPropagation();
-            onSetDefault();
-          }}
-        >
-          Set as default
-        </Button>
+      {(onSetDefault || onDelete) && (
+        <div className="mt-3 flex items-center gap-2 border-t border-border/60 pt-2">
+          {!address.is_default && onSetDefault && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 px-2 text-xs"
+              onClick={(e) => {
+                e.stopPropagation();
+                onSetDefault();
+              }}
+            >
+              Set as default
+            </Button>
+          )}
+          {onDelete && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="ml-auto h-7 px-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete();
+              }}
+            >
+              <Trash2 className="mr-1 h-3.5 w-3.5" /> Remove
+            </Button>
+          )}
+        </div>
       )}
     </div>
   );

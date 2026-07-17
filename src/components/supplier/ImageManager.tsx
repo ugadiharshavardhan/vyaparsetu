@@ -1,7 +1,11 @@
 import { useCallback, useRef, useState } from "react";
-import { ImagePlus, Star, Trash2, GripVertical } from "lucide-react";
+import { ImagePlus, Star, Trash2, GripVertical, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { moveImageToFront } from "@/lib/productImages";
+import { supabase } from "@/integrations/supabase/client";
+
+const PRODUCT_IMAGE_BUCKET = "product-images";
 
 export function ImageManager({
   images,
@@ -14,6 +18,7 @@ export function ImageManager({
 }) {
   const dragIndex = useRef<number | null>(null);
   const [draggingOver, setDraggingOver] = useState<number | null>(null);
+  const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const emit = useCallback(
@@ -23,20 +28,45 @@ export function ImageManager({
     [onChange],
   );
 
+  // Upload files to Supabase Storage and store public URLs — NEVER embed base64
+  // data URIs in the DB (that bloats products.images and times out marketplace queries).
   const addFiles = useCallback(
-    (files: FileList | null) => {
-      if (!files) return;
-      const readers = Array.from(files).map(
-        (file) =>
-          new Promise<string>((resolve) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result as string);
-            reader.readAsDataURL(file);
-          }),
-      );
-      Promise.all(readers).then((urls) => {
-        emit([...images, ...urls]);
-      });
+    async (files: FileList | null) => {
+      if (!files || !files.length) return;
+      setUploading(true);
+      try {
+        const { data: auth } = await supabase.auth.getUser();
+        const userId = auth.user?.id;
+        if (!userId) {
+          toast.error("Your session expired. Please sign in again to upload images.");
+          return;
+        }
+
+        const uploaded: string[] = [];
+        for (const file of Array.from(files)) {
+          if (!file.type.startsWith("image/")) {
+            toast.error(`"${file.name}" is not an image.`);
+            continue;
+          }
+          const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+          const objectPath = `${userId}/product-${Date.now()}-${Math.random()
+            .toString(36)
+            .slice(2, 8)}.${ext}`;
+          const { error } = await supabase.storage
+            .from(PRODUCT_IMAGE_BUCKET)
+            .upload(objectPath, file, { contentType: file.type || undefined, upsert: true });
+          if (error) {
+            toast.error(`Couldn't upload "${file.name}": ${error.message}`);
+            continue;
+          }
+          const { data } = supabase.storage.from(PRODUCT_IMAGE_BUCKET).getPublicUrl(objectPath);
+          if (data?.publicUrl) uploaded.push(data.publicUrl);
+        }
+
+        if (uploaded.length) emit([...images, ...uploaded]);
+      } finally {
+        setUploading(false);
+      }
     },
     [images, emit],
   );
@@ -111,16 +141,26 @@ export function ImageManager({
         ))}
         <button
           type="button"
+          disabled={uploading}
           onClick={() => inputRef.current?.click()}
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
             e.preventDefault();
-            addFiles(e.dataTransfer.files);
+            void addFiles(e.dataTransfer.files);
           }}
-          className="flex aspect-square flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-border bg-muted/30 text-xs font-medium text-muted-foreground transition-colors hover:border-brand hover:text-brand"
+          className="flex aspect-square flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-border bg-muted/30 text-xs font-medium text-muted-foreground transition-colors hover:border-brand hover:text-brand disabled:cursor-not-allowed disabled:opacity-60"
         >
-          <ImagePlus className="h-5 w-5" />
-          Add / drop
+          {uploading ? (
+            <>
+              <Loader2 className="h-5 w-5 animate-spin" />
+              Uploading…
+            </>
+          ) : (
+            <>
+              <ImagePlus className="h-5 w-5" />
+              Add / drop
+            </>
+          )}
         </button>
       </div>
       <input
@@ -129,7 +169,10 @@ export function ImageManager({
         accept="image/*"
         multiple
         className="hidden"
-        onChange={(e) => addFiles(e.target.files)}
+        onChange={(e) => {
+          void addFiles(e.target.files);
+          e.target.value = "";
+        }}
       />
       <p className="text-xs text-muted-foreground">
         Drag to reorder. Image <span className="font-semibold text-foreground">#1</span> is the

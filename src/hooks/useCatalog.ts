@@ -11,7 +11,14 @@ function catalogAuthKey(userId: string | undefined) {
   return userId ?? "guest";
 }
 
-/** Columns needed for cards/grids — avoid select("*") payloads. */
+/**
+ * Columns needed for cards/grids — avoid select("*") payloads.
+ * NOTE: the heavy `images` JSON array is intentionally excluded. Cards only need
+ * the single `image` cover, and some seller-created rows store multi-MB base64
+ * data URIs in `images`; selecting that array for hundreds of rows blew past the
+ * Postgres statement_timeout and returned a 500 on the marketplace list.
+ * `mapDbProduct` falls back to `image` as the cover when `images` is absent.
+ */
 const PRODUCT_LIST_COLUMNS = [
   "id",
   "slug",
@@ -22,7 +29,6 @@ const PRODUCT_LIST_COLUMNS = [
   "subcategory_id",
   "sku",
   "image",
-  "images",
   "wholesale_price",
   "mrp",
   "moq",

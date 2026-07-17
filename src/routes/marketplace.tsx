@@ -3,7 +3,8 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Search, SlidersHorizontal, X, ArrowRight,
   Sprout, Wheat, Droplets, CookingPot, Cookie,
-  Sparkles, User, CupSoda, Home, Candy, Coffee, Package
+  Sparkles, User, CupSoda, Home, Candy, Coffee, Package,
+  CreditCard, Truck, CheckCircle2, ShieldCheck, Clock
 } from "lucide-react";
 import { z } from "zod";
 import type { Product } from "@/types";
@@ -18,6 +19,9 @@ import { ViewToggle, type ViewMode } from "@/components/marketplace/ViewToggle";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
 import {
   Pagination, PaginationContent, PaginationItem,
   PaginationLink, PaginationNext, PaginationPrevious,
@@ -112,67 +116,170 @@ function ShopByCategorySection() {
   );
 }
 
-function PromotionalBanners() {
+function BuyFirstPayLaterDialog({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const perks = [
+    {
+      icon: CreditCard,
+      title: "Stock now, pay later",
+      body: "Fill your shelves today and settle the invoice only after your inventory is sold.",
+    },
+    {
+      icon: ShieldCheck,
+      title: "Interest-free window",
+      body: "Deferred payment credit on your first 10 eligible orders — no hidden charges.",
+    },
+    {
+      icon: Clock,
+      title: "Flexible settlement",
+      body: "Complete payment anytime within the credit period once your goods move.",
+    },
+  ];
+
   return (
-    <div className="mt-8 grid gap-6 md:grid-cols-2">
-      {/* Banner 1: Sell First, Pay Later */}
-      <div className="relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-emerald-50 to-white dark:from-muted/20 dark:to-background p-6 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between min-h-[220px] md:min-h-[240px] group">
-        <div className="absolute right-0 bottom-0 h-40 w-40 md:h-44 md:w-44 opacity-85 pointer-events-none transition-transform duration-500 group-hover:scale-105">
-          <img
-            src="/sell_first_pay_later.png"
-            alt="Sell First Pay Later Illustration"
-            className="h-full w-full object-contain object-bottom-right"
-          />
-        </div>
-        <div className="relative z-10 max-w-[62%] flex flex-col h-full justify-between gap-4">
-          <div className="space-y-2">
-            <span className="inline-block rounded-full bg-brand/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-brand">
-              Deferred Payment Credit
-            </span>
-            <h3 className="text-xl font-bold tracking-tight text-foreground leading-tight">
-              Sell First, Pay Later
-            </h3>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Available for the <strong>first 10 eligible orders</strong>. Stock your shelves today and complete payment only after your inventory is fully sold!
-            </p>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <div className="mb-2 inline-flex w-fit items-center gap-2 rounded-full bg-brand/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-brand">
+            <CreditCard className="h-3.5 w-3.5" />
+            Deferred Payment Credit
           </div>
-          <div>
-            <Button size="sm" className="rounded-full bg-brand hover:bg-brand-dark text-white font-semibold text-xs px-5 shadow-sm cursor-pointer">
-              Apply for Credit
-            </Button>
+          <DialogTitle className="text-2xl font-bold tracking-tight">
+            Buy First, Pay Later
+          </DialogTitle>
+          <DialogDescription className="text-sm leading-relaxed">
+            Buy your wholesale stock upfront and complete payment only after your
+            inventory is fully sold. Keep your cash flow healthy while you grow.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-3">
+          {perks.map((perk) => (
+            <div key={perk.title} className="flex gap-3 rounded-xl border border-border bg-secondary/40 p-3">
+              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-brand/10 text-brand">
+                <perk.icon className="h-4.5 w-4.5" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-sm font-semibold text-foreground">{perk.title}</div>
+                <p className="text-xs leading-relaxed text-muted-foreground">{perk.body}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex items-start gap-2.5 rounded-xl border border-brand/25 bg-brand/5 p-3">
+          <CheckCircle2 className="mt-0.5 h-4.5 w-4.5 shrink-0 text-brand" />
+          <p className="text-xs font-medium text-foreground">
+            Eligibility: You can apply after <strong>15 successful orders</strong> on
+            VyaparSetu. Keep ordering to unlock this credit line.
+          </p>
+        </div>
+
+        <DialogFooter>
+          <Button
+            variant="outline"
+            className="rounded-full cursor-pointer"
+            onClick={() => onOpenChange(false)}
+          >
+            Maybe later
+          </Button>
+          <Button
+            className="rounded-full bg-brand hover:bg-brand-dark text-white cursor-pointer"
+            onClick={() => onOpenChange(false)}
+          >
+            Got it
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function PromotionalBanners({ onOrderNow }: { onOrderNow: () => void }) {
+  const [creditOpen, setCreditOpen] = useState(false);
+
+  return (
+    <>
+      <div className="mt-8 grid gap-6 md:grid-cols-2">
+        {/* Banner 1: Buy First, Pay Later */}
+        <div className="relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-emerald-50 to-white dark:from-muted/20 dark:to-background p-6 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between min-h-[220px] md:min-h-[240px] group">
+          <div className="absolute right-0 bottom-0 h-40 w-40 md:h-44 md:w-44 opacity-85 pointer-events-none transition-transform duration-500 group-hover:scale-105">
+            <img
+              src="/sell_first_pay_later.png"
+              alt="Buy First Pay Later Illustration"
+              className="h-full w-full object-contain object-bottom-right"
+            />
+          </div>
+          <div className="relative z-10 max-w-[62%] flex flex-col h-full justify-between gap-4">
+            <div className="space-y-2">
+              <span className="inline-block rounded-full bg-brand/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-brand">
+                Deferred Payment Credit
+              </span>
+              <h3 className="text-xl font-bold tracking-tight text-foreground leading-tight">
+                Buy First, Pay Later
+              </h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Stock your shelves today and complete payment only after your inventory is fully sold!
+              </p>
+              <span className="inline-flex items-center gap-1 rounded-full bg-brand/5 px-2 py-0.5 text-[10px] font-semibold text-brand">
+                <CheckCircle2 className="h-3 w-3" />
+                Unlocks after 15 successful orders
+              </span>
+            </div>
+            <div>
+              <Button
+                size="sm"
+                className="rounded-full bg-brand hover:bg-brand-dark text-white font-semibold text-xs px-5 shadow-sm cursor-pointer"
+                onClick={() => setCreditOpen(true)}
+              >
+                Apply for Credit
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Banner 2: First Bulk Order Offer */}
+        <div className="relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-emerald-50 to-white dark:from-muted/20 dark:to-background p-6 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between min-h-[220px] md:min-h-[240px] group">
+          <div className="absolute right-0 bottom-0 h-40 w-40 md:h-44 md:w-44 opacity-85 pointer-events-none transition-transform duration-500 group-hover:scale-105">
+            <img
+              src="/first_bulk_order.png"
+              alt="First Bulk Order Illustration"
+              className="h-full w-full object-contain object-bottom-right"
+            />
+          </div>
+          <div className="relative z-10 max-w-[62%] flex flex-col h-full justify-between gap-4">
+            <div className="space-y-2">
+              <span className="inline-block rounded-full bg-brand/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-brand">
+                Bulk Order Promotion
+              </span>
+              <h3 className="text-xl font-bold tracking-tight text-foreground leading-tight">
+                First Bulk Order Deal
+              </h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Get <strong>50% payment on delivery</strong> for your first eligible bulk wholesale purchase. Secure transport with door-step tracking.
+              </p>
+            </div>
+            <div>
+              <Button
+                size="sm"
+                className="rounded-full bg-brand hover:bg-brand-dark text-white font-semibold text-xs px-5 shadow-sm cursor-pointer"
+                onClick={onOrderNow}
+              >
+                <Truck className="mr-1.5 h-4 w-4" />
+                Order Now
+              </Button>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Banner 2: First Bulk Order Offer */}
-      <div className="relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-emerald-50 to-white dark:from-muted/20 dark:to-background p-6 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between min-h-[220px] md:min-h-[240px] group">
-        <div className="absolute right-0 bottom-0 h-40 w-40 md:h-44 md:w-44 opacity-85 pointer-events-none transition-transform duration-500 group-hover:scale-105">
-          <img
-            src="/first_bulk_order.png"
-            alt="First Bulk Order Illustration"
-            className="h-full w-full object-contain object-bottom-right"
-          />
-        </div>
-        <div className="relative z-10 max-w-[62%] flex flex-col h-full justify-between gap-4">
-          <div className="space-y-2">
-            <span className="inline-block rounded-full bg-brand/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-brand">
-              Bulk Order Promotion
-            </span>
-            <h3 className="text-xl font-bold tracking-tight text-foreground leading-tight">
-              First Bulk Order Deal
-            </h3>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Get <strong>50% payment on delivery</strong> for your first eligible bulk wholesale purchase. Secure transport with door-step tracking.
-            </p>
-          </div>
-          <div>
-            <Button size="sm" className="rounded-full bg-brand hover:bg-brand-dark text-white font-semibold text-xs px-5 shadow-sm cursor-pointer">
-              Order Now
-            </Button>
-          </div>
-        </div>
-      </div>
-    </div>
+      <BuyFirstPayLaterDialog open={creditOpen} onOpenChange={setCreditOpen} />
+    </>
   );
 }
 
@@ -237,11 +344,16 @@ function MarketplacePage() {
   }, [search.q]);
 
   useEffect(() => {
+    const nextQ = debouncedQuery || undefined;
+    // Guard against redundant navigations: `useNavigate({ from })` changes identity on
+    // every location change, so an unguarded effect re-fires during unrelated transitions
+    // and can hijack them (e.g. a guest "Add" → /auth).
+    if (nextQ === search.q) return;
     void navigate({
-      search: (prev) => ({ ...prev, q: debouncedQuery || undefined }),
+      search: (prev) => ({ ...prev, q: nextQ }),
       replace: true,
     });
-  }, [debouncedQuery, navigate]);
+  }, [debouncedQuery, search.q, navigate]);
 
   useEffect(() => {
     const next = search.category ?? null;
@@ -291,9 +403,15 @@ function MarketplacePage() {
           <div className="space-y-10">
             <ShopByCategorySection />
 
-            <PromotionalBanners />
+            <PromotionalBanners
+              onOrderNow={() => {
+                document
+                  .getElementById("marketplace-shelves")
+                  ?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
+            />
 
-            <div className="space-y-10">
+            <div id="marketplace-shelves" className="scroll-mt-24 space-y-10">
               {categoryShelves?.map((shelf) => (
                 <section key={shelf.categorySlug} className="space-y-5 bg-card border border-border/60 rounded-3xl p-6 sm:p-8 shadow-sm hover:shadow-soft transition-all duration-300">
                   <div className="flex items-center justify-between border-b border-border pb-2.5">

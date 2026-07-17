@@ -39,6 +39,7 @@ import { Route as AuthenticatedCheckoutRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedBuyerRouteImport } from './routes/_authenticated/buyer'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedAddressesRouteImport } from './routes/_authenticated/addresses'
+import { Route as AuthenticatedOrdersIndexRouteImport } from './routes/_authenticated/orders.index'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedSupplierWarehouseRouteImport } from './routes/_authenticated/supplier.warehouse'
 import { Route as AuthenticatedSupplierSupportRouteImport } from './routes/_authenticated/supplier.support'
@@ -232,6 +233,12 @@ const AuthenticatedAddressesRoute = AuthenticatedAddressesRouteImport.update({
   path: '/addresses',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedOrdersIndexRoute =
+  AuthenticatedOrdersIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedOrdersRoute,
+  } as any)
 const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -546,6 +553,7 @@ export interface FileRoutesByFullPath {
   '/supplier/support': typeof AuthenticatedSupplierSupportRoute
   '/supplier/warehouse': typeof AuthenticatedSupplierWarehouseRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
+  '/orders/': typeof AuthenticatedOrdersIndexRoute
   '/supplier/customers/$id': typeof AuthenticatedSupplierCustomersIdRoute
   '/supplier/orders/$id': typeof AuthenticatedSupplierOrdersIdRoute
   '/supplier/products/$id': typeof AuthenticatedSupplierProductsIdRoute
@@ -570,7 +578,6 @@ export interface FileRoutesByTo {
   '/messages': typeof AuthenticatedMessagesRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
-  '/orders': typeof AuthenticatedOrdersRouteWithChildren
   '/payments': typeof AuthenticatedPaymentsRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/seller': typeof AuthenticatedSellerRouteWithChildren
@@ -617,6 +624,7 @@ export interface FileRoutesByTo {
   '/supplier/support': typeof AuthenticatedSupplierSupportRoute
   '/supplier/warehouse': typeof AuthenticatedSupplierWarehouseRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
+  '/orders': typeof AuthenticatedOrdersIndexRoute
   '/supplier/customers/$id': typeof AuthenticatedSupplierCustomersIdRoute
   '/supplier/orders/$id': typeof AuthenticatedSupplierOrdersIdRoute
   '/supplier/products/$id': typeof AuthenticatedSupplierProductsIdRoute
@@ -692,6 +700,7 @@ export interface FileRoutesById {
   '/_authenticated/supplier/support': typeof AuthenticatedSupplierSupportRoute
   '/_authenticated/supplier/warehouse': typeof AuthenticatedSupplierWarehouseRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
+  '/_authenticated/orders/': typeof AuthenticatedOrdersIndexRoute
   '/_authenticated/supplier/customers/$id': typeof AuthenticatedSupplierCustomersIdRoute
   '/_authenticated/supplier/orders/$id': typeof AuthenticatedSupplierOrdersIdRoute
   '/_authenticated/supplier/products/$id': typeof AuthenticatedSupplierProductsIdRoute
@@ -767,6 +776,7 @@ export interface FileRouteTypes {
     | '/supplier/support'
     | '/supplier/warehouse'
     | '/admin/'
+    | '/orders/'
     | '/supplier/customers/$id'
     | '/supplier/orders/$id'
     | '/supplier/products/$id'
@@ -791,7 +801,6 @@ export interface FileRouteTypes {
     | '/messages'
     | '/notifications'
     | '/onboarding'
-    | '/orders'
     | '/payments'
     | '/profile'
     | '/seller'
@@ -838,6 +847,7 @@ export interface FileRouteTypes {
     | '/supplier/support'
     | '/supplier/warehouse'
     | '/admin'
+    | '/orders'
     | '/supplier/customers/$id'
     | '/supplier/orders/$id'
     | '/supplier/products/$id'
@@ -912,6 +922,7 @@ export interface FileRouteTypes {
     | '/_authenticated/supplier/support'
     | '/_authenticated/supplier/warehouse'
     | '/_authenticated/admin/'
+    | '/_authenticated/orders/'
     | '/_authenticated/supplier/customers/$id'
     | '/_authenticated/supplier/orders/$id'
     | '/_authenticated/supplier/products/$id'
@@ -1146,6 +1157,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/addresses'
       preLoaderRoute: typeof AuthenticatedAddressesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/orders/': {
+      id: '/_authenticated/orders/'
+      path: '/'
+      fullPath: '/orders/'
+      preLoaderRoute: typeof AuthenticatedOrdersIndexRouteImport
+      parentRoute: typeof AuthenticatedOrdersRoute
     }
     '/_authenticated/admin/': {
       id: '/_authenticated/admin/'
@@ -1504,10 +1522,12 @@ const AuthenticatedBuyerRouteWithChildren =
 
 interface AuthenticatedOrdersRouteChildren {
   AuthenticatedOrdersIdRoute: typeof AuthenticatedOrdersIdRoute
+  AuthenticatedOrdersIndexRoute: typeof AuthenticatedOrdersIndexRoute
 }
 
 const AuthenticatedOrdersRouteChildren: AuthenticatedOrdersRouteChildren = {
   AuthenticatedOrdersIdRoute: AuthenticatedOrdersIdRoute,
+  AuthenticatedOrdersIndexRoute: AuthenticatedOrdersIndexRoute,
 }
 
 const AuthenticatedOrdersRouteWithChildren =

@@ -1,6 +1,6 @@
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PageSkeleton, ProductGridSkeleton, TableSkeleton } from "@/components/common/Skeletons";
+import { ProductGridSkeleton, TableSkeleton } from "@/components/common/Skeletons";
 
 /** Compact spinner for buttons / inline actions. */
 export function LoadingSpinner({
@@ -41,14 +41,8 @@ export function LoadingOverlay({
   );
 }
 
-/** Default route pending UI while loaders / navigations resolve. */
-export function RoutePending() {
-  return (
-    <div className="min-h-[50vh]">
-      <PageSkeleton />
-    </div>
-  );
-}
+/** Re-exported for backward compatibility; the smart dispatcher lives in RoutePending.tsx. */
+export { RoutePending } from "@/components/common/RoutePending";
 
 export function MarketplacePending() {
   return (

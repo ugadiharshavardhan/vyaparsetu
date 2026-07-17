@@ -145,27 +145,43 @@ async function flushPendingCartAdd(userId: string) {
       takePendingCartAdd();
       return false;
     }
-    const qty = Math.max(pending.quantity ?? safe.moq, safe.moq);
+
+    const { data: liveProduct } = await supabase
+      .from("products")
+      .select("moq")
+      .eq("id", safe.id)
+      .maybeSingle();
+    const liveMoq = Math.max(1, Number(liveProduct?.moq) || safe.moq);
+    const snap = { ...safe, moq: liveMoq };
+    const qty = Math.max(pending.quantity ?? liveMoq, liveMoq);
 
     try {
       const { data: existing } = await supabase
         .from("cart_items")
         .select("id, quantity")
         .eq("user_id", userId)
-        .eq("product_id", safe.id)
+        .eq("product_id", snap.id)
         .maybeSingle();
 
       if (existing) {
+        const nextQty =
+          existing.quantity < liveMoq
+            ? liveMoq
+            : Math.max(existing.quantity + 1, liveMoq);
         const { error } = await supabase
           .from("cart_items")
-          .update({ quantity: existing.quantity + qty, saved_for_later: false })
+          .update({
+            quantity: nextQty,
+            saved_for_later: false,
+            product_snapshot: snap as never,
+          })
           .eq("id", existing.id);
         if (error) throw error;
       } else {
         const { error } = await supabase.from("cart_items").insert({
           user_id: userId,
-          product_id: safe.id,
-          product_snapshot: safe as never,
+          product_id: snap.id,
+          product_snapshot: snap as never,
           quantity: qty,
         });
         if (error) throw error;
@@ -287,7 +303,8 @@ export function useAddToCart() {
         .maybeSingle();
       const liveMoq = Math.max(1, Number(liveProduct?.moq) || safe.moq);
       const snap = { ...safe, moq: liveMoq };
-      const qty = Math.max(quantity ?? liveMoq, liveMoq);
+      const requested = quantity ?? liveMoq;
+      const qty = Math.max(requested, liveMoq);
 
       if (!user) {
         throw new Error("Please sign in to add items to your cart");
@@ -300,10 +317,14 @@ export function useAddToCart() {
         .eq("product_id", snap.id)
         .maybeSingle();
       if (existing) {
+        const nextQty =
+          existing.quantity < liveMoq
+            ? liveMoq
+            : Math.max(existing.quantity + 1, liveMoq);
         const { error } = await supabase
           .from("cart_items")
           .update({
-            quantity: existing.quantity + qty,
+            quantity: nextQty,
             saved_for_later: false,
             product_snapshot: snap as never,
           })
@@ -333,7 +354,36 @@ export function useAddToCart() {
 export function useUpdateCartItem() {
   const qc = useQueryClient();
   const { user } = useAuth();
+  const cartKey = [...CART_KEY, user?.id ?? "guest"] as const;
   return useMutation({
+    onMutate: async ({
+      id,
+      quantity,
+      saved_for_later,
+    }: {
+      id: string;
+      quantity?: number;
+      saved_for_later?: boolean;
+    }) => {
+      // Optimistically reflect the change so +/- feels instant.
+      await qc.cancelQueries({ queryKey: CART_KEY });
+      const previous = qc.getQueryData<CartItem[]>(cartKey);
+      if (previous) {
+        qc.setQueryData<CartItem[]>(
+          cartKey,
+          previous.map((item) =>
+            item.id === id
+              ? {
+                  ...item,
+                  ...(quantity !== undefined ? { quantity } : {}),
+                  ...(saved_for_later !== undefined ? { saved_for_later } : {}),
+                }
+              : item,
+          ),
+        );
+      }
+      return { previous };
+    },
     mutationFn: async ({
       id,
       quantity,
@@ -385,15 +435,30 @@ export function useUpdateCartItem() {
       const { error } = await supabase.from("cart_items").update(patch).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: CART_KEY }),
-    onError: (e: Error) => toast.error(e.message || "Could not update cart"),
+    onError: (e: Error, _vars, ctx) => {
+      if (ctx?.previous) qc.setQueryData(cartKey, ctx.previous);
+      toast.error(e.message || "Could not update cart");
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: CART_KEY }),
   });
 }
 
 export function useRemoveCartItem() {
   const qc = useQueryClient();
   const { user } = useAuth();
+  const cartKey = [...CART_KEY, user?.id ?? "guest"] as const;
   return useMutation({
+    onMutate: async (id: string) => {
+      await qc.cancelQueries({ queryKey: CART_KEY });
+      const previous = qc.getQueryData<CartItem[]>(cartKey);
+      if (previous) {
+        qc.setQueryData<CartItem[]>(
+          cartKey,
+          previous.filter((item) => item.id !== id),
+        );
+      }
+      return { previous };
+    },
     mutationFn: async (id: string) => {
       if (!user) {
         removeGuestLine(id);
@@ -402,8 +467,11 @@ export function useRemoveCartItem() {
       const { error } = await supabase.from("cart_items").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: CART_KEY }),
-    onError: (e: Error) => toast.error(e.message || "Could not remove item"),
+    onError: (e: Error, _vars, ctx) => {
+      if (ctx?.previous) qc.setQueryData(cartKey, ctx.previous);
+      toast.error(e.message || "Could not remove item");
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: CART_KEY }),
   });
 }
 

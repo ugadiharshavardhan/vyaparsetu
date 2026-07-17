@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Heart, Minus, Plus, Trash2, Bookmark } from "lucide-react";
+import { Heart, Trash2, Bookmark } from "lucide-react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import type { CartItem } from "@/types/commerce";
 import { inr } from "@/lib/format";
@@ -8,6 +8,8 @@ import { useRemoveCartItem, useUpdateCartItem } from "@/hooks/useCart";
 import { useToggleWishlist } from "@/hooks/useWishlist";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { CartQuantityStepper } from "@/components/cart/CartQuantityStepper";
+import { lineMoq } from "@/lib/moq";
 
 export function CartItemRow({ item }: { item: CartItem }) {
   const p = item.product_snapshot;
@@ -28,23 +30,11 @@ export function CartItemRow({ item }: { item: CartItem }) {
     );
   }
 
-  const changeQty = (q: number) => {
-    const moq = Math.max(1, p.moq);
-    if (q < moq) {
-      toast.error(`Minimum order is ${moq} ${p.unit}`);
-      return;
-    }
-    if (q > p.stockCount) {
-      toast.error(`Only ${p.stockCount} in stock`);
-      return;
-    }
-    update.mutate({ id: item.id, quantity: q });
-  };
+  const moq = lineMoq(item);
+  const belowMoq = item.quantity < moq;
 
   const lineTotal = (p.wholesalePrice || 0) * item.quantity;
   const gst = p.gstIncluded ? 0 : (lineTotal * (p.gstRate || 0)) / 100;
-  const moq = Math.max(1, p.moq);
-  const belowMoq = item.quantity < moq;
 
   return (
     <motion.div
@@ -90,24 +80,19 @@ export function CartItemRow({ item }: { item: CartItem }) {
         </div>
 
         <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
-          <div className="inline-flex items-center rounded-full border border-brand/40 bg-white">
-            <button
-              onClick={() => changeQty(item.quantity - 1)}
-              disabled={item.quantity <= moq}
-              className="grid h-9 w-9 place-items-center rounded-l-full text-brand transition-colors hover:bg-brand hover:text-white disabled:opacity-40"
-              aria-label="Decrease"
-            >
-              <Minus className="h-4 w-4" strokeWidth={2.5} />
-            </button>
-            <div className="min-w-[3rem] px-3 text-center text-sm font-semibold text-foreground">{item.quantity}</div>
-            <button
-              onClick={() => changeQty(item.quantity + 1)}
-              className="grid h-9 w-9 place-items-center rounded-r-full text-brand transition-colors hover:bg-brand hover:text-white"
-              aria-label="Increase"
-            >
-              <Plus className="h-4 w-4" strokeWidth={2.5} />
-            </button>
-          </div>
+          <CartQuantityStepper
+            quantity={item.quantity}
+            moq={moq}
+            stockCount={p.stockCount}
+            pending={update.isPending}
+            onQuantityChange={(next) => update.mutate({ id: item.id, quantity: next })}
+            onRemove={() => remove.mutate(item.id)}
+            onBlocked={(delta) => {
+              if (delta > 0) {
+                toast.error(`Only ${p.stockCount} in stock`);
+              }
+            }}
+          />
 
           <div className="flex items-center gap-2">
             <Button

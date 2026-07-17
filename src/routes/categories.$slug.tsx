@@ -44,12 +44,14 @@ export const Route = createFileRoute("/categories/$slug")({
   pendingComponent: MarketplacePending,
   validateSearch: searchSchema,
   loader: async ({ params }) => {
+    const slug = params.slug?.trim();
+    if (!slug) throw notFound();
     const { data, error } = await supabase
       .from("categories")
       .select(
         "id, slug, name, icon, image, product_count, description, subcategories(id, slug, name, image, sort_order)",
       )
-      .eq("slug", params.slug)
+      .eq("slug", slug)
       .maybeSingle();
     if (error) throw error;
     if (!data) throw notFound();
@@ -75,6 +77,20 @@ export const Route = createFileRoute("/categories/$slug")({
       <Button asChild className="mt-6">
         <Link to="/categories">Browse all categories</Link>
       </Button>
+    </div>
+  ),
+  errorComponent: ({ reset }) => (
+    <div className="container-page py-24 text-center">
+      <h1 className="font-display text-3xl font-bold">Couldn&apos;t load this category</h1>
+      <p className="mt-2 text-muted-foreground">
+        Something interrupted the request. Please try again.
+      </p>
+      <div className="mt-6 flex items-center justify-center gap-3">
+        <Button onClick={() => reset()}>Retry</Button>
+        <Button asChild variant="outline">
+          <Link to="/categories">Browse all categories</Link>
+        </Button>
+      </div>
     </div>
   ),
   component: CategoryPage,
@@ -120,14 +136,20 @@ function CategoryPage() {
   }, [debouncedQuery, filters, sort]);
 
   useEffect(() => {
+    const nextQ = debouncedQuery.trim() || undefined;
+    // Only sync when the query actually diverges from the URL. `useNavigate({ from })`
+    // returns a new identity on every location change, so without this guard the effect
+    // re-fires during unrelated transitions (e.g. a guest clicking "Add" → /auth) and
+    // rebuilds "/categories/$slug" with an undefined slug, clobbering that navigation.
+    if (nextQ === search.q) return;
     void navigate({
       search: (prev) => ({
         ...prev,
-        q: debouncedQuery.trim() || undefined,
+        q: nextQ,
       }),
       replace: true,
     });
-  }, [debouncedQuery, navigate]);
+  }, [debouncedQuery, search.q, navigate]);
 
   // Already scoped by category from the server query
   const categoryProducts = allProducts;
@@ -221,7 +243,7 @@ function CategoryPage() {
           {/* Breadcrumb Path */}
           <nav className="text-[10px] sm:text-[11px] text-muted-foreground flex flex-wrap items-center gap-1.5">
             <Link to="/marketplace" className="hover:text-brand transition-colors">
-              Home
+              Marketplace
             </Link>
             <span>&gt;</span>
             <span className="text-foreground font-medium">{category.name}</span>

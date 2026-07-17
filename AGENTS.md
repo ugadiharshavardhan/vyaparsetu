@@ -156,12 +156,377 @@
 
 # Current Project State
 
-- **Current Phase:** One role per email on signup
-- **Current Module:** `authOtpHandler`, `SignUpForm`, `auth`, `SiteLayout`, `useCart`
-- **Overall Progress:** New signups enforce a single role per email (no email can be both buyer and seller); auth toggle never greys out; checkout keeps the buyer navbar; pending-cart add flushes once.
-- **Last Updated:** 2026-07-17
+- **Current Phase:** Seller Buyers = real order data + bigger navbar logo
+- **Current Module:** `get_seller_buyers()` RPC, `useSupplierCustomers`, `supplier.customers*`, `Logo`
+- **Overall Progress:** Seller "Buyers" now shows the real retailers who ordered that seller's items (orders, lifetime value, last order, favorite product, contact/GST). New sellers still auto-own the default catalog categories. Navbar/sidebar logo enlarged.
+- **Last Updated:** 2026-07-18
 
 # Development History
+
+## 2026-07-18 - Buyer navbar spacing fix + shorter height
+
+### Why
+The center nav "Saved" link overlapped the search box, and the buyer topbar was a bit tall.
+
+### Changes
+- `DashboardTopbar.tsx` (buyer header) — reduced height (`h-16 sm:h-[4.75rem]` → `h-14 sm:h-16`) and widened inter-column gap (`sm:gap-6`). Narrowed the search (`lg:w-[13rem] xl:w-[17rem]`, `min-w-0`, `h-9`/`lg:h-10`, `text-sm`) so it no longer overflows its grid track into the centered nav. Center nav links compacted (`text-sm`, `px-3.5 py-1.5`, `whitespace-nowrap`). Shrunk logo (`h-9 sm:h-11`) and all header icon buttons (menu, mobile search, saved heart, cart, notifications) to `h-9 w-9`.
+
+## 2026-07-18 - Buyer never lands on seller workspace (/supplier/*)
+
+### Why
+After signing in on the Buyer tab, users sometimes landed on `/supplier/products`.
+
+### Root cause
+Dual-role accounts (buyer + seller row) passed the `_authenticated` seller guard, and `resolvePostLoginPath` honored any explicit `redirect`/pending-cart path — including a stale `/supplier/*` or `/seller/*` target — so a buyer-mode session could open the seller workspace.
+
+### Changes
+- `lib/postLoginRedirect.ts` — added `isSellerWorkspacePath()`; when session mode is `buyer`, the resolver now ignores `redirect`/pending paths under `/supplier` or `/seller` and falls through to `/marketplace`.
+- `routes/_authenticated/route.tsx` — the seller-workspace guard now redirects to `/marketplace` whenever `getSessionMode() === "buyer"` (before the sellers-row check), so a buyer-mode session can never render `/supplier/*` or `/seller/*` even for dual-role accounts. Also widened the match from `/seller/` to `/seller`. Legit sellers (mode `seller` or null) are unaffected.
+
+## 2026-07-18 - Seller Buyers show real data + larger navbar logo
+
+### Why
+The seller "Buyers" section rendered mock `seedCustomers`, and the buyer detail page matched orders by name. The navbar/sidebar logo was also too small.
+
+### Changes
+- `supabase/migrations/20260718010000_seller_buyers_rpc.sql` [NEW] — `public.get_seller_buyers()` SECURITY DEFINER RPC: aggregates the calling seller's real buyers from `order_items` (scoped by `seller_id = auth.uid()`) joined to `orders` + `buyers`. Returns per-buyer orders count, lifetime value (sum of that seller's line totals), last order, favorite product (top qty), and name/business/email/phone plus city/GST/address derived from the buyer profile or latest order `shipping_address`. Scoped strictly to `auth.uid()` so a seller only sees their own buyers (bypasses `buyers` RLS safely). Installed via `scripts/apply-seller-buyers-rpc.mjs`. NOTE: live `buyers` table has no `gst_number` column — GST/city fall back to order `shipping_address`.
+- `src/hooks/useSupplier.ts` — `useSupplierCustomers()` rewritten to a React Query hook calling `get_seller_buyers` (maps rows → `SupplierCustomer`, computes active/inactive by 90-day recency); returns `{ customers, isLoading, error }`. `fetchSellerOrders` now selects `buyed_id` and sets `SupplierOrder.buyerId`.
+- `src/types/supplier.ts` — added `buyerId?: string` to `SupplierOrder`.
+- `src/routes/_authenticated/supplier.customers.tsx` — uses `isLoading`; empty state distinguishes loading / no-search-match / no-orders-yet.
+- `src/routes/_authenticated/supplier.customers.$id.tsx` — buyer order history now filters by real `o.buyerId === id` (was name matching).
+- `src/components/dashboard/DashboardTopbar.tsx` — buyer topbar logo bumped to `h-12 sm:h-14`.
+- `src/components/dashboard/DashboardSidebar.tsx` — sidebar logo bumped to `h-12` (header row `h-14`) so the seller workspace logo is larger.
+
+### Verified
+`get_seller_buyers()` against live data returned the correct 5 real buyers (orders/spend/favorite product) for the top seller. `seedCustomers` mock no longer used by the Buyers pages.
+
+## 2026-07-18 - New sellers auto-provisioned with default catalog categories
+
+## 2026-07-18 - Buyer wishlist nav + marketplace promo cards (credit popup, order-now scroll)
+
+### Why
+Buyers had a working `/wishlist` page but no visible way to reach it. The marketplace promo cards mislabeled the credit offer ("Sell First"), had non-functional buttons, and no eligibility info.
+
+### Changes
+- `DashboardTopbar.tsx` — added a "Saved" link to the buyer desktop center nav and a Heart icon button (links to `/wishlist`) in the right actions cluster. Mobile sheet already had "Saved Items". `/wishlist` is already in `SiteLayout` `APP_PREFIXES`, so it renders with buyer chrome. The existing `wishlist.tsx` page already lists saved products via `useWishlist`.
+- `marketplace.tsx` — `PromotionalBanners` rewritten:
+  - Card 1 renamed **"Sell First, Pay Later" → "Buy First, Pay Later"**; added an "Unlocks after 15 successful orders" pill; "Apply for Credit" now opens `BuyFirstPayLaterDialog` (popup) describing the deferred-payment credit (stock now/pay after sold, interest-free window, flexible settlement) and the 15-successful-orders eligibility.
+  - Card 2 "Order Now" now smooth-scrolls to the product shelves below (`#marketplace-shelves`, `scroll-mt-24`).
+
+## 2026-07-18 - New sellers auto-provisioned with default catalog categories
+
+### Why
+Operator wanted every newly created seller to start with the products of the `flour-atta`, `cooking-oils`, `salt-sugar`, and `snacks-bakery` categories, and for buyer orders of those items to show up in that seller's dashboard.
+
+### How it works
+- Seller rows are created only after OTP verify (`handleVerify` → `upsertMembership`). Products are single-owner (`products.seller_id` + `seller_products.product_id UNIQUE`), and the seller dashboard lists order lines by `order_items.seller_id` (stamped at checkout from `products.seller_id`). So provisioning = reassign those 4 categories to the new seller + verify them so the products are visible/orderable.
+
+### Changes
+- `supabase/migrations/20260718000000_assign_default_seller_categories.sql` [NEW] — `public.assign_default_seller_categories(_seller_id uuid)` SECURITY DEFINER: reassigns all products in the 4 default categories to the seller (`seller_id` + `supplier` JSON), syncs/inserts `seller_products`, and sets `verification_status = 'verified'`. Granted to `service_role`. Installed in the live DB (project `juoufayfyzpmscxeiydd`).
+- `src/server/authOtpHandler.ts` — after a seller `upsertMembership` in `handleVerify`, calls `assignDefaultSellerCatalog(userId)`: invokes the RPC, with a service-role table-operation fallback (in case PostgREST hasn't refreshed its schema cache). Non-fatal — never blocks signup.
+- `scripts/apply-default-seller-categories.mjs` [NEW] — installs the function via the pooler and, with `--email x@y.com`, provisions/backfills an existing seller (also prints per-category product counts). Verified counts: cooking-oils 35, flour-atta 36, salt-sugar 24, snacks-bakery 35.
+
+### Design notes / caveats
+- Single-owner constraint means provisioning **moves** those categories to the newest seller (previous owner loses them). Intended: the latest onboarded seller manages the default catalog. To give an existing test seller these products now, run `node scripts/apply-default-seller-categories.mjs --email <seller-email>`.
+- New sellers are auto-verified (bypasses admin approval) specifically so their default products are live and orderable; remove the verify step in the SQL function / handler fallback if manual approval is desired.
+
+## 2026-07-18 - Center order confirmation + fix ₹0 total + Razorpay failure handling
+
+### Why
+The success screen rendered inside the 2-column checkout grid (left 1fr column) so it looked off-center, showed `₹0` (grand total recomputed from the just-cleared cart), and Razorpay Pay Later / declined payments silently did nothing.
+
+### Changes
+- `src/routes/_authenticated/checkout.tsx` — wrapper drops the `1fr_360px` grid on the confirmation step (step 3) so the card centers across the full width; new `placedTotal` state captures `order.grand_total` on success and the confirmation shows `inr(placedTotal)` instead of the recomputed (empty-cart) `breakup.grandTotal`.
+- `src/lib/razorpay.ts` — `openRazorpayCheckout` now registers `rzp.on("payment.failed", …)` and rejects with the gateway error description, so Pay Later declines / expired VPA / bank timeouts surface a toast (via `payWithRazorpay`'s catch) instead of leaving the buyer stuck on the modal.
+
+## 2026-07-18 - Razorpay checkout + address remove button
+
+### Why
+Checkout used a demo payment grid and had no way to delete a saved address inline. Operator wants a real Razorpay flow (COD + Razorpay), address removal from DB/UI, and payment details persisted for buyer + seller views.
+
+### Changes
+- `.env.example` / `.env` — added `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` (server) and `VITE_RAZORPAY_KEY_ID` (browser checkout).
+- `src/server/razorpayHandler.ts` [NEW] — `/api/razorpay` handler: `create-order` (Razorpay REST orders API via Basic auth, amount in paise) and `verify` (HMAC-SHA256 of `order_id|payment_id` against `RAZORPAY_KEY_SECRET`). Reads keys from `.env` / host env.
+- `src/server.ts` — route `/api/razorpay` → `handleRazorpayRequest` (production SSR).
+- `vite-plugin-auth-otp.ts` — dev middleware now also serves `/api/razorpay` (new `handleRazorpay`).
+- `src/lib/razorpay.ts` [NEW] — client helper: lazy-loads `checkout.js`, `createRazorpayOrder`, `openRazorpayCheckout` (opens modal, resolves success/null on dismiss), `verifyRazorpayPayment`.
+- `src/hooks/useOrders.ts` — `PlaceOrderInput.razorpay` optional details; `payment_records` insert stores `gateway: "razorpay"`, `transaction_ref = razorpay_payment_id`, and `meta` (payment/order/signature) for online payments (demo ref for COD).
+- `src/routes/_authenticated/checkout.tsx` — payment step replaced with two buttons: **Cash on delivery** (blocked > ₹50,000) and **Continue with Razorpay** (create order → modal → verify → place order with method `upi`, gateway razorpay). Footer no longer shows a Pay button on the payment step. Address cards now pass `onDelete` → `useDeleteAddress` (re-selects a remaining address when the selected one is removed).
+- `src/components/address/AddressCard.tsx` — always-visible "Remove" button (destructive) in a card footer alongside "Set as default"; edit stays a hover icon.
+
+### Notes
+- Razorpay online payments store `payment_method = 'upi'` (enum has no generic `razorpay`/`card`); gateway + meta capture the real Razorpay identifiers. Order `payment_status = 'success'`, so `fetchSellerOrders` maps it to `paid` for each seller's items automatically.
+- Test keys are the operator-provided `rzp_test_*`; use Razorpay test cards/UPI in the modal.
+
+## 2026-07-17 - Cart stepper sized to content (no full-width stretch)
+
+### Why
+On the cart page the quantity stepper stretched full-width, forcing the Save-for-later / Wishlist / delete actions to wrap onto a separate row.
+
+### Root cause
+`CartQuantityStepper` default container carried `w-full`, so in `CartItemRow` (which passes no `className`) it filled the whole `justify-between` row.
+
+### Changes
+- `CartQuantityStepper.tsx` — dropped `w-full` from the default shell so the pill hugs its content (`[minus/trash] qty [plus]`); count keeps `flex-1` (expands only when a consumer opts into full width) with a `min-w-[2.5rem]` floor so the number stays comfortable.
+- Consumers unchanged: `AddToCartControl` still passes `flex-1` + min/max width to fill the product-card / PDP Add-button area; `CartItemRow` now renders a compact inline pill beside the row actions.
+
+## 2026-07-17 - GST invoice template + download; remove order tracking block
+
+### Why
+Order tracking timeline overlapped labels on the details page; invoice button was a placeholder. Buyers need a downloadable GST tax invoice stored in `invoices`.
+
+### Changes
+- `orders.$id.tsx` — removed Order tracking section; Invoice button downloads invoice.
+- `lib/invoice/*` — VyaparSetu GST invoice HTML template (bill from/to, line items, HSN, CGST/SGST/IGST, totals).
+- `hooks/useInvoice.ts` — fetch invoice by order; `ensureInvoiceRow` inserts into `invoices` if missing (also created at checkout in `usePlaceOrder`); `useDownloadOrderInvoice` builds HTML and saves locally as `.html`.
+
+## 2026-07-17 - Buyer navbar: Marketplace/Orders centered
+
+### Why
+Operator wanted nav links in the middle of the topbar, not on the left.
+
+### Changes
+- `DashboardTopbar.tsx` — 3-column grid: left (logo + location), center (Marketplace + Orders), right (search + actions).
+
+## 2026-07-17 - Buyer navbar: nav links left, search right
+
+### Why
+Logged-in buyer topbar had search centered and Marketplace/Orders on the right; operator wanted those positions swapped.
+
+### Changes
+- `DashboardTopbar.tsx` — left cluster: menu, logo, delivery location, Marketplace + Orders links; right cluster: search input, cart, notifications, profile. Mobile keeps a search icon that opens marketplace.
+
+## 2026-07-17 - Fix order "View details" not opening (missing Outlet on orders layout)
+
+### Why
+Clicking "View details" changed the URL to `/orders/$id` but kept showing the Orders **list** — the detail page never rendered.
+
+### Root cause
+In TanStack flat routing, `_authenticated/orders.tsx` is the PARENT layout of `_authenticated/orders.$id.tsx` (paths nest by segment). `orders.tsx` rendered the full Orders list component with NO `<Outlet/>`, so on `/orders/$id` the parent list rendered and the child detail route had nowhere to mount. (This is the same pattern `categories` already uses correctly: a `categories.tsx` Outlet layout + `categories.index.tsx` + `categories.$slug.tsx`.)
+
+### Changes
+- `src/routes/_authenticated/orders.index.tsx` [NEW] — the Orders LIST moved here as the index route (`createFileRoute("/_authenticated/orders/")`).
+- `src/routes/_authenticated/orders.tsx` — reduced to a layout shell that renders `<Outlet/>` (route id `/_authenticated/orders`), so `/orders` → index list and `/orders/$id` → detail both mount correctly.
+- `src/routeTree.gen.ts` — regenerated by the TanStack Router plugin: `AuthenticatedOrdersRoute` now has children `AuthenticatedOrdersIdRoute` + `AuthenticatedOrdersIndexRoute`.
+- (Prior turn, retained) `orders.$id.tsx` shows each ordered item as a detailed card with image, brand, supplier, a Quantity/Unit price/GST/Discount breakdown, line total, a **"View item details"** button → `/products/$slug`, and the review button; plus the earlier `useAuth` import fix and route `errorComponent`.
+
+### No backend changes
+Frontend routing structure fix.
+
+## 2026-07-17 - Fix order "View details" crash + richer ordered-items UI
+
+### Why
+The order details page ("View details" from Orders) did not open for confirmed/delivered orders, and the items list needed a clearer per-item breakdown.
+
+### Root cause
+`orders.$id.tsx` `ProductReviewButton` called `useAuth()` but the hook was never imported. The review button only renders when the order status is not pending/cancelled, so any confirmed/delivered order threw a runtime `ReferenceError` on render → the route crashed to the global "Something went wrong" boundary. (The `OrderCard` "View details" `<Link to="/orders/$id">` was correct all along.)
+
+### Changes
+- `src/routes/_authenticated/orders.$id.tsx` —
+  - Added the missing `import { useAuth } from "@/hooks/useAuth"` (fixes the crash).
+  - Redesigned the Items section: each ordered item is now a bordered card with product image (links to PDP), brand, name, supplier, a 4-cell breakdown (Quantity + unit, Unit price, GST rate/amount or "Incl.", Discount), a prominent line total (with MRP strike-through when higher), a "View item details" button → product page, and the review button (delivered/confirmed). Added an empty-state when an order has no items.
+  - Added a route `errorComponent` (Retry + "Back to orders") so any future runtime error shows a scoped, recoverable page instead of the global crash; cleaned up stray empty JSX wrapper blocks in the loading/not-found/main returns.
+
+### No backend changes
+Pure frontend fix + UI polish.
+
+## 2026-07-17 - Consistent delivery location after login + real buyer notifications
+
+### Why
+1. The delivery city chosen in the pre-login navbar was lost after login: the buyer topbar showed a hardcoded default ("Bengaluru, KA") and offered extra cities (Mumbai, Delhi NCR, Chennai) that don't exist before login.
+2. The buyer notification bell showed `DEMO_NOTIFICATIONS` (KYC/offers/mock) instead of the buyer's real activity.
+
+### Changes
+- `src/hooks/useBuyerNotifications.ts` [NEW] — derives real buyer notifications from `useOrders()` (orders the buyer placed: number + item count + status) and `useCart()` (items added to cart: name + qty). Sorted newest-first. Unread is tracked with a localStorage "last seen" timestamp (`vs.buyer-notifications.last-seen.v1`); exposes `notifications`, `unreadCount`, `markAllSeen`, `isUnread`, and a `formatRelativeTime` helper.
+- `src/components/dashboard/DashboardTopbar.tsx` (buyer layout) —
+  - Location picker now uses the SAME source as the pre-login header: `useDeliveryLocation()` + `DELIVERY_LOCATIONS` (Hyderabad, Bengaluru) with "Use my current location". The saved city (localStorage `vs.delivery-location.v1`) persists across login, and the extra hardcoded cities were removed. A detected/custom city (not in the quick list) still shows as a highlighted option.
+  - Notification bell now renders `useBuyerNotifications()` data (orders + cart adds), badge shows real `unreadCount`, opening the popover calls `markAllSeen()`, each row links to `/orders` or `/cart`, with an empty state when there's nothing yet.
+- `src/routes/_authenticated/notifications.tsx` — the full buyer notifications page now lists real order/cart notifications (with unread highlight + relative time + empty state) instead of `DEMO_NOTIFICATIONS`.
+
+### Notes
+- Sellers/admins are unaffected: they still use `NotificationsMenu` (seller → `useSupplierNotifications`); only the buyer layout changed.
+- Pure frontend; no DB/schema changes. `DEMO_NOTIFICATIONS` remains for any legacy/admin usage.
+
+## 2026-07-17 - Global text scale, taller navbars, PDP quantity stepper polish
+
+### Why
+Operator wanted larger text app-wide, a taller navbar, and the product-page increment/decrement/count control resized to match the Save / Buy Now row.
+
+### Changes
+- `styles.css` — root font-size 17px (18px from md+) so rem-based UI scales up globally.
+- `button.tsx` — default/lg/icon button heights bumped one step.
+- `Header.tsx` — taller bar (5.25–5.75rem), larger nav/search/CTA text.
+- `DashboardTopbar.tsx` — buyer + seller headers taller; nav/search text-base.
+- `CartQuantityStepper.tsx` — new `lg` size (h-14, w-14 side buttons, text-lg count); flex center count between equal-width controls.
+- `AddToCartControl.tsx` — PDP uses `lg` stepper.
+- `products.$slug.tsx` — action row h-14; pre-add qty picker matches; cart banner text-sm.
+
+## 2026-07-17 - Breadcrumbs: start at Marketplace (no Home)
+
+### Why
+Product detail breadcrumb showed `Home > Marketplace > …`; operator wants the trail to start at Marketplace only.
+
+### Changes
+- `products.$slug.tsx` — removed Home link + separator; first crumb is Marketplace.
+- `categories.$slug.tsx` — first crumb label corrected from "Home" to "Marketplace".
+
+## 2026-07-17 - Bulletproof navbar Login/Signup (no random "Category not found" / "Something went wrong")
+
+### Why
+Clicking the navbar "Login / Signup" button was non-deterministic: sometimes it opened the login page, sometimes it flashed "Category not found", and sometimes the global "Something went wrong" boundary.
+
+### Root cause
+1. `Header.goLoginOrDashboard` branched on `useAuth().isAuthenticated`, which is `false` while auth is still hydrating (`loading === true`) even for a genuinely signed-in user — so the same click could route differently depending on timing.
+2. The `/auth` route `beforeLoad` computed the signed-in redirect (`resolveAuthedUser` → `is_admin` RPC / `resolvePostLoginPath`/`getUserRole` with a possibly-stale token). Any non-redirect throw there bubbled to the ROOT error boundary → "Something went wrong".
+3. The `/categories/$slug` and `/products/$slug` loaders `throw error` on any Supabase hiccup, which also hit the ROOT boundary; a truly missing slug rendered "Category not found". These detail routes are reachable straight from the header `SearchDialog` (right next to the login button), so a transient failure looked like the login button itself misrouting. (Complements the earlier `/categories/undefined` racing-`navigate` fix below.)
+
+### Changes
+- `src/components/layout/Header.tsx` — `goLoginOrDashboard` only takes the authenticated fast-path (`/marketplace`) when `!authLoading && isAuthenticated`; otherwise it routes to `/auth` and lets `beforeLoad` decide. Deterministic for guests and signed-in users alike.
+- `src/routes/auth.tsx` — wrapped `beforeLoad` in try/catch using `isRedirect(e)`: only intentional `redirect()` throws propagate; any unexpected error (network, RPC, role lookup, token revalidation) is swallowed and the auth page renders instead of the global error boundary.
+- `src/routes/categories.$slug.tsx` — loader trims/guards empty slug (→ `notFound()`); added a scoped `errorComponent` (Retry + "Browse all categories") so a transient load failure never surfaces the global "Something went wrong".
+- `src/routes/products.$slug.tsx` — added the same scoped `errorComponent` (Retry + "Back to marketplace").
+
+### No backend changes
+Pure frontend routing/robustness fix.
+
+## 2026-07-17 - Fix guest "Add" hijacked to /categories/undefined instead of sign-in
+
+### Why
+A logged-out user clicking "Add" on a product (from the marketplace or a category page) was sent to `/categories/undefined?mode=signin&role=buyer&redirect=%2Fcart` ("Category not found") instead of the sign-in page.
+
+### Root cause
+`AddToCartControl` correctly calls `navigate({ to: "/auth", search: { mode, role, redirect } })`. But `useNavigate({ from })` returns a NEW function identity on every router location change. `marketplace.tsx` and `categories.$slug.tsx` each had a "sync debounced search query → URL" effect that listed `navigate` in its dependency array with no value guard. When the Add click started the transition to `/auth`, those components re-rendered, `navigate` changed identity, and the effect re-fired — calling `navigate({ from: "/categories/$slug", search: (prev) => … })` mid-transition. With the location already moving to `/auth`, the `$slug` param resolved to `undefined`, so it rebuilt `/categories/undefined` and merged the auth search params (`prev`), hijacking the sign-in navigation.
+
+### Changes
+- `src/routes/categories.$slug.tsx` — the debounced-query URL sync effect now computes `nextQ` and returns early when `nextQ === search.q` (added `search.q` to deps). No redundant navigate → can't clobber unrelated transitions.
+- `src/routes/marketplace.tsx` — same guard applied to its debounced-query URL sync effect.
+
+### Notes
+- The marketplace category-redirect effect (`[search.category, navigate]`) was already safe (guarded by `if (!search.category) return`), so it can't emit an undefined slug.
+- Pure frontend fix; no backend/DB changes.
+
+## 2026-07-17 - Search dialog: remove block highlight + trending section
+
+### Why
+Search result rows showed a heavy accent/block background on click or keyboard focus; operator wanted clean rows and no Trending searches list.
+
+### Changes
+- `SearchDialog.tsx` — removed Trending searches group; result rows and cmdk `[data-selected]` / `:hover` forced to transparent (no block highlight).
+- `command.tsx` — `CommandDialog` accepts optional `className` for per-dialog item styling overrides.
+
+## 2026-07-17 - Cart stepper: minus at MOQ removes item + instant (optimistic) +/-
+
+### Why
+On product cards the quantity stepper's minus button was disabled ("blocked" cursor) once quantity hit the MOQ floor (e.g. 15), so users couldn't remove the item from that control. Increment/decrement also felt slow because every click did a Supabase round-trip and then refetched the whole cart (including a live-MOQ fetch) before the number updated.
+
+### Changes
+- `CartQuantityStepper.tsx` — new `onRemove?` prop. At MOQ the minus button is no longer disabled; it shows a `Trash2` icon (destructive hover) and calls `onRemove` to delete the line (Blinkit/Zepto pattern). Removed the `pending`-based disabling on both buttons so rapid clicks aren't dropped (safe now that updates are optimistic).
+- `AddToCartControl.tsx` — imports `useRemoveCartItem`; passes `onRemove={() => remove.mutate(line.id)}`; `onBlocked` now only toasts on the increment/stock ceiling (minus at floor removes instead).
+- `CartItemRow.tsx` — same `onRemove` wiring on the cart page stepper.
+- `useCart.ts` — `useUpdateCartItem` and `useRemoveCartItem` now do optimistic updates via `onMutate` (cancel queries, snapshot previous, patch/remove the line in the `["cart", userId|"guest"]` cache), roll back in `onError`, and reconcile in `onSettled`. The number now changes instantly; the Supabase write + MOQ revalidation happen in the background.
+
+### No backend changes
+Pure frontend fix (React Query optimistic cache + stepper UX).
+
+## 2026-07-17 - Guest Add lands on cart after login + auto-detect delivery city
+
+### Why
+1. When a logged-out user clicked "Add" on a product, after signing in they were returned to the product/marketplace page instead of the cart. They should land on `/cart` with the clicked item added.
+2. On first visit the site should ask for location access and show the detected city as the navbar delivery location.
+
+### Changes
+- `src/components/cart/AddToCartControl.tsx` — `requireAuthThenAdd` now sets the pending-cart `returnTo` and the `/auth` `redirect` to `/cart` (was the current page URL). The pending snapshot is still flushed into `cart_items` by the `useCart` post-login effect, so the user arrives on the cart with the item present. `resolvePostLoginPath` honors the `/cart` redirect.
+- `src/lib/deliveryLocation.ts` — delivery city is now any string (not just the two quick picks). Added `hasAttemptedGeoDetect` / `markGeoDetectAttempted` flags and `detectCityFromGeolocation()` (browser geolocation → BigDataCloud free, key-less reverse geocode → city name). Kept `DELIVERY_LOCATIONS` for quick picks + stats.
+- `src/hooks/useDeliveryLocation.ts` [NEW] — navbar location state; on first visit (no saved city, not yet attempted) it requests geolocation and reverse-geocodes to a city, persisting it. Exposes `location`, `detecting`, `select`, and `detect` (manual re-detect).
+- `src/components/layout/Header.tsx` — `LocationPicker` uses the hook, shows "Detecting…" while resolving, lists the detected city (when outside the quick picks) plus a "Use my current location" action; wired into both desktop and mobile navbars.
+
+### Notes
+- Geolocation requires a secure context (HTTPS / localhost) and shows the native browser permission prompt. If denied or lookup fails, the picker falls back to "Select Location" and the quick-pick cities.
+- Buy Now (product page) still redirects to checkout — only the "Add" button flow was changed to land on the cart.
+
+## 2026-07-17 - Landing search: live results + correct navigation
+
+### Why
+The landing search dialog kept showing Recent/Trending while typing because cmdk’s built-in filter hid manually matched results. Clicking a suggestion did not reliably open the matching product or category.
+
+### Changes
+- `SearchDialog.tsx` — `shouldFilter={false}`; suggestions only when input empty; typed query shows Categories / Brands / Products + “View all results”.
+- `lib/searchNavigation.ts` [NEW] — catalog search helpers + `resolveSearchTarget` (product → PDP, category → `/categories/$slug`, else marketplace `?q=`).
+- `command.tsx` — `CommandDialog` accepts `shouldFilter` prop.
+
+## 2026-07-17 - Logo goes to workspace (not landing) after login + center toasts
+
+### Why
+After logging in, clicking the brand logo still opened the marketing landing page. The landing page should only be reachable via the logo when logged out; signed-in buyers should go to the marketplace and signed-in sellers to the seller dashboard. Toast popups also needed to be centered.
+
+### Changes
+- `src/hooks/useHomeDestination.ts` [NEW] — resolves the logo/home target from auth state: guest → `/`, seller (session mode `seller`, or seller account when mode isn't `buyer`) → `/seller/dashboard`, otherwise buyer → `/marketplace`.
+- `src/components/common/Logo.tsx` — the brand `Link` now points to `useHomeDestination()` instead of always `/`. Covers the buyer topbar, marketing header, and footer logos.
+- `src/components/dashboard/DashboardSidebar.tsx` — the seller sidebar logo wrapper `Link` now uses `useHomeDestination()` (was hardcoded `/`), so it returns sellers to their dashboard.
+- `src/routes/__root.tsx` — `<Toaster />` position changed from `top-right` to `top-center`.
+
+### Notes
+- Logged-out marketing pages still show `/` for the logo (landing stays reachable when signed out). No redirect added on `/` itself, matching the prior decision to keep the landing page renderable.
+- `useHomeDestination` reuses the shared `useAccountFlags` query (cached), so multiple Logo instances don't trigger extra network calls.
+
+## 2026-07-17 - Cart stepper green hover + decrement above MOQ
+
+### Why
+Quantity +/- on product cards lost green hover styling (ProductCard `className` was applied to the stepper wrapper). Decrement from 16→15 failed when `stockCount` was 0 in the snapshot — `stepCartQuantity` treated 0 as a hard ceiling.
+
+### Changes
+- `CartQuantityStepper.tsx` [NEW] — shared stepper with `hover:bg-brand hover:text-white` on ± buttons.
+- `AddToCartControl.tsx` — `className` applies to Add button only; stepper uses shared component.
+- `lib/moq.ts` — `effectiveStockCap()` ignores zero/unknown stock for decrement; only caps increment when stock > 0.
+- `CartItemRow.tsx` — uses `CartQuantityStepper`.
+
+## 2026-07-17 - Layout-aware route pending skeletons (stop showing product-card skeleton everywhere)
+
+### Why
+Every page flashed the product-card grid skeleton while loading — even dashboards, orders, tables, forms, and detail pages — because the app-wide route pending component always rendered a product grid.
+
+### Root cause
+`router.tsx` used `defaultPendingComponent: RoutePending`, and `RoutePending` rendered `PageSkeleton`, which always contained `ProductGridSkeleton`. So during any navigation/chunk load the product-card skeleton appeared regardless of the target page's layout.
+
+### Changes
+- `src/components/common/Skeletons.tsx` — made `PageSkeleton` layout-neutral (no product cards) and added layout archetype skeletons: `PageHeaderSkeleton`, `ProductGridPageSkeleton`, `ProductDetailSkeleton`, `DashboardPageSkeleton`, `TablePageSkeleton`, `OrderListSkeleton`, `DetailPageSkeleton`, `FormPageSkeleton`, `ContentPageSkeleton`.
+- `src/components/common/RoutePending.tsx` [NEW] — smart default pending component. `classifyRoute(pathname)` maps the destination route (read via `useRouterState`) to an archetype (product-grid, product-detail, dashboard, table, orders-list, detail, form, content) and renders the matching skeleton. One component covers all ~73 routes and matches each page's real shell.
+- `src/router.tsx` — `defaultPendingComponent` now imports `RoutePending` from the new smart dispatcher.
+- `src/components/common/LoadingSpinner.tsx` — removed the old product-grid `RoutePending`; re-exports the new one for backward compatibility. `MarketplacePending` / `DashboardPending` unchanged.
+
+### Notes
+- Product catalog routes (`/marketplace`, `/categories/$slug`, `/suppliers/$id`) still set `pendingComponent: MarketplacePending` (a product grid) — consistent with their classification.
+- Pre-existing unrelated `tsc` errors (`SignUpForm.tsx`, `NotificationsMenu.tsx`, `data/products.ts`) were left untouched. Changed files are type/lint clean.
+
+## 2026-07-17 - MOQ-first add with ±1 stepper (floor at seller MOQ)
+
+### Why
+For products with MOQ 15, Add should put 15 in the cart immediately; + / − should then move by 1 (16, 17… down to 15), not add another full MOQ batch or drop below minimum.
+
+### Changes
+- `lib/moq.ts` — `resolveDisplayMoq`, `stepCartQuantity` helpers.
+- `hooks/useCart.ts` — first insert quantity = live `products.moq`; duplicate add heals to MOQ or +1 (not +MOQ); pending-cart flush uses same rules.
+- `AddToCartControl.tsx` / `CartItemRow.tsx` — stepper uses ±1 with MOQ floor from catalog + live snapshot.
+
+## 2026-07-17 - Fix empty marketplace: base64 image bloat caused products query 500 (statement timeout)
+
+### Why
+The marketplace showed no products. The list request
+`GET /rest/v1/products?select=...images...&limit=500` returned **500 Internal Server Error**.
+
+### Root cause
+The real error was Postgres `57014 canceling statement due to statement timeout`, not a broken column. The seller `ImageManager` saved uploaded images as **base64 data URIs** (`reader.readAsDataURL`) straight into `products.image` / `products.images`. 16 junk test products (all named "mm") each carried an identical **~1.5 MB base64 cover**, so the marketplace list — which selected the heavy `images` JSON array for up to 500 rows — pulled ~24 MB of base64 and blew past the statement timeout, 500ing the whole query and leaving the grid empty.
+
+### Changes
+- `src/hooks/useCatalog.ts` — removed the heavy `images` column from `PRODUCT_LIST_COLUMNS`. Cards/grids only need the single `image` cover (`mapDbProduct` → `normalizeProductImages` falls back to `image` when the `images` array is absent). Product detail (`useProductBySlug`) still `select("*")`, so its gallery is unaffected. List query went from timing-out to ~1.1s for 425 rows.
+- `src/components/supplier/ImageManager.tsx` — **root-cause fix**: `addFiles` now uploads each file to the public `product-images` Storage bucket (path `${userId}/product-...`) and stores the **public URL**, never a base64 data URI. Added an "Uploading…" spinner state, image-type guard, per-file error toasts, and input reset. This prevents the bloat from recurring.
+- `supabase/migrations/20260717050000_product_images_storage_policies.sql` [NEW] — storage RLS so authenticated sellers can insert/update/delete their own objects in `product-images` (folder = `auth.uid()`), mirroring the `business-documents` policies; ensures the bucket exists and is public. Applied via `scratch/apply-product-images-storage-policies.mjs`.
+- `scratch/fix-base64-products.mjs` [NEW] — one-off data cleanup (service role): decoded the 16 base64 covers/arrays, uploaded them to `product-images/seller-uploads/`, and replaced `image`/`images` with the public URLs. Non-destructive (products kept). Result: 0 base64 covers remain; full query (even with `images`) now ~0.6s.
+
+### Verification
+- Anon list query (app columns): 425 rows, no error, ~1.1s (was 500/timeout).
+- `products.image LIKE 'data:image%'` count: 0 remaining.
+- No new lint errors.
 
 ## 2026-07-17 - Enforce one role per email on signup (no shared buyer+seller email)
 

@@ -55,6 +55,12 @@ export default {
         return await handleAuthOtpRequest(request);
       }
 
+      // Razorpay order creation + signature verification (server-only keys)
+      if (url.pathname === "/api/razorpay") {
+        const { handleRazorpayRequest } = await import("./server/razorpayHandler");
+        return await handleRazorpayRequest(request);
+      }
+
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
       return await normalizeCatastrophicSsrResponse(response);

@@ -2,6 +2,8 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   Bell,
   Heart,
+  Loader2,
+  LocateFixed,
   LogOut,
   Menu,
   Search,
@@ -20,7 +22,6 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { UserMenu } from "@/components/layout/UserMenu";
 import { CartButton } from "@/components/cart/CartButton";
-import { DEMO_NOTIFICATIONS } from "@/data/dashboard";
 import { Logo } from "@/components/common/Logo";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { clearSessionMode } from "@/lib/sessionMode";
@@ -38,6 +39,9 @@ import { NotificationsMenu } from "@/components/layout/NotificationsMenu";
 import { useSessionMode } from "@/hooks/useSessionMode";
 import { useAccountFlags } from "@/hooks/useAccountFlags";
 import { useProfile } from "@/hooks/useProfile";
+import { useDeliveryLocation } from "@/hooks/useDeliveryLocation";
+import { DELIVERY_LOCATIONS } from "@/lib/deliveryLocation";
+import { useBuyerNotifications, formatRelativeTime } from "@/hooks/useBuyerNotifications";
 
 export function DashboardTopbar({ isBuyerLayout = false }: { isBuyerLayout?: boolean }) {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
@@ -46,8 +50,13 @@ export function DashboardTopbar({ isBuyerLayout = false }: { isBuyerLayout?: boo
   const { data: account } = useAccountFlags();
 
   const [searchVal, setSearchVal] = useState((searchParams as Record<string, any>)?.q ?? "");
-  const [selectedLocation, setSelectedLocation] = useState("Bengaluru, KA");
-  const unread = DEMO_NOTIFICATIONS.filter((n) => n.unread).length;
+  const { location, detecting, select: selectLocation, detect: detectLocation } = useDeliveryLocation();
+  const {
+    notifications,
+    unreadCount: unread,
+    markAllSeen,
+    isUnread,
+  } = useBuyerNotifications();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const debouncedSearchVal = useDebounce(searchVal, 200);
@@ -81,11 +90,12 @@ export function DashboardTopbar({ isBuyerLayout = false }: { isBuyerLayout?: boo
 
   if (isBuyerLayout) {
     return (
-      <header className="sticky top-0 z-30 flex h-14 w-full items-center justify-between border-b border-border bg-card px-3 shadow-sm transition-all sm:h-16 sm:px-6">
-        <div className="flex shrink-0 items-center gap-3">
+      <header className="sticky top-0 z-30 grid h-14 w-full grid-cols-[1fr_auto_1fr] items-center gap-3 border-b border-border bg-card px-3 shadow-sm transition-all sm:h-16 sm:gap-6 sm:px-6">
+        {/* Left: menu, logo, location */}
+        <div className="flex min-w-0 items-center gap-2 justify-self-start sm:gap-3">
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full lg:hidden" aria-label="Open navigation menu">
+              <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full lg:hidden" aria-label="Open navigation menu">
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
@@ -95,23 +105,23 @@ export function DashboardTopbar({ isBuyerLayout = false }: { isBuyerLayout?: boo
                   <Logo />
                 </div>
                 <nav className="flex flex-col gap-1 p-4">
-                  <Link to="/marketplace" activeProps={{ className: "text-brand bg-brand-soft/20" }} className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-foreground hover:bg-secondary">
+                  <Link to="/marketplace" activeProps={{ className: "text-brand bg-brand-soft/20" }} className="flex items-center gap-3 rounded-lg px-4 py-3 text-base font-medium text-foreground hover:bg-secondary">
                     <Store className="h-4 w-4 text-muted-foreground" />
                     Marketplace
                   </Link>
-                  <Link to="/orders" activeProps={{ className: "text-brand bg-brand-soft/20" }} className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-foreground hover:bg-secondary">
+                  <Link to="/orders" activeProps={{ className: "text-brand bg-brand-soft/20" }} className="flex items-center gap-3 rounded-lg px-4 py-3 text-base font-medium text-foreground hover:bg-secondary">
                     <ShoppingCart className="h-4 w-4 text-muted-foreground" />
                     My Orders
                   </Link>
-                  <Link to="/wishlist" activeProps={{ className: "text-brand bg-brand-soft/20" }} className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-foreground hover:bg-secondary">
+                  <Link to="/wishlist" activeProps={{ className: "text-brand bg-brand-soft/20" }} className="flex items-center gap-3 rounded-lg px-4 py-3 text-base font-medium text-foreground hover:bg-secondary">
                     <Heart className="h-4 w-4 text-muted-foreground" />
                     Saved Items
                   </Link>
-                  <Link to="/profile" activeProps={{ className: "text-brand bg-brand-soft/20" }} className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-foreground hover:bg-secondary">
+                  <Link to="/profile" activeProps={{ className: "text-brand bg-brand-soft/20" }} className="flex items-center gap-3 rounded-lg px-4 py-3 text-base font-medium text-foreground hover:bg-secondary">
                     <User className="h-4 w-4 text-muted-foreground" />
                     My Profile
                   </Link>
-                  <Link to="/settings" activeProps={{ className: "text-brand bg-brand-soft/20" }} className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-foreground hover:bg-secondary">
+                  <Link to="/settings" activeProps={{ className: "text-brand bg-brand-soft/20" }} className="flex items-center gap-3 rounded-lg px-4 py-3 text-base font-medium text-foreground hover:bg-secondary">
                     <Settings className="h-4 w-4 text-muted-foreground" />
                     Settings
                   </Link>
@@ -126,78 +136,145 @@ export function DashboardTopbar({ isBuyerLayout = false }: { isBuyerLayout?: boo
             </SheetContent>
           </Sheet>
 
-          <Logo className="hidden shrink-0 sm:inline-flex" />
+          <Logo className="hidden shrink-0 sm:inline-flex" imgClassName="h-9 sm:h-11" />
           <Logo compact className="inline-flex shrink-0 sm:hidden" />
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="ml-2 hidden shrink-0 cursor-pointer flex-col text-left transition-opacity hover:opacity-80 focus:outline-none md:flex">
+              <button className="hidden shrink-0 cursor-pointer flex-col text-left transition-opacity hover:opacity-80 focus:outline-none md:flex">
                 <span className="text-[9px] font-bold uppercase leading-none tracking-wider text-muted-foreground">Deliver to</span>
                 <span className="mt-0.5 flex items-center gap-0.5 text-xs font-semibold text-foreground">
-                  {selectedLocation} <span className="ml-0.5 text-[9px] text-brand">▼</span>
+                  {detecting ? "Detecting…" : location ?? "Select Location"}
+                  <span className="ml-0.5 text-[9px] text-brand">▼</span>
                 </span>
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56">
               <DropdownMenuLabel>Select Delivery Location</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="cursor-pointer" onClick={() => setSelectedLocation("Bengaluru, KA")}>Bengaluru, Karnataka</DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer" onClick={() => setSelectedLocation("Mumbai, MH")}>Mumbai, Maharashtra</DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer" onClick={() => setSelectedLocation("Delhi NCR")}>Delhi NCR</DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer" onClick={() => setSelectedLocation("Chennai, TN")}>Chennai, Tamil Nadu</DropdownMenuItem>
+              <DropdownMenuItem
+                className="cursor-pointer"
+                onClick={() => void detectLocation()}
+                disabled={detecting}
+              >
+                {detecting ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <LocateFixed className="mr-2 h-4 w-4 text-brand" />
+                )}
+                Use my current location
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              {location &&
+                !DELIVERY_LOCATIONS.includes(location as (typeof DELIVERY_LOCATIONS)[number]) && (
+                  <DropdownMenuItem
+                    className="cursor-pointer font-semibold text-brand"
+                    onClick={() => selectLocation(location)}
+                  >
+                    {location}
+                  </DropdownMenuItem>
+                )}
+              {DELIVERY_LOCATIONS.map((city) => (
+                <DropdownMenuItem
+                  key={city}
+                  className="cursor-pointer"
+                  onClick={() => selectLocation(city)}
+                >
+                  {city}
+                </DropdownMenuItem>
+              ))}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
 
-        <div className="relative mx-2 max-w-xl flex-1 sm:mx-4 md:max-w-2xl lg:max-w-3xl xl:max-w-4xl">
-          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            type="text"
-            value={searchVal}
-            onChange={(e) => setSearchVal(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                navigate({
-                  to: "/marketplace",
-                  search: (prev: any) => ({ ...prev, q: searchVal || undefined }),
-                });
-              }
-            }}
-            placeholder="Search products, brands, categories..."
-            className="h-10 w-full rounded-xl border border-border bg-muted/20 py-2 pl-10 pr-10 shadow-none hover:bg-muted/30 focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand"
-          />
-          {searchVal && (
-            <button
-              onClick={() => {
-                setSearchVal("");
-                navigate({
-                  to: "/marketplace",
-                  search: (prev: any) => ({ ...prev, q: undefined }),
-                });
+        {/* Center: primary nav */}
+        <nav className="hidden items-center gap-1 justify-self-center lg:flex">
+          <Link
+            to="/marketplace"
+            activeProps={{ className: "text-brand bg-brand-soft/30 font-semibold" }}
+            className="whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          >
+            Marketplace
+          </Link>
+          <Link
+            to="/orders"
+            activeProps={{ className: "text-brand bg-brand-soft/30 font-semibold" }}
+            className="whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          >
+            Orders
+          </Link>
+          <Link
+            to="/wishlist"
+            activeProps={{ className: "text-brand bg-brand-soft/30 font-semibold" }}
+            className="whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          >
+            Saved
+          </Link>
+        </nav>
+
+        {/* Right: search, cart, notifications, profile */}
+        <div className="flex min-w-0 items-center gap-1.5 justify-self-end sm:gap-3">
+          <div className="relative hidden min-w-0 w-[10rem] sm:block md:w-[12rem] lg:w-[13rem] xl:w-[17rem]">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="text"
+              value={searchVal}
+              onChange={(e) => setSearchVal(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  navigate({
+                    to: "/marketplace",
+                    search: (prev: any) => ({ ...prev, q: searchVal || undefined }),
+                  });
+                }
               }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              aria-label="Clear search"
-            >
-              <X className="h-3 w-3" />
-            </button>
-          )}
-        </div>
+              placeholder="Search products..."
+              className="h-9 w-full rounded-xl border border-border bg-muted/20 py-2 pl-9 pr-9 text-sm shadow-none hover:bg-muted/30 focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand lg:h-10"
+            />
+            {searchVal && (
+              <button
+                onClick={() => {
+                  setSearchVal("");
+                  navigate({
+                    to: "/marketplace",
+                    search: (prev: any) => ({ ...prev, q: undefined }),
+                  });
+                }}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                aria-label="Clear search"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
 
-        <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
-          <nav className="mr-2 hidden items-center gap-1 lg:flex">
-            <Link to="/marketplace" activeProps={{ className: "text-brand bg-brand-soft/30 font-semibold" }} className="rounded-full px-3.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">
-              Marketplace
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 rounded-full sm:hidden"
+            aria-label="Search"
+            onClick={() => navigate({ to: "/marketplace" })}
+          >
+            <Search className="h-5 w-5 text-muted-foreground" />
+          </Button>
+
+          <Button
+            asChild
+            variant="ghost"
+            size="icon"
+            className="hidden h-9 w-9 rounded-full hover:bg-muted sm:inline-flex"
+            aria-label="Saved items"
+          >
+            <Link to="/wishlist" activeProps={{ className: "text-brand" }}>
+              <Heart className="h-5 w-5" />
             </Link>
-            <Link to="/orders" activeProps={{ className: "text-brand bg-brand-soft/30 font-semibold" }} className="rounded-full px-3.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">
-              Orders
-            </Link>
-          </nav>
+          </Button>
 
-          <CartButton variant="ghost" className="h-10 w-10 rounded-full hover:bg-muted" />
+          <CartButton variant="ghost" className="h-9 w-9 rounded-full hover:bg-muted" />
 
-          <Popover>
+          <Popover onOpenChange={(open) => open && markAllSeen()}>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon" className="relative h-10 w-10 rounded-full hover:bg-muted" aria-label="Notifications">
+              <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-full hover:bg-muted" aria-label="Notifications">
                 <Bell className="h-5 w-5" />
                 {unread > 0 && (
                   <span className="absolute right-1.5 top-1.5 grid h-4 place-items-center rounded-full bg-brand px-1 text-[10px] font-bold text-white">
@@ -210,27 +287,39 @@ export function DashboardTopbar({ isBuyerLayout = false }: { isBuyerLayout?: boo
               <div className="flex items-center justify-between border-b px-4 py-3">
                 <div>
                   <div className="font-semibold">Notifications</div>
-                  <div className="text-xs text-muted-foreground">{unread} unread</div>
+                  <div className="text-xs text-muted-foreground">
+                    {unread > 0 ? `${unread} new` : "You're all caught up"}
+                  </div>
                 </div>
                 <Button asChild variant="ghost" size="sm">
                   <Link to="/notifications">See all</Link>
                 </Button>
               </div>
-              <ul className="max-h-80 divide-y overflow-y-auto">
-                {DEMO_NOTIFICATIONS.slice(0, 4).map((n) => (
-                  <li key={n.id} className="flex gap-3 p-3 hover:bg-muted/50">
-                    <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-brand-soft text-brand">
-                      <n.icon className="h-4 w-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-sm font-medium">{n.title}</div>
-                      <div className="line-clamp-2 text-xs text-muted-foreground">{n.body}</div>
-                      <div className="mt-0.5 text-[10px] text-muted-foreground">{n.time}</div>
-                    </div>
-                    {n.unread && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand" />}
-                  </li>
-                ))}
-              </ul>
+              {notifications.length === 0 ? (
+                <div className="p-6 text-center text-sm text-muted-foreground">
+                  No notifications yet. Place an order or add items to your cart to see updates here.
+                </div>
+              ) : (
+                <ul className="max-h-80 divide-y overflow-y-auto">
+                  {notifications.slice(0, 6).map((n) => (
+                    <li key={n.id} className="p-0 hover:bg-muted/50">
+                      <Link to={n.link} className="flex gap-3 p-3">
+                        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-brand-soft text-brand">
+                          <n.icon className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-sm font-medium">{n.title}</div>
+                          <div className="line-clamp-2 text-xs text-muted-foreground">{n.body}</div>
+                          <div className="mt-0.5 text-[10px] text-muted-foreground">
+                            {formatRelativeTime(n.timestamp)}
+                          </div>
+                        </div>
+                        {isUnread(n) && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand" />}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </PopoverContent>
           </Popover>
 
@@ -276,17 +365,17 @@ function SellerTopbar() {
     profile?.business_name?.split(/\s+/).slice(0, 3).join(" ") || "Seller Workspace";
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center border-b border-border/60 bg-card/80 backdrop-blur-md">
+    <header className="sticky top-0 z-30 flex h-[4.75rem] items-center border-b border-border/60 bg-card/80 backdrop-blur-md">
       <div className="flex items-center gap-2 px-3 sm:gap-3 sm:px-5">
         <SidebarTrigger className="h-8 w-8 rounded-lg text-muted-foreground transition-colors duration-150 hover:bg-secondary hover:text-foreground" />
 
         <div className="hidden h-5 w-px bg-border/60 sm:block" />
 
         <div className="hidden items-center gap-2 sm:flex">
-          <span className="text-[13px] font-semibold tracking-tight text-foreground/85">
+          <span className="text-sm font-semibold tracking-tight text-foreground/85">
             {workspaceLabel}
           </span>
-          <span className="rounded-md bg-brand/8 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand">
+          <span className="rounded-md bg-brand/8 px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-brand">
             Seller
           </span>
         </div>

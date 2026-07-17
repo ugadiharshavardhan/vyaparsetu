@@ -506,10 +506,65 @@ export function useSupplierReviews() {
   };
 }
 
-/* ---------- Customers ---------- */
+/* ---------- Customers (real buyers who ordered this seller's items) ---------- */
+const SELLER_BUYERS_KEY = ["seller-buyers"] as const;
+
+type DbSellerBuyer = {
+  buyer_id: string;
+  name: string | null;
+  business: string | null;
+  email: string | null;
+  phone: string | null;
+  gst_number: string | null;
+  city: string | null;
+  address: string | null;
+  orders: number | null;
+  spent: number | null;
+  last_order_at: string | null;
+  favorite_product: string | null;
+};
+
+function mapDbSellerBuyer(row: DbSellerBuyer): SupplierCustomer {
+  const orders = Number(row.orders ?? 0);
+  const lastOrderAt = row.last_order_at ?? new Date().toISOString();
+  // A buyer is "active" if they ordered within the last 90 days.
+  const daysSince = (Date.now() - Date.parse(lastOrderAt)) / (1000 * 60 * 60 * 24);
+  return {
+    id: row.buyer_id,
+    name: row.name || "Buyer",
+    business: row.business || row.name || "Buyer",
+    city: row.city || "—",
+    orders,
+    spent: Number(row.spent ?? 0),
+    lastOrderAt,
+    favoriteProduct: row.favorite_product || "—",
+    gstNumber: row.gst_number || undefined,
+    address: row.address || undefined,
+    ownerName: row.name || undefined,
+    phone: row.phone || undefined,
+    email: row.email || undefined,
+    status: Number.isFinite(daysSince) && daysSince > 90 ? "inactive" : "active",
+  };
+}
+
 export function useSupplierCustomers() {
-  const [store] = useStore();
-  return { customers: store.customers };
+  const { user } = useAuth();
+  const query = useQuery({
+    queryKey: [...SELLER_BUYERS_KEY, user?.id ?? "anon"],
+    enabled: !!user?.id,
+    staleTime: 20_000,
+    queryFn: async (): Promise<SupplierCustomer[]> => {
+      const { data, error } = await supabase.rpc("get_seller_buyers");
+      if (error) throw error;
+      return ((data ?? []) as DbSellerBuyer[]).map(mapDbSellerBuyer);
+    },
+  });
+
+  return {
+    customers: query.data ?? [],
+    isLoading: query.isLoading,
+    error: query.error,
+  };
 }
 
 /* ---------- Supplier orders (real buyer orders for this seller's SKUs) ---------- */
@@ -603,6 +658,7 @@ async function fetchSellerOrders(sellerId: string): Promise<SupplierOrder[]> {
       product_id,
       product_snapshot,
       seller_id,
+      buyed_id,
       orders (
         id,
         order_number,
@@ -631,6 +687,7 @@ async function fetchSellerOrders(sellerId: string): Promise<SupplierOrder[]> {
       id: String(row.id),
       orderNumber: String(order?.order_number ?? "—"),
       customer: customerFromAddress(order?.shipping_address),
+      buyerId: row.buyed_id ? String(row.buyed_id) : undefined,
       product: productName,
       qty: Number(row.quantity ?? 0),
       amount: Number(row.line_total ?? 0),

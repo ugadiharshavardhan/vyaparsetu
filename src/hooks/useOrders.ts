@@ -60,19 +60,26 @@ export function useOrder(id: string | undefined) {
   });
 }
 
+export type RazorpayPaymentDetails = {
+  razorpay_payment_id: string;
+  razorpay_order_id: string;
+  razorpay_signature: string;
+};
+
 export type PlaceOrderInput = {
   items: CartItem[];
   address: ShippingAddress;
   coupon: Coupon | null;
   payment_method: PaymentMethod;
   isBuyNow?: boolean;
+  razorpay?: RazorpayPaymentDetails | null;
 };
 
 export function usePlaceOrder() {
   const qc = useQueryClient();
   const { user } = useAuth();
   return useMutation({
-    mutationFn: async ({ items, address, coupon, payment_method, isBuyNow }: PlaceOrderInput) => {
+    mutationFn: async ({ items, address, coupon, payment_method, isBuyNow, razorpay }: PlaceOrderInput) => {
       if (!user) throw new Error("Please sign in");
       if (!items.length) throw new Error("Cart is empty");
 
@@ -164,14 +171,24 @@ export function usePlaceOrder() {
       const { error: itemsErr } = await supabase.from("order_items").insert(itemRows);
       if (itemsErr) throw itemsErr;
 
+      const isRazorpay = payment_method !== "cod" && !!razorpay;
       await supabase.from("payment_records").insert({
         order_id: order.id,
         user_id: user.id,
         method: payment_method,
         status: payment_method === "cod" ? "pending" : "success",
         amount: totals.grandTotal,
-        transaction_ref: "DEMO-" + Math.random().toString(36).slice(2, 12).toUpperCase(),
-        gateway: "demo",
+        transaction_ref: isRazorpay
+          ? razorpay!.razorpay_payment_id
+          : "DEMO-" + Math.random().toString(36).slice(2, 12).toUpperCase(),
+        gateway: isRazorpay ? "razorpay" : "demo",
+        meta: isRazorpay
+          ? ({
+              razorpay_payment_id: razorpay!.razorpay_payment_id,
+              razorpay_order_id: razorpay!.razorpay_order_id,
+              razorpay_signature: razorpay!.razorpay_signature,
+            } as never)
+          : null,
       });
 
       await supabase.from("invoices").insert({

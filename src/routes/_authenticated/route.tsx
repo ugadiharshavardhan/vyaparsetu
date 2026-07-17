@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { resolveAuthedUser } from "@/lib/resolveAuthedUser";
+import { getSessionMode } from "@/lib/sessionMode";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -33,7 +34,13 @@ export const Route = createFileRoute("/_authenticated")({
       path.startsWith("/supplier") ||
       path.startsWith("/seller");
 
-    if (path.startsWith("/supplier") || path.startsWith("/seller/")) {
+    if (path.startsWith("/supplier") || path.startsWith("/seller")) {
+      // A buyer-mode session must never render the seller workspace — even for
+      // dual-role accounts that also have a sellers row. Send them to the buyer
+      // marketplace instead of the supplier pages.
+      if (getSessionMode() === "buyer") {
+        throw redirect({ to: "/marketplace" });
+      }
       const { data: seller } = await supabase
         .from("sellers")
         .select("id")

@@ -2,23 +2,28 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, ArrowRight, Check, Loader2, MapPin, Plus, ShieldCheck, Truck } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, CreditCard, Loader2, MapPin, Plus, ShieldCheck, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CheckoutStepper } from "@/components/checkout/CheckoutStepper";
-import { PaymentMethodPicker } from "@/components/checkout/PaymentCard";
 import { PriceSummary } from "@/components/cart/PriceSummary";
 import { CouponInput } from "@/components/cart/CouponInput";
 import { AddressCard } from "@/components/address/AddressCard";
 import { AddressFormDialog } from "@/components/address/AddressForm";
-import { useAddresses } from "@/hooks/useAddresses";
+import { useAddresses, useDeleteAddress } from "@/hooks/useAddresses";
+import { useAuth } from "@/hooks/useAuth";
 import { useCart } from "@/hooks/useCart";
 import { usePlaceOrder } from "@/hooks/useOrders";
 import { useValidateCoupon } from "@/hooks/useCoupon";
 import { useProductsByIds } from "@/hooks/useCatalog";
 import { computeTotals, DELIVERY_PARTNERS, estimatedDeliveryDate } from "@/lib/commerce";
 import { findBelowMoqItems, moqErrorMessage } from "@/lib/moq";
+import {
+  createRazorpayOrder,
+  openRazorpayCheckout,
+  verifyRazorpayPayment,
+} from "@/lib/razorpay";
 import { inr } from "@/lib/format";
-import type { Coupon, PaymentMethod, ShippingAddress } from "@/types/commerce";
+import type { Coupon, PaymentMethod } from "@/types/commerce";
 import { toast } from "sonner";
 
 const search = z.object({
@@ -75,15 +80,17 @@ function CheckoutPage() {
   const isLoading = cartLoading || cartFetching || (!!buyNowProductId && buyNowLoading);
 
   const { data: addresses = [] } = useAddresses();
+  const deleteAddress = useDeleteAddress();
+  const { user } = useAuth();
 
   const [step, setStep] = useState(0);
   const [selectedAddress, setSelectedAddress] = useState<string | null>(null);
   const [addrOpen, setAddrOpen] = useState(false);
   const [coupon, setCoupon] = useState<Coupon | null>(null);
-  const [payment, setPayment] = useState<PaymentMethod | null>(null);
-  const [processingPayment, setProcessingPayment] = useState(false);
+  const [processingMethod, setProcessingMethod] = useState<PaymentMethod | null>(null);
   const [placedOrderId, setPlacedOrderId] = useState<string | null>(null);
   const [placedOrderNumber, setPlacedOrderNumber] = useState<string | null>(null);
+  const [placedTotal, setPlacedTotal] = useState<number>(0);
 
   const address = addresses.find((a) => a.id === selectedAddress) ?? null;
   const breakup = useMemo(() => computeTotals(items, address, coupon), [items, address, coupon]);
@@ -150,34 +157,115 @@ function CheckoutPage() {
       toast.error("Please select a shipping address");
       return;
     }
-    if (step === 2 && !payment) {
-      toast.error("Please select a payment method");
-      return;
-    }
     setStep((s) => Math.min(s + 1, STEPS.length - 1));
   };
 
-  const submitPayment = () => {
-    if (belowMoq.length > 0) {
-      toast.error(moqErrorMessage(belowMoq[0]));
-      return;
-    }
-    if (!address || !payment) return;
-    setProcessingPayment(true);
-    // Simulated payment gateway
-    setTimeout(() => {
+  const handleRemoveAddress = (id: string) => {
+    deleteAddress.mutate(id, {
+      onSuccess: () => {
+        if (selectedAddress === id) {
+          const remaining = addresses.filter((a) => a.id !== id);
+          setSelectedAddress(remaining[0]?.id ?? null);
+        }
+      },
+    });
+  };
+
+  const finalizeOrder = (
+    method: PaymentMethod,
+    razorpay?: {
+      razorpay_payment_id: string;
+      razorpay_order_id: string;
+      razorpay_signature: string;
+    } | null,
+  ) =>
+    new Promise<void>((resolve) => {
       place.mutate(
-        { items, address, coupon, payment_method: payment, isBuyNow: !!buyNowProductId },
+        {
+          items,
+          address: address!,
+          coupon,
+          payment_method: method,
+          isBuyNow: !!buyNowProductId,
+          razorpay: razorpay ?? null,
+        },
         {
           onSuccess: (order) => {
             setPlacedOrderId(order.id);
             setPlacedOrderNumber(order.order_number);
+            setPlacedTotal(Number(order.grand_total) || breakup.grandTotal);
             setStep(3);
           },
-          onSettled: () => setProcessingPayment(false),
+          onSettled: () => {
+            setProcessingMethod(null);
+            resolve();
+          },
         },
       );
-    }, 1200);
+    });
+
+  const payWithCod = () => {
+    if (belowMoq.length > 0) {
+      toast.error(moqErrorMessage(belowMoq[0]));
+      return;
+    }
+    if (!address) {
+      toast.error("Please select a shipping address");
+      return;
+    }
+    if (breakup.grandTotal > 50000) {
+      toast.error("Cash on delivery is available only for orders under ₹50,000");
+      return;
+    }
+    setProcessingMethod("cod");
+    void finalizeOrder("cod");
+  };
+
+  const payWithRazorpay = async () => {
+    if (belowMoq.length > 0) {
+      toast.error(moqErrorMessage(belowMoq[0]));
+      return;
+    }
+    if (!address) {
+      toast.error("Please select a shipping address");
+      return;
+    }
+    setProcessingMethod("upi");
+    try {
+      const rzpOrder = await createRazorpayOrder({
+        amount: breakup.grandTotal,
+        receipt: `vs_${Date.now()}`,
+        notes: { buyer: user?.email ?? "", city: address.city },
+      });
+
+      const success = await openRazorpayCheckout({
+        order: rzpOrder,
+        description: `VyaparSetu order · ${items.length} item(s)`,
+        prefill: {
+          name: address.contact_name,
+          email: user?.email ?? undefined,
+          contact: address.phone,
+        },
+      });
+
+      if (!success) {
+        setProcessingMethod(null);
+        toast.message("Payment cancelled");
+        return;
+      }
+
+      const { valid } = await verifyRazorpayPayment(success);
+      if (!valid) {
+        setProcessingMethod(null);
+        toast.error("Payment could not be verified. You were not charged.");
+        return;
+      }
+
+      await finalizeOrder("upi", success);
+    } catch (e) {
+      setProcessingMethod(null);
+      toast.error(e instanceof Error ? e.message : "Payment failed");
+    }
   };
 
   const partner = DELIVERY_PARTNERS[0];
@@ -191,7 +279,7 @@ function CheckoutPage() {
           <CheckoutStepper steps={STEPS} current={step} />
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+        <div className={step < 3 ? "grid gap-6 lg:grid-cols-[1fr_360px]" : ""}>
           <div>
             <AnimatePresence mode="wait">
               {step === 0 && (
@@ -227,6 +315,7 @@ function CheckoutPage() {
                           address={a}
                           selected={selectedAddress === a.id}
                           onSelect={() => setSelectedAddress(a.id)}
+                          onDelete={() => handleRemoveAddress(a.id)}
                         />
                       ))}
                     </div>
@@ -299,12 +388,60 @@ function CheckoutPage() {
                 >
                   <div className="mb-4">
                     <h3 className="text-base font-bold">Payment method</h3>
-                    <p className="text-xs text-muted-foreground">Demo mode — no real charge will be made.</p>
+                    <p className="text-xs text-muted-foreground">
+                      Choose how you&apos;d like to pay for this order.
+                    </p>
                   </div>
-                  <PaymentMethodPicker value={payment} onChange={setPayment} grandTotal={breakup.grandTotal} />
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      disabled={!!processingMethod || place.isPending || breakup.grandTotal > 50000}
+                      onClick={payWithCod}
+                      className="flex items-center gap-4 rounded-2xl border border-border bg-card p-5 text-left transition-all hover:border-brand/50 hover:shadow-soft disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <div className="grid h-12 w-12 place-items-center rounded-xl bg-secondary text-foreground">
+                        {processingMethod === "cod" ? (
+                          <Loader2 className="h-6 w-6 animate-spin" />
+                        ) : (
+                          <Truck className="h-6 w-6" />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-sm font-bold">Cash on delivery</div>
+                        <div className="text-[11px] text-muted-foreground">
+                          {breakup.grandTotal > 50000
+                            ? "Unavailable above ₹50,000"
+                            : "Pay in cash when your order arrives"}
+                        </div>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={!!processingMethod || place.isPending}
+                      onClick={payWithRazorpay}
+                      className="flex items-center gap-4 rounded-2xl border border-brand bg-brand/5 p-5 text-left transition-all hover:shadow-brand disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <div className="grid h-12 w-12 place-items-center rounded-xl bg-brand text-white">
+                        {processingMethod === "upi" ? (
+                          <Loader2 className="h-6 w-6 animate-spin" />
+                        ) : (
+                          <CreditCard className="h-6 w-6" />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-sm font-bold">Continue with Razorpay</div>
+                        <div className="text-[11px] text-muted-foreground">
+                          UPI, cards, net banking &amp; wallets
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+
                   <div className="mt-4 flex items-center gap-2 rounded-xl bg-secondary/60 p-3 text-[11px] text-muted-foreground">
                     <ShieldCheck className="h-4 w-4 text-brand" />
-                    Payments are 256-bit encrypted. Razorpay integration ready for production.
+                    Payments are 256-bit encrypted and processed securely by Razorpay.
                   </div>
                 </motion.section>
               )}
@@ -326,7 +463,7 @@ function CheckoutPage() {
                   </motion.div>
                   <h3 className="mt-4 text-2xl font-bold">Order placed successfully!</h3>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Order <span className="font-semibold text-foreground">#{placedOrderNumber}</span> · {inr(breakup.grandTotal)}
+                    Order <span className="font-semibold text-foreground">#{placedOrderNumber}</span> · {inr(placedTotal)}
                   </p>
                   <p className="mt-4 text-sm text-muted-foreground">
                     Estimated delivery on{" "}
@@ -356,23 +493,9 @@ function CheckoutPage() {
                 >
                   <ArrowLeft className="mr-1.5 h-4 w-4" /> Back
                 </Button>
-                {step < 2 ? (
+                {step < 2 && (
                   <Button className="shadow-brand" onClick={next}>
                     Continue <ArrowRight className="ml-1.5 h-4 w-4" />
-                  </Button>
-                ) : (
-                  <Button
-                    className="shadow-brand"
-                    disabled={!payment || processingPayment || place.isPending}
-                    onClick={submitPayment}
-                  >
-                    {processingPayment || place.isPending ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing…
-                      </>
-                    ) : (
-                      <>Pay {inr(breakup.grandTotal)}</>
-                    )}
                   </Button>
                 )}
               </div>

@@ -1,11 +1,13 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowLeft, Download, HelpCircle, Package, RotateCcw, Truck, XCircle, Star, Loader2, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Download, HelpCircle, Package, RotateCcw, Store, XCircle, Star, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { OrderTimeline } from "@/components/orders/OrderTimeline";
 import { useCancelOrder, useOrder } from "@/hooks/useOrders";
+import { useDownloadOrderInvoice } from "@/hooks/useInvoice";
+import { useProfile } from "@/hooks/useProfile";
 import { useRepeatOrder } from "@/hooks/useCart";
+import { useAuth } from "@/hooks/useAuth";
 import { inr } from "@/lib/format";
 import { STATUS_LABELS } from "@/lib/commerce";
 import { toast } from "sonner";
@@ -15,35 +17,45 @@ import { useProductReviews, useSubmitReview, useDeleteReview } from "@/hooks/use
 
 export const Route = createFileRoute("/_authenticated/orders/$id")({
   head: () => ({ meta: [{ title: "Order details — VyaparSetu" }] }),
+  errorComponent: ({ reset }) => (
+    <div className="container-page py-16 text-center">
+      <h2 className="text-xl font-bold">Couldn&apos;t load this order</h2>
+      <p className="mt-2 text-sm text-muted-foreground">Something interrupted the request. Please try again.</p>
+      <div className="mt-6 flex items-center justify-center gap-3">
+        <Button onClick={() => reset()}>Retry</Button>
+        <Button asChild variant="outline">
+          <Link to="/orders">Back to orders</Link>
+        </Button>
+      </div>
+    </div>
+  ),
   component: OrderDetailPage,
 });
 
 function OrderDetailPage() {
   const { id } = Route.useParams();
   const { data: order, isLoading } = useOrder(id);
+  const { data: profile } = useProfile();
   const cancel = useCancelOrder();
   const repeat = useRepeatOrder();
+  const downloadInvoice = useDownloadOrderInvoice();
   const navigate = useNavigate();
 
   if (isLoading) {
     return (
-      
-        <div className="container-page py-8">
-          <Skeleton className="h-8 w-40" />
-          <Skeleton className="mt-4 h-96 w-full rounded-2xl" />
-        </div>
-      
+      <div className="container-page py-8">
+        <Skeleton className="h-8 w-40" />
+        <Skeleton className="mt-4 h-96 w-full rounded-2xl" />
+      </div>
     );
   }
 
   if (!order) {
     return (
-      
-        <div className="container-page py-16 text-center">
-          <h2 className="text-xl font-bold">Order not found</h2>
-          <Button className="mt-4" onClick={() => navigate({ to: "/orders" })}>Back to orders</Button>
-        </div>
-      
+      <div className="container-page py-16 text-center">
+        <h2 className="text-xl font-bold">Order not found</h2>
+        <Button className="mt-4" onClick={() => navigate({ to: "/orders" })}>Back to orders</Button>
+      </div>
     );
   }
 
@@ -65,8 +77,7 @@ function OrderDetailPage() {
   };
 
   return (
-    
-      <div className="container-page py-8">
+    <div className="container-page py-8">
         <Link to="/orders" className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-4 w-4" /> Back to orders
         </Link>
@@ -82,8 +93,14 @@ function OrderDetailPage() {
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={() => toast.info("Invoice generation coming soon")}>
-              <Download className="mr-1.5 h-4 w-4" /> Invoice
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={downloadInvoice.isPending}
+              onClick={() => downloadInvoice.mutate({ order, profile: profile ?? null })}
+            >
+              <Download className="mr-1.5 h-4 w-4" />
+              {downloadInvoice.isPending ? "Preparing…" : "Invoice"}
             </Button>
             <Button
               variant="outline"
@@ -112,46 +129,101 @@ function OrderDetailPage() {
           <div className="space-y-6">
             <section className="rounded-2xl border border-border bg-card p-6 shadow-soft">
               <div className="mb-4 flex items-center gap-2 text-sm font-semibold">
-                <Truck className="h-4 w-4 text-brand" /> Order tracking
-              </div>
-              <OrderTimeline order={order} />
-              <div className="mt-6 grid gap-2 rounded-xl bg-secondary/60 p-4 text-xs sm:grid-cols-3">
-                <div><div className="text-muted-foreground">Delivery partner</div><div className="font-semibold">{order.delivery_partner ?? "TBD"}</div></div>
-                <div><div className="text-muted-foreground">Tracking #</div><div className="font-semibold">{order.tracking_number ?? "TBD"}</div></div>
-                <div><div className="text-muted-foreground">Estimated delivery</div><div className="font-semibold">{order.estimated_delivery ? new Date(order.estimated_delivery).toLocaleDateString("en-IN", { day: "numeric", month: "short" }) : "TBD"}</div></div>
-              </div>
-            </section>
-
-            <section className="rounded-2xl border border-border bg-card p-6 shadow-soft">
-              <div className="mb-4 flex items-center gap-2 text-sm font-semibold">
                 <Package className="h-4 w-4 text-brand" /> Items ({items.length})
               </div>
-              <div className="divide-y divide-border">
-                {items.map((it) => (
-                  <div key={it.id} className="flex items-center gap-3 py-3">
-                    <Link to="/products/$slug" params={{ slug: it.product_snapshot.slug }}>
-                      <img src={it.product_snapshot.image} alt="" className="h-16 w-16 rounded-lg object-cover" />
-                    </Link>
-                    <div className="min-w-0 flex-1">
-                      <Link to="/products/$slug" params={{ slug: it.product_snapshot.slug }} className="line-clamp-1 text-sm font-medium hover:text-brand">
-                        {it.product_snapshot.name}
-                      </Link>
-                      <div className="text-[11px] text-muted-foreground">
-                        Supplier: {it.product_snapshot.supplierName} · {it.quantity} × {inr(it.unit_price)}
-                      </div>
-                      <div className="text-[11px] text-muted-foreground">GST {it.gst_rate}% · {inr(it.gst_amount)}</div>
-                      {!["pending", "cancelled"].includes(order.status) && (
-                        <div className="mt-2">
-                          <ProductReviewButton productId={it.product_id} productName={it.product_snapshot.name} />
+              {items.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-border py-10 text-center text-sm text-muted-foreground">
+                  No items found for this order.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {items.map((it) => {
+                    const snap = it.product_snapshot;
+                    const showMrp = snap.mrp > 0 && snap.mrp > it.unit_price;
+                    const canReview = !["pending", "cancelled"].includes(order.status);
+                    return (
+                      <div
+                        key={it.id}
+                        className="rounded-xl border border-border/70 bg-background/40 p-4 transition-colors hover:border-brand/30"
+                      >
+                        <div className="flex gap-4">
+                          <Link
+                            to="/products/$slug"
+                            params={{ slug: snap.slug }}
+                            className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg border border-border bg-secondary"
+                          >
+                            <img src={snap.image} alt={snap.name} className="h-full w-full object-cover" />
+                          </Link>
+
+                          <div className="min-w-0 flex-1">
+                            {snap.brand && (
+                              <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                                {snap.brand}
+                              </div>
+                            )}
+                            <Link
+                              to="/products/$slug"
+                              params={{ slug: snap.slug }}
+                              className="line-clamp-2 text-sm font-semibold text-foreground hover:text-brand"
+                            >
+                              {snap.name}
+                            </Link>
+                            <div className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
+                              <Store className="h-3 w-3" />
+                              {snap.supplierName}
+                            </div>
+                          </div>
+
+                          <div className="shrink-0 text-right">
+                            <div className="text-base font-bold text-foreground">{inr(it.line_total)}</div>
+                            {showMrp && (
+                              <div className="text-[11px] text-muted-foreground line-through">{inr(snap.mrp)}</div>
+                            )}
+                            <div className="text-[11px] text-muted-foreground">Line total</div>
+                          </div>
                         </div>
-                      )}
-                    </div>
-                    <div className="text-right">
-                      <div className="text-sm font-semibold">{inr(it.line_total)}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+
+                        {/* Per-item breakdown */}
+                        <div className="mt-3 grid grid-cols-2 gap-2 rounded-lg bg-secondary/50 p-3 text-[11px] sm:grid-cols-4">
+                          <div>
+                            <div className="text-muted-foreground">Quantity</div>
+                            <div className="font-semibold text-foreground">
+                              {it.quantity} {snap.unit}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-muted-foreground">Unit price</div>
+                            <div className="font-semibold text-foreground">{inr(it.unit_price)}</div>
+                          </div>
+                          <div>
+                            <div className="text-muted-foreground">GST ({it.gst_rate}%)</div>
+                            <div className="font-semibold text-foreground">
+                              {snap.gstIncluded ? "Incl." : inr(it.gst_amount)}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-muted-foreground">Discount</div>
+                            <div className="font-semibold text-foreground">
+                              {it.discount_amount > 0 ? `− ${inr(it.discount_amount)}` : "—"}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                          <Button asChild variant="outline" size="sm" className="rounded-full">
+                            <Link to="/products/$slug" params={{ slug: snap.slug }}>
+                              View item details <ArrowRight className="ml-1 h-3.5 w-3.5" />
+                            </Link>
+                          </Button>
+                          {canReview && (
+                            <ProductReviewButton productId={it.product_id} productName={snap.name} />
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </section>
           </div>
 

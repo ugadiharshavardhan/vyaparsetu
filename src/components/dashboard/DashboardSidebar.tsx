@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCartCount } from "@/hooks/useCart";
 import { useWishlist } from "@/hooks/useWishlist";
 import { useSessionMode } from "@/hooks/useSessionMode";
+import { useHomeDestination } from "@/hooks/useHomeDestination";
 import { clearSessionMode } from "@/lib/sessionMode";
 import { cn } from "@/lib/utils";
 
@@ -82,6 +83,7 @@ export function DashboardSidebar() {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const { data: account } = useAccountFlags();
   const sessionMode = useSessionMode();
+  const homeTo = useHomeDestination();
   // Admin nav only on /admin routes — never mix into buyer/seller workspaces.
   const isAdminRoute = pathname.startsWith("/admin");
   const showAdminNav = isAdminRoute && !!account?.isAdmin;
@@ -165,13 +167,18 @@ export function DashboardSidebar() {
       {/* Header — logo area with refined border */}
       <SidebarHeader className="border-b border-sidebar-border/60 px-3 py-2.5">
         <Link
-          to="/"
+          to={homeTo}
           className={cn(
-            "flex h-11 items-center rounded-lg transition-colors duration-150 hover:bg-sidebar-accent/50",
+            "flex h-14 items-center rounded-lg transition-colors duration-150 hover:bg-sidebar-accent/50",
             collapsed ? "justify-center px-0" : "gap-2.5 px-1.5"
           )}
         >
-          <Logo asLink={false} compact={collapsed} hideSubtitle />
+          <Logo
+            asLink={false}
+            compact={collapsed}
+            hideSubtitle
+            imgClassName={collapsed ? undefined : "h-12"}
+          />
         </Link>
       </SidebarHeader>
 

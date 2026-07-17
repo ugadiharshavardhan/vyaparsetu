@@ -345,6 +345,83 @@ async function upsertMembership(userId: string, email: string, role: Role, profi
   await removeLegacyProfile(userId);
 }
 
+const DEFAULT_SELLER_CATEGORY_SLUGS = ["flour-atta", "cooking-oils", "salt-sugar", "snacks-bakery"];
+
+// New sellers are provisioned with the default catalog categories
+// (flour-atta, cooking-oils, salt-sugar, snacks-bakery) and marked verified so
+// their products are live in the marketplace and buyer orders route to their
+// dashboard. Failure here must NOT block signup (membership already exists).
+async function assignDefaultSellerCatalog(userId: string) {
+  const supabase = adminClient();
+
+  // Preferred path: single-transaction DB function.
+  const { error: rpcError } = await supabase.rpc(
+    "assign_default_seller_categories",
+    { _seller_id: userId } as never,
+  );
+  if (!rpcError) return;
+
+  // Fallback (e.g. PostgREST schema cache not refreshed): replicate the same
+  // assignment with table operations using the service-role client.
+  try {
+    const now = new Date().toISOString();
+    const { data: seller } = await supabase
+      .from("sellers")
+      .select("business_name, full_name")
+      .eq("id", userId)
+      .maybeSingle();
+    const sellerRow = (seller ?? {}) as { business_name?: string | null; full_name?: string | null };
+    const businessName = sellerRow.business_name || sellerRow.full_name || "VyaparSetu Seller";
+
+    const { data: prods } = await supabase
+      .from("products")
+      .select("id")
+      .in("category_slug", DEFAULT_SELLER_CATEGORY_SLUGS);
+    const productIds = ((prods ?? []) as { id: string }[]).map((p) => p.id);
+    if (productIds.length === 0) return;
+
+    await supabase
+      .from("products")
+      .update({
+        seller_id: userId,
+        supplier: {
+          id: userId,
+          name: businessName,
+          location: "India",
+          verified: true,
+          rating: 4.5,
+          yearsActive: 1,
+        },
+        updated_at: now,
+      } as never)
+      .in("category_slug", DEFAULT_SELLER_CATEGORY_SLUGS);
+
+    await supabase
+      .from("seller_products")
+      .update({ seller_id: userId, updated_at: now } as never)
+      .in("product_id", productIds);
+
+    const { data: existing } = await supabase
+      .from("seller_products")
+      .select("product_id")
+      .in("product_id", productIds);
+    const owned = new Set(((existing ?? []) as { product_id: string }[]).map((r) => r.product_id));
+    const toInsert = productIds
+      .filter((id) => !owned.has(id))
+      .map((id) => ({ id, seller_id: userId, product_id: id }));
+    if (toInsert.length > 0) {
+      await supabase.from("seller_products").insert(toInsert as never);
+    }
+
+    await supabase
+      .from("sellers")
+      .update({ verification_status: "verified", updated_at: now } as never)
+      .eq("id", userId);
+  } catch {
+    // Non-fatal: seller can still be provisioned later via the backfill script.
+  }
+}
+
 async function hasMembership(userId: string, role: Role) {
   const supabase = adminClient();
   const table = role === "seller" ? "sellers" : "buyers";
@@ -635,6 +712,11 @@ async function handleVerify(
         status: 500,
         body: { error: e instanceof Error ? e.message : "Could not create profile after verification" },
       };
+    }
+
+    // Give brand-new sellers the default catalog categories and make them live.
+    if (role === "seller") {
+      await assignDefaultSellerCatalog(user.id);
     }
 
     const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({

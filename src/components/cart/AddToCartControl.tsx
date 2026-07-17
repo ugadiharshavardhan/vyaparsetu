@@ -1,14 +1,16 @@
-import { Minus, Plus, ShoppingCart } from "lucide-react";
+import { ShoppingCart } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import type { Product } from "@/types";
 import type { ProductSnapshot } from "@/types/commerce";
 import { Button } from "@/components/ui/button";
+import { CartQuantityStepper } from "@/components/cart/CartQuantityStepper";
 import { useAddToCart, useCartLine, useRemoveCartItem, useUpdateCartItem } from "@/hooks/useCart";
 import { useAuth } from "@/hooks/useAuth";
 import { setPendingCartAdd } from "@/lib/pendingCart";
 import { toSnapshot } from "@/lib/commerce";
 import { resolveAuthedUser } from "@/lib/resolveAuthedUser";
+import { resolveDisplayMoq } from "@/lib/moq";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -16,6 +18,7 @@ type Props = {
   /** Use when only a cart/wishlist snapshot is available (e.g. saved items). */
   snapshot?: ProductSnapshot;
   size?: "sm" | "lg";
+  /** Styles applied to the Add button and the quantity stepper. */
   className?: string;
   /** Extra units beyond MOQ when first adding (PDP qty selector) */
   initialQuantity?: number;
@@ -37,19 +40,23 @@ export function AddToCartControl({
   const add = useAddToCart();
   const update = useUpdateCartItem();
   const remove = useRemoveCartItem();
-  const moq = Math.max(1, line?.product_snapshot.moq ?? snapshot?.moq ?? 1);
-  const stockCount = snapshot?.stockCount ?? 0;
+  const moq = resolveDisplayMoq({
+    productMoq: product?.moq,
+    snapshotMoq: snapshot?.moq,
+    lineSnapshotMoq: line?.product_snapshot.moq,
+  });
+  const stockCount =
+    line?.product_snapshot.stockCount ?? snapshot?.stockCount ?? product?.stockCount ?? 0;
   const inStock = product?.inStock ?? stockCount > 0;
-  const pending = add.isPending || update.isPending || remove.isPending;
+  const pending = add.isPending || update.isPending;
 
   if (!snapshot) return null;
 
   const requireAuthThenAdd = () => {
     const qty = Math.max(initialQuantity ?? moq, moq);
-    const returnTo =
-      typeof window !== "undefined"
-        ? `${window.location.pathname}${window.location.search}`
-        : "/marketplace";
+    // After a guest signs in, land them on the cart with the clicked item added
+    // (the pending snapshot is flushed into cart_items by the useCart post-login effect).
+    const returnTo = "/cart";
 
     setPendingCartAdd({
       snapshot,
@@ -70,23 +77,6 @@ export function AddToCartControl({
     return !!resolved;
   };
 
-  const changeQty = async (next: number) => {
-    if (!(await confirmAuthed())) {
-      requireAuthThenAdd();
-      return;
-    }
-    if (!line) return;
-    if (next < moq) {
-      toast.error(`Minimum order is ${moq} ${snapshot.unit}`);
-      return;
-    }
-    if (next > stockCount) {
-      toast.error(`Only ${stockCount} in stock`);
-      return;
-    }
-    update.mutate({ id: line.id, quantity: next });
-  };
-
   if (!inStock) {
     return (
       <Button size={size} className={cn("flex-1", className)} disabled>
@@ -97,44 +87,25 @@ export function AddToCartControl({
 
   if (line && isAuthenticated) {
     return (
-      <div
+      <CartQuantityStepper
+        quantity={line.quantity}
+        moq={moq}
+        stockCount={stockCount}
+        pending={pending}
+        size={size === "lg" ? "lg" : "sm"}
         className={cn(
-          "inline-flex flex-1 items-center justify-between rounded-full border border-brand/40 bg-white shadow-soft",
-          size === "lg" ? "h-11" : "h-9",
+          "flex-1",
+          size === "lg" ? "min-w-0" : "min-w-[7rem] max-w-[9rem]",
           className,
         )}
-        onClick={(e) => e.preventDefault()}
-      >
-        <button
-          type="button"
-          disabled={pending || line.quantity <= moq}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            changeQty(line.quantity - 1);
-          }}
-          className="grid h-full w-10 place-items-center rounded-l-full text-brand transition-colors hover:bg-brand hover:text-white disabled:opacity-50"
-          aria-label="Decrease quantity"
-        >
-          <Minus className="h-4 w-4" strokeWidth={2.5} />
-        </button>
-        <div className="min-w-[2.5rem] px-1 text-center text-sm font-semibold tabular-nums text-foreground">
-          {line.quantity}
-        </div>
-        <button
-          type="button"
-          disabled={pending}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            changeQty(line.quantity + 1);
-          }}
-          className="grid h-full w-10 place-items-center rounded-r-full text-brand transition-colors hover:bg-brand hover:text-white disabled:opacity-50"
-          aria-label="Increase quantity"
-        >
-          <Plus className="h-4 w-4" strokeWidth={2.5} />
-        </button>
-      </div>
+        onQuantityChange={(next) => update.mutate({ id: line.id, quantity: next })}
+        onRemove={() => remove.mutate(line.id)}
+        onBlocked={(delta) => {
+          if (delta > 0) {
+            toast.error(`Only ${stockCount} in stock`);
+          }
+        }}
+      />
     );
   }
 
@@ -153,13 +124,17 @@ export function AddToCartControl({
           requireAuthThenAdd();
           return;
         }
-        add.mutate({ snapshot, quantity: initialQuantity ?? moq, openSheet: false });
+        add.mutate({
+          snapshot,
+          quantity: Math.max(initialQuantity ?? moq, moq),
+          openSheet: false,
+        });
       }}
     >
       {!pending && (
         <ShoppingCart
           className={cn(
-            size === "lg" ? "mr-1.5 h-4 w-4" : "h-3.5 w-3.5",
+            size === "lg" ? "mr-1.5 h-5 w-5" : "h-3.5 w-3.5",
             showLabel && size !== "lg" && "mr-1.5",
           )}
         />

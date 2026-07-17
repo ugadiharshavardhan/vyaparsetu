@@ -22,8 +22,7 @@ function BuyerProfilePage() {
   const { orders } = useSupplierOrders();
   
   const buyer = customers.find(c => c.id === id);
-  // Mock finding orders for this specific buyer (in real app, we'd filter by buyer ID, here we filter by name for mock simplicity)
-  const buyerOrders = orders.filter(o => buyer && o.customer === buyer.business);
+  const buyerOrders = orders.filter(o => o.buyerId === id);
 
   if (!buyer) {
     return (

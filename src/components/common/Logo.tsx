@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { SITE } from "@/constants/site";
+import { useHomeDestination } from "@/hooks/useHomeDestination";
 
 export function Logo({
   compact = false,
@@ -22,6 +23,8 @@ export function Logo({
 }) {
   void hideSubtitle;
   const onBrand = variant === "onBrand";
+  // Logged-out → landing `/`; buyer → marketplace; seller → seller dashboard.
+  const homeTo = useHomeDestination();
 
   const mark = compact ? (
     <span
@@ -67,7 +70,7 @@ export function Logo({
   }
 
   return (
-    <Link to="/" className={classes} aria-label={`${SITE.name} home`}>
+    <Link to={homeTo} className={classes} aria-label={`${SITE.name} home`}>
       {mark}
     </Link>
   );

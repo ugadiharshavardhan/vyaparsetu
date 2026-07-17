@@ -185,7 +185,7 @@ function RootComponent() {
           <Outlet />
         </SiteLayout>
         <OfflineIndicator />
-        <Toaster richColors position="top-right" />
+        <Toaster richColors position="top-center" />
       </AuthProvider>
     </QueryClientProvider>
   );

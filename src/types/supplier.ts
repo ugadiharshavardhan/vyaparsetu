@@ -118,6 +118,7 @@ export type SupplierOrder = {
   id: string;
   orderNumber: string;
   customer: string;
+  buyerId?: string;
   product: string;
   qty: number;
   amount: number;

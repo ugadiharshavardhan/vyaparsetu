@@ -23,20 +23,33 @@ export function authOtpApiPlugin(): Plugin {
 
       server.middlewares.use(async (req, res, next) => {
         const url = req.url?.split("?")[0] ?? "";
-        if (url !== "/api/auth-otp") {
-          next();
+        if (url === "/api/auth-otp") {
+          try {
+            await handle(req, res);
+          } catch (e) {
+            console.error("[auth-otp-api]", e);
+            if (!res.headersSent) {
+              res.statusCode = 500;
+              res.setHeader("Content-Type", "application/json");
+              res.end(JSON.stringify({ error: e instanceof Error ? e.message : "Unexpected error" }));
+            }
+          }
           return;
         }
-        try {
-          await handle(req, res);
-        } catch (e) {
-          console.error("[auth-otp-api]", e);
-          if (!res.headersSent) {
-            res.statusCode = 500;
-            res.setHeader("Content-Type", "application/json");
-            res.end(JSON.stringify({ error: e instanceof Error ? e.message : "Unexpected error" }));
+        if (url === "/api/razorpay") {
+          try {
+            await handleRazorpay(req, res);
+          } catch (e) {
+            console.error("[razorpay-api]", e);
+            if (!res.headersSent) {
+              res.statusCode = 500;
+              res.setHeader("Content-Type", "application/json");
+              res.end(JSON.stringify({ error: e instanceof Error ? e.message : "Unexpected error" }));
+            }
           }
+          return;
         }
+        next();
       });
     },
   };
@@ -62,6 +75,33 @@ async function handle(req: IncomingMessage, res: ServerResponse) {
   });
 
   const response = await handleAuthOtpRequest(request);
+  res.statusCode = response.status;
+  response.headers.forEach((value, key) => {
+    res.setHeader(key, value);
+  });
+  res.end(await response.text());
+}
+
+async function handleRazorpay(req: IncomingMessage, res: ServerResponse) {
+  const { handleRazorpayRequest } = await import("./src/server/razorpayHandler");
+
+  if (req.method === "OPTIONS") {
+    res.statusCode = 200;
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "content-type, authorization, apikey");
+    res.end("ok");
+    return;
+  }
+
+  const raw = req.method === "POST" ? await readBody(req) : "";
+  const request = new Request("http://localhost/api/razorpay", {
+    method: req.method ?? "GET",
+    headers: { "Content-Type": req.headers["content-type"] ?? "application/json" },
+    body: req.method === "POST" ? raw : undefined,
+  });
+
+  const response = await handleRazorpayRequest(request);
   res.statusCode = response.status;
   response.headers.forEach((value, key) => {
     res.setHeader(key, value);

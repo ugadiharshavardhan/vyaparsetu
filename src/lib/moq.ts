@@ -77,3 +77,33 @@ export function moqErrorMessage(item: Pick<CartItem, "product_snapshot">): strin
   const name = p?.name ?? "This item";
   return `Minimum order quantity for ${name} is ${moq} ${unit}. Increase the quantity to continue.`;
 }
+
+/** Best available MOQ for UI controls (catalog + snapshot + cart line). */
+export function resolveDisplayMoq(opts: {
+  productMoq?: number;
+  snapshotMoq?: number;
+  lineSnapshotMoq?: number;
+}): number {
+  const candidates = [opts.productMoq, opts.snapshotMoq, opts.lineSnapshotMoq].filter(
+    (v): v is number => v != null && Number.isFinite(v) && v > 0,
+  );
+  return Math.max(1, ...candidates, 1);
+}
+
+/** Step cart quantity by ±1; returns null when below MOQ or above stock. */
+export function stepCartQuantity(
+  current: number,
+  delta: -1 | 1,
+  moq: number,
+  stockMax?: number,
+): number | null {
+  const next = current + delta;
+  if (next < Math.max(1, moq)) return null;
+  if (stockMax != null && stockMax > 0 && next > stockMax) return null;
+  return next;
+}
+
+/** Only enforce a stock ceiling when we have a positive on-hand count. */
+export function effectiveStockCap(stockCount?: number): number | undefined {
+  return stockCount != null && stockCount > 0 ? stockCount : undefined;
+}

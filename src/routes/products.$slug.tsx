@@ -63,6 +63,20 @@ export const Route = createFileRoute("/products/$slug")({
       <Button asChild className="mt-6"><Link to="/marketplace">Back to marketplace</Link></Button>
     </div>
   ),
+  errorComponent: ({ reset }) => (
+    <div className="container-page py-24 text-center">
+      <h1 className="font-display text-3xl font-bold">Couldn&apos;t load this product</h1>
+      <p className="mt-2 text-muted-foreground">
+        Something interrupted the request. Please try again.
+      </p>
+      <div className="mt-6 flex items-center justify-center gap-3">
+        <Button onClick={() => reset()}>Retry</Button>
+        <Button asChild variant="outline">
+          <Link to="/marketplace">Back to marketplace</Link>
+        </Button>
+      </div>
+    </div>
+  ),
   component: ProductPage,
 });
 
@@ -165,8 +179,6 @@ function ProductPage() {
     <div className="container-page py-6 md:py-10">
       {/* Breadcrumb Navigation */}
       <nav className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground font-medium py-2">
-        <Link to="/" className="hover:text-brand transition-colors">Home</Link>
-        <ChevronRight className="h-3 w-3 text-muted-foreground/60" />
         <Link to="/marketplace" className="hover:text-brand transition-colors">Marketplace</Link>
         {product.category ? (
           <>
@@ -452,15 +464,15 @@ function ProductPage() {
                     <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Select Quantity</div>
                     <p className="text-[10px] text-muted-foreground mt-0.5">Increments of 1 {product.unit}</p>
                   </div>
-                  <div className="inline-flex items-center rounded-full border border-border bg-background shadow-sm h-10">
+                  <div className="inline-flex items-stretch overflow-hidden rounded-full border border-border bg-background shadow-sm h-12">
                     <button
                       type="button"
                       disabled={!product.inStock || qty <= moq}
                       onClick={() => setQty((q) => Math.max(moq, q - 1))}
-                      className="grid h-10 w-10 place-items-center text-muted-foreground hover:bg-secondary disabled:opacity-40 rounded-l-full cursor-pointer transition-colors"
+                      className="grid h-12 w-12 shrink-0 place-items-center text-brand hover:bg-brand hover:text-white disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-brand rounded-l-full cursor-pointer transition-colors"
                       aria-label="Decrease quantity"
                     >
-                      <Minus className="h-3.5 w-3.5" />
+                      <Minus className="h-5 w-5" strokeWidth={2.25} />
                     </button>
                     <input
                       type="number"
@@ -475,7 +487,7 @@ function ProductPage() {
                           setQty(Math.max(moq, val));
                         }
                       }}
-                      className="w-12 text-center text-sm font-semibold focus:outline-none bg-transparent border-0 focus:ring-0 p-0"
+                      className="min-w-[3rem] flex-1 text-center text-lg font-bold focus:outline-none bg-transparent border-0 focus:ring-0 p-0 tabular-nums"
                     />
                     <button
                       type="button"
@@ -488,10 +500,10 @@ function ProductPage() {
                         }
                         setQty(next);
                       }}
-                      className="grid h-10 w-10 place-items-center text-muted-foreground hover:bg-secondary disabled:opacity-40 rounded-r-full cursor-pointer transition-colors"
+                      className="grid h-12 w-12 shrink-0 place-items-center text-brand hover:bg-brand hover:text-white disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-brand rounded-r-full cursor-pointer transition-colors"
                       aria-label="Increase quantity"
                     >
-                      <Plus className="h-3.5 w-3.5" />
+                      <Plus className="h-5 w-5" strokeWidth={2.25} />
                     </button>
                   </div>
                 </div>
@@ -500,19 +512,19 @@ function ProductPage() {
 
             {/* Action Buttons Row */}
             <div className="mt-5 flex flex-col gap-3">
-              <div className="flex items-center gap-2">
+              <div className="flex items-stretch gap-2.5">
                 <AddToCartControl
                   product={product}
                   size="lg"
                   initialQuantity={qty}
-                  className="flex-1 shadow-brand text-sm font-bold h-12"
+                  className="flex-1 shadow-brand text-base font-bold h-14 min-h-14"
                 />
-                <SaveProductButton product={product} variant="button" size="lg" className="h-12 border border-border" />
+                <SaveProductButton product={product} variant="button" size="lg" className="h-14 min-h-14 px-5 text-base" />
                 <Button
                   onClick={handleShare}
                   variant="outline"
                   size="lg"
-                  className="h-12 px-3.5 border border-border text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                  className="h-14 min-h-14 w-14 shrink-0 border border-border text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
                   aria-label="Share product"
                 >
                   <Share2 className="h-5 w-5" />
@@ -520,12 +532,12 @@ function ProductPage() {
               </div>
 
               {line && (
-                <div className="rounded-xl bg-brand-soft/50 p-3 text-xs border border-brand/20">
-                  <div className="flex items-center justify-between">
+                <div className="rounded-xl bg-brand-soft/50 px-4 py-3.5 text-sm border border-brand/20">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="font-semibold text-brand">
                       {line.quantity} {product.unit} in your cart · (MOQ: {moq})
                     </span>
-                    <div className="flex items-center gap-3 font-semibold">
+                    <div className="flex items-center gap-3 text-sm font-semibold">
                       <button
                         type="button"
                         className="text-brand hover:underline cursor-pointer"
@@ -548,7 +560,7 @@ function ProductPage() {
               
               <Button
                 size="lg"
-                className="w-full text-sm font-bold py-3 h-12 bg-amber-500 hover:bg-amber-600 text-white shadow-soft transition-all duration-200 cursor-pointer"
+                className="w-full text-base font-bold h-14 min-h-14 bg-amber-500 hover:bg-amber-600 text-white shadow-soft transition-all duration-200 cursor-pointer"
                 disabled={!product.inStock}
                 onClick={() => {
                   if (qty > product.stockCount) {

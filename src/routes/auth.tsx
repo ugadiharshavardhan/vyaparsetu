@@ -1,4 +1,4 @@
-import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, isRedirect, redirect, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { AuthLayout } from "@/components/auth/AuthLayout";
@@ -37,32 +37,41 @@ export const Route = createFileRoute("/auth")({
   ssr: false,
   beforeLoad: async ({ search }) => {
     if (typeof window === "undefined") return;
-    const user = await resolveAuthedUser();
-    if (!user) return;
+    try {
+      const user = await resolveAuthedUser();
+      if (!user) return;
 
-    const pendingReturn = sanitizeReturnPath(peekPendingCartAdd()?.returnTo);
-    const dest = sanitizeReturnPath(search.redirect) || pendingReturn;
+      const pendingReturn = sanitizeReturnPath(peekPendingCartAdd()?.returnTo);
+      const dest = sanitizeReturnPath(search.redirect) || pendingReturn;
 
-    if (dest && (dest === "/admin" || dest.startsWith("/admin/"))) {
-      const { data: isAdmin } = await supabase.rpc("is_admin", {
-        _user_id: user.id,
-      });
-      if (isAdmin) {
-        throw redirect({
-          to: dest.split("?")[0] as never,
-          search: parseRedirectSearch(dest) as never,
+      if (dest && (dest === "/admin" || dest.startsWith("/admin/"))) {
+        const { data: isAdmin } = await supabase.rpc("is_admin", {
+          _user_id: user.id,
         });
+        if (isAdmin) {
+          throw redirect({
+            to: dest.split("?")[0] as never,
+            search: parseRedirectSearch(dest) as never,
+          });
+        }
+        await supabase.auth.signOut();
+        return;
       }
-      await supabase.auth.signOut();
+
+      if (dest) {
+        const pathname = dest.split("?")[0];
+        throw redirect({ to: pathname as never, search: parseRedirectSearch(dest) as never });
+      }
+      const path = await resolvePostLoginPath(user.id, search.redirect);
+      throw redirect({ href: path });
+    } catch (e) {
+      // Only intentional redirects should propagate. Any unexpected failure
+      // (network hiccup, RPC/role lookup error, token revalidation) must NOT
+      // bubble to the global "Something went wrong" boundary — just render the
+      // auth page so the user can sign in.
+      if (isRedirect(e)) throw e;
       return;
     }
-
-    if (dest) {
-      const pathname = dest.split("?")[0];
-      throw redirect({ to: pathname as never, search: parseRedirectSearch(dest) as never });
-    }
-    const path = await resolvePostLoginPath(user.id, search.redirect);
-    throw redirect({ href: path });
   },
   head: () => ({
     meta: [

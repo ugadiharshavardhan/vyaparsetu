@@ -14,13 +14,19 @@ export async function resolvePostLoginPath(
   userId: string,
   explicitRedirect?: string | null,
 ): Promise<string> {
+  const mode = getSessionMode();
+  // A buyer-mode sign-in must never be sent into the seller workspace, even if a
+  // stale `redirect`/pending-cart path points at /supplier/* or /seller/*.
+  const preferBuyer = mode === "buyer";
+  const allow = (path: string | null): path is string =>
+    !!path && !(preferBuyer && isSellerWorkspacePath(path));
+
   const fromQuery = sanitizeReturnPath(explicitRedirect);
-  if (fromQuery) return fromQuery;
+  if (allow(fromQuery)) return fromQuery;
 
   const pendingReturn = sanitizeReturnPath(peekPendingCartAdd()?.returnTo);
-  if (pendingReturn) return pendingReturn;
+  if (allow(pendingReturn)) return pendingReturn;
 
-  const mode = getSessionMode();
   if (mode === "seller") return "/seller/dashboard";
   if (mode === "buyer") return "/marketplace";
 
@@ -32,6 +38,11 @@ export async function resolvePostLoginPath(
   } catch {
     return "/marketplace";
   }
+}
+
+/** Seller-only workspace routes buyers should never land on. */
+export function isSellerWorkspacePath(path: string): boolean {
+  return path.startsWith("/supplier") || path.startsWith("/seller");
 }
 
 /** Only allow same-origin relative paths (block open redirects). */
