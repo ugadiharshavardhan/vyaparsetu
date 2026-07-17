@@ -163,6 +163,16 @@
 
 # Development History
 
+## 2026-07-18 - Round browser-tab favicon
+
+### Why
+The browser tab icon used the square/rectangular `logo.png` wordmark; operator wants a round logo in the tab.
+
+### Changes
+- `public/favicon-round.png` [NEW] — 512×512 circular favicon generated via `scratch/make-round-favicon.mjs` (jimp): hex brand mark from `logo1.png` centered on a white circular badge with a brand-green (#0F5F4A) ring; transparent outside the circle.
+- `src/routes/__root.tsx` — `rel="icon"` and `rel="apple-touch-icon"` now point to `/favicon-round.png?v=2` (query busts favicon cache).
+- `public/manifest.webmanifest` — icons entry updated to the round PNG (the referenced `favicon.ico` never existed).
+
 ## 2026-07-18 - Buyer profile card padding fix (seller Buyers section)
 
 ### Why

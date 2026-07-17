@@ -18,6 +18,8 @@ export type ProductSnapshot = Pick<
 > & {
   supplierName: string;
   supplierId: string;
+  /** True when this line is a paid product sample (flat ₹100 + ₹50 delivery), not a bulk order. */
+  isSample?: boolean;
 };
 
 export type CartItem = {
