@@ -648,10 +648,11 @@ function customerFromAddress(addr: unknown): string {
 }
 
 async function fetchSellerOrders(sellerId: string): Promise<SupplierOrder[]> {
-  const { data, error } = await supabase
-    .from("order_items")
-    .select(
-      `
+  const [itemsRes, buyersRes] = await Promise.all([
+    supabase
+      .from("order_items")
+      .select(
+        `
       id,
       quantity,
       line_total,
@@ -671,11 +672,24 @@ async function fetchSellerOrders(sellerId: string): Promise<SupplierOrder[]> {
         delivery_partner
       )
     `,
-    )
-    .eq("seller_id", sellerId)
-    .order("id", { ascending: false });
+      )
+      .eq("seller_id", sellerId)
+      .order("id", { ascending: false }),
+    // Buyer contact details (name/business/phone/email) — buyers table is "read
+    // own" only, so sellers can't join it directly; this SECURITY DEFINER RPC
+    // scopes the result to buyers who actually ordered from this seller.
+    supabase.rpc("get_seller_buyers"),
+  ]);
 
+  const { data, error } = itemsRes;
   if (error) throw error;
+
+  const buyerMap = new Map<string, DbSellerBuyer>();
+  if (!buyersRes.error) {
+    for (const b of (buyersRes.data ?? []) as DbSellerBuyer[]) {
+      buyerMap.set(String(b.buyer_id), b);
+    }
+  }
 
   const mapped = (data ?? []).map((row) => {
     const orderRaw = row.orders as unknown as Record<string, unknown> | Record<string, unknown>[] | null;
@@ -683,11 +697,18 @@ async function fetchSellerOrders(sellerId: string): Promise<SupplierOrder[]> {
     const snap = (row.product_snapshot ?? {}) as Record<string, unknown>;
     const productName = String(snap.name ?? row.product_id ?? "Product");
     const paymentStatus = String(order?.payment_status ?? "pending");
+    const buyerId = row.buyed_id ? String(row.buyed_id) : undefined;
+    const buyerInfo = buyerId ? buyerMap.get(buyerId) : undefined;
     return {
       id: String(row.id),
+      orderId: order?.id ? String(order.id) : undefined,
       orderNumber: String(order?.order_number ?? "—"),
-      customer: customerFromAddress(order?.shipping_address),
-      buyerId: row.buyed_id ? String(row.buyed_id) : undefined,
+      customer: buyerInfo?.name || customerFromAddress(order?.shipping_address),
+      buyerId,
+      buyerName: buyerInfo?.name || undefined,
+      buyerBusiness: buyerInfo?.business || undefined,
+      buyerPhone: buyerInfo?.phone || undefined,
+      buyerEmail: buyerInfo?.email || undefined,
       product: productName,
       qty: Number(row.quantity ?? 0),
       amount: Number(row.line_total ?? 0),

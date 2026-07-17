@@ -116,9 +116,15 @@ export type SupplierCustomer = {
 
 export type SupplierOrder = {
   id: string;
+  /** Parent `orders.id` — multiple order_items (lines) can share this for the same order. */
+  orderId?: string;
   orderNumber: string;
   customer: string;
   buyerId?: string;
+  buyerName?: string;
+  buyerBusiness?: string;
+  buyerPhone?: string;
+  buyerEmail?: string;
   product: string;
   qty: number;
   amount: number;

@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
-import { Loader2, MapPin, Search } from "lucide-react";
+import { Loader2, LocateFixed, MapPin, Search } from "lucide-react";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { reverseGeocode, searchPlaces, type GeocodeResult } from "@/lib/geocode";
@@ -105,6 +106,26 @@ export function AddressMapPicker({ latitude, longitude, onPinned, onClearPin, cl
     }
   };
 
+  const useMyLocation = () => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      toast.error("Location is not available on this device");
+      return;
+    }
+    setPinning(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        void applyPin(pos.coords.latitude, pos.coords.longitude).catch(() => {
+          toast.error("Could not resolve your location");
+        });
+      },
+      () => {
+        setPinning(false);
+        toast.error("Location permission denied. Search or tap the map instead.");
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+    );
+  };
+
   if (!mounted) {
     return (
       <div className={cn("grid h-64 place-items-center rounded-xl border border-border bg-secondary/40", className)}>
@@ -115,18 +136,19 @@ export function AddressMapPicker({ latitude, longitude, onPinned, onClearPin, cl
 
   return (
     <div className={cn("space-y-2", className)}>
-      <div className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onFocus={() => results.length > 0 && setOpenList(true)}
-          placeholder="Search place, area, city… then pin on map"
-          className="pl-9 pr-10"
-        />
-        {searching && (
-          <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
-        )}
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onFocus={() => results.length > 0 && setOpenList(true)}
+            placeholder="Search place, area, city… then pin on map"
+            className="pl-9 pr-10"
+          />
+          {searching && (
+            <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+          )}
         {openList && results.length > 0 && (
           <ul className="absolute z-[1000] mt-1 max-h-48 w-full overflow-auto rounded-xl border border-border bg-card shadow-elevated">
             {results.map((r) => (
@@ -147,6 +169,18 @@ export function AddressMapPicker({ latitude, longitude, onPinned, onClearPin, cl
             ))}
           </ul>
         )}
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={useMyLocation}
+          disabled={pinning}
+          className="shrink-0 gap-1.5"
+          title="Use my current location"
+        >
+          {pinning ? <Loader2 className="h-4 w-4 animate-spin" /> : <LocateFixed className="h-4 w-4 text-brand" />}
+          <span className="hidden sm:inline">Use my location</span>
+        </Button>
       </div>
 
       <div className="overflow-hidden rounded-xl border border-border">

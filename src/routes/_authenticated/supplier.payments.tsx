@@ -8,9 +8,11 @@ import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/supplier/DataTable";
 import { Pill } from "@/components/supplier/Pill";
 import { useSupplierOrders } from "@/hooks/useSupplier";
+import { useProfile } from "@/hooks/useProfile";
 import { compactInr, inr } from "@/lib/format";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { StatCardsSkeleton, TableSkeleton } from "@/components/common/Skeletons";
+import { downloadSellerInvoice } from "@/lib/invoice/downloadSellerInvoice";
 
 export const Route = createFileRoute("/_authenticated/supplier/payments")({
   head: () => ({ meta: [{ title: "Payments & Settlements — Seller" }] }),
@@ -19,6 +21,21 @@ export const Route = createFileRoute("/_authenticated/supplier/payments")({
 
 function PaymentsPage() {
   const { orders, isLoading, error } = useSupplierOrders();
+  const { data: profile } = useProfile();
+
+  const handleDownloadInvoice = (id: string) => {
+    const order = orders.find((o) => o.id === id);
+    if (!order) {
+      toast.error("Order not found for invoice");
+      return;
+    }
+    try {
+      downloadSellerInvoice(order, { sellerName: profile?.business_name });
+      toast.success("GST invoice downloaded");
+    } catch {
+      toast.error("Could not generate invoice");
+    }
+  };
   
   if (isLoading) {
     return (
@@ -160,9 +177,8 @@ function PaymentsPage() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="rounded-xl border-border/80 shadow-elevated">
-                  <DropdownMenuItem onClick={() => toast.success("Invoice downloaded")} className="text-xs font-medium"><FileText className="mr-2 h-3.5 w-3.5" /> Download Invoice</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => toast.success("GST Invoice downloaded")} className="text-xs font-medium"><Receipt className="mr-2 h-3.5 w-3.5" /> Download GST Invoice</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => toast.success("Exported to CSV")} className="text-xs font-medium"><Download className="mr-2 h-3.5 w-3.5" /> Export</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleDownloadInvoice(t.id)} className="text-xs font-medium"><FileText className="mr-2 h-3.5 w-3.5" /> Download Invoice</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleDownloadInvoice(t.id)} className="text-xs font-medium"><Receipt className="mr-2 h-3.5 w-3.5" /> Download GST Invoice</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             )},
