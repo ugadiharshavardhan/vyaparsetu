@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { motion } from "framer-motion";
 import { useMemo, useState } from "react";
 import { PackageSearch, Search } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -37,57 +38,75 @@ function OrdersPage() {
   }, [orders, tab, query]);
 
   return (
-    
-      <div className="container-page py-8">
+    <div className="mx-auto w-full max-w-5xl px-4 py-8 sm:py-10">
+      <div className="mb-8">
         <PageHeader
           title="Orders"
           description="Track every purchase, invoice, and delivery in one place."
         />
-
-        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <Tabs value={tab} onValueChange={setTab}>
-            <TabsList>
-              {TABS.map((t) => <TabsTrigger key={t.key} value={t.key}>{t.label}</TabsTrigger>)}
-            </TabsList>
-          </Tabs>
-          <div className="relative sm:w-72">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search by order #"
-              className="pl-9"
-            />
-          </div>
-        </div>
-
-        {isLoading ? (
-          <div className="space-y-4">
-            {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-40 w-full rounded-2xl" />)}
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="mx-auto flex max-w-md flex-col items-center rounded-3xl border border-border bg-card p-10 text-center shadow-soft">
-            <div className="grid h-16 w-16 place-items-center rounded-2xl bg-brand/10 text-brand">
-              <PackageSearch className="h-8 w-8" />
-            </div>
-            <h3 className="mt-4 text-lg font-bold">
-              {orders.length === 0 ? "No orders yet" : "No orders match this filter"}
-            </h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {orders.length === 0
-                ? "Once you place your first order it will appear here with live tracking and GST invoices."
-                : "Try changing the filter or searching a different order number."}
-            </p>
-            <Button asChild className="mt-5 shadow-brand">
-              <Link to="/marketplace">Explore marketplace</Link>
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {filtered.map((o) => <OrderCard key={o.id} order={o} />)}
-          </div>
-        )}
       </div>
-    
+
+      {/* Control Bar: Tabs + Search input */}
+      <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-border/60 bg-muted/30 p-3 sm:flex-row sm:items-center sm:justify-between dark:bg-muted/10">
+        <Tabs value={tab} onValueChange={setTab} className="w-full sm:w-auto">
+          <TabsList className="grid w-full grid-cols-4 gap-1 bg-transparent p-0 sm:flex">
+            {TABS.map((t) => (
+              <TabsTrigger
+                key={t.key}
+                value={t.key}
+                className="rounded-xl px-3 py-1.5 text-xs font-semibold data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+              >
+                {t.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+        <div className="relative sm:w-72">
+          <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/80" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search by order #"
+            className="h-10 rounded-full border-border/80 pl-10 pr-4 text-xs shadow-none placeholder:text-muted-foreground/60 focus-visible:ring-1 focus-visible:ring-brand/40"
+          />
+        </div>
+      </div>
+
+      {/* Content Area */}
+      {isLoading ? (
+        <div className="space-y-4">
+          {[...Array(3)].map((_, i) => (
+            <Skeleton key={i} className="h-44 w-full rounded-2xl" />
+          ))}
+        </div>
+      ) : filtered.length === 0 ? (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.96 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="mx-auto flex max-w-md flex-col items-center rounded-3xl border border-border/80 bg-card/60 p-10 text-center shadow-sm backdrop-blur-md dark:bg-card/30"
+        >
+          <div className="grid h-16 w-16 place-items-center rounded-2xl bg-brand-soft text-brand">
+            <PackageSearch className="h-7 w-7" />
+          </div>
+          <h3 className="mt-5 text-lg font-bold tracking-tight text-foreground">
+            {orders.length === 0 ? "No orders yet" : "No matching orders"}
+          </h3>
+          <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+            {orders.length === 0
+              ? "Once you place your first B2B purchase, it will appear here with live tracking, status logs, and GST invoices."
+              : "We couldn't find any orders matching that order number. Try another filter or search term."}
+          </p>
+          <Button asChild className="mt-6 rounded-full px-6 shadow-brand text-xs font-semibold">
+            <Link to="/marketplace">Explore marketplace</Link>
+          </Button>
+        </motion.div>
+      ) : (
+        <div className="space-y-4">
+          {filtered.map((o) => (
+            <OrderCard key={o.id} order={o} />
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

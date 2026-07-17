@@ -164,6 +164,14 @@
 
 # Development History
 
+## 2026-07-17 - Sync local work with main
+
+### Changes
+- Merged the latest `origin/main` order and category updates into the local UI/auth work
+- Resolved conflicts in auth redirects and forms by preserving explicit/pending-cart return paths and marketplace-first post-login behavior
+- Combined both branches' development history without dropping either change set
+- Fixed the merged Orders empty-state animation import and aligned category quick filters with the current `Filters` model
+
 ## 2026-07-17 - Network right tags and row spacing
 
 ### Changes
@@ -255,6 +263,14 @@ Operator wanted Outfit across the app (titles/headings 600, descriptions 400) an
 - `supplierProductMap.ts` / `catalogMap.ts` — save and map `image` from `images[0]`
 - `ProductCard`, `FeaturedProducts`, `ProductListItem`, `QuickViewDialog`, seller product/inventory lists — display via queue[0]
 - Ran `scratch/sync-product-primary-image.mjs` to sync DB `products.image` ← `images[0]`
+
+## 2026-07-17 - Remove "Categories" from Breadcrumb Navigation
+
+### Why
+Simplify the breadcrumb navigation by removing the intermediate "Categories" breadcrumb item on category pages, as requested.
+
+### Changes
+- `categories.$slug.tsx` — Removed the "Categories" breadcrumb link and its separator, directly connecting "Home" to the current category name.
 
 ## 2026-07-17 - Fix wrong Spices category cover in Our Categories
 

@@ -30,6 +30,7 @@ export function useOrders() {
         .select(
           "id, order_number, status, payment_status, payment_method, subtotal, gst_total, shipping_total, discount_total, grand_total, created_at, updated_at, estimated_delivery, tracking_number, delivery_partner, shipping_address, status_history, order_items(*)",
         )
+        .eq("user_id", user!.id)
         .order("created_at", { ascending: false })
         .limit(40);
       if (error) throw error;
@@ -39,16 +40,18 @@ export function useOrders() {
 }
 
 export function useOrder(id: string | undefined) {
+  const { user } = useAuth();
   return useQuery({
-    queryKey: ["order", id],
-    enabled: !!id,
+    queryKey: ["order", id, user?.id ?? "anon"],
+    enabled: !!id && !!user,
     staleTime: 60_000,
     queryFn: async (): Promise<Order | null> => {
-      if (!id) return null;
+      if (!id || !user) return null;
       const { data, error } = await supabase
         .from("orders")
         .select("*, order_items(*)")
         .eq("id", id)
+        .eq("user_id", user.id)
         .maybeSingle();
       if (error) throw error;
       return (data ?? null) as unknown as Order | null;
@@ -88,6 +91,7 @@ export function usePlaceOrder() {
         .insert({
           order_number,
           user_id: user.id,
+          buyer_id: user.id,
           status: "confirmed",
           shipping_address: address as never,
           subtotal: totals.subtotal,
@@ -150,6 +154,7 @@ export function usePlaceOrder() {
           discount_amount: round(disc),
           line_total: round(i.product_snapshot.gstIncluded ? taxable + 0 : taxable + gst),
           seller_id,
+          buyed_id: user.id,
         };
       }) satisfies Partial<OrderItem>[] as never[];
 
@@ -194,12 +199,15 @@ export function usePlaceOrder() {
 
 export function useCancelOrder() {
   const qc = useQueryClient();
+  const { user } = useAuth();
   return useMutation({
     mutationFn: async (id: string) => {
+      if (!user) throw new Error("Please sign in");
       const { data: current } = await supabase
         .from("orders")
         .select("status_history")
         .eq("id", id)
+        .eq("user_id", user.id)
         .single();
       const hist = ((current?.status_history as unknown as Array<Record<string, unknown>>) ?? []).concat([
         { status: "cancelled", at: new Date().toISOString(), note: "Cancelled by buyer" },
@@ -207,7 +215,8 @@ export function useCancelOrder() {
       const { error } = await supabase
         .from("orders")
         .update({ status: "cancelled", status_history: hist as never })
-        .eq("id", id);
+        .eq("id", id)
+        .eq("user_id", user.id);
       if (error) throw error;
     },
     onSuccess: () => {

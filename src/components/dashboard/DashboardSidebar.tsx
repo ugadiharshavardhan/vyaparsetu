@@ -101,7 +101,7 @@ export function DashboardSidebar() {
     return 0;
   };
 
-  const isActive = (url: string) => pathname === url || (url !== "/buyer/dashboard" && url !== "/seller/dashboard" && pathname.startsWith(url));
+  const isActive = (url: string) => pathname === url || (url !== "/marketplace" && url !== "/seller/dashboard" && pathname.startsWith(url));
 
   const signOut = async () => {
     try {
@@ -165,7 +165,7 @@ export function DashboardSidebar() {
       {/* Header — logo area with refined border */}
       <SidebarHeader className="border-b border-sidebar-border/60 px-3 py-2.5">
         <Link
-          to={showAdminNav ? "/admin" : isSupplier ? "/seller/dashboard" : "/buyer/dashboard"}
+          to={showAdminNav ? "/admin" : isSupplier ? "/seller/dashboard" : "/marketplace"}
           className={cn(
             "flex h-11 items-center rounded-lg transition-colors duration-150 hover:bg-sidebar-accent/50",
             collapsed ? "justify-center px-0" : "gap-2.5 px-1.5"
