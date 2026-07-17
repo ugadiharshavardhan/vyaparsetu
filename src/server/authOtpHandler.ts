@@ -481,6 +481,22 @@ async function handleRegister(input: {
   let user = await findAuthUserByEmail(email);
 
   if (user) {
+    // One role per email: if this email already owns the OTHER role's account,
+    // block the signup (a single email must not be both a buyer and a seller).
+    const otherRole: Role = role === "seller" ? "buyer" : "seller";
+    const hasOtherRole = await hasMembership(user.id, otherRole);
+    if (hasOtherRole) {
+      return {
+        status: 400,
+        body: {
+          error:
+            otherRole === "buyer"
+              ? "This email is already registered as a buyer account. Use a different email to create a seller account."
+              : "This email is already registered as a seller account. Use a different email to create a buyer account.",
+        },
+      };
+    }
+
     const member = await hasMembership(user.id, role);
     const confirmed = !!user.email_confirmed_at;
 

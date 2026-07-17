@@ -39,7 +39,10 @@ function LandingProductCard({ product }: { product: Product }) {
           />
         </Link>
         {product.inStock && (
-          <div className="absolute bottom-2 right-2 z-10">
+          <div
+            className="pointer-events-auto absolute bottom-2 right-2 z-20"
+            onClick={(e) => e.stopPropagation()}
+          >
             <AddToCartControl
               product={product}
               size="sm"

@@ -156,12 +156,78 @@
 
 # Current Project State
 
-- **Current Phase:** Live seller MOQ enforcement end-to-end
-- **Current Module:** `moq`, `useCart`, `useOrders`, cart UI controls
-- **Overall Progress:** Cart/checkout/order placement use live `products.moq` from the seller; quantities below MOQ cannot checkout or place an order; minus buttons stop at MOQ.
+- **Current Phase:** One role per email on signup
+- **Current Module:** `authOtpHandler`, `SignUpForm`, `auth`, `SiteLayout`, `useCart`
+- **Overall Progress:** New signups enforce a single role per email (no email can be both buyer and seller); auth toggle never greys out; checkout keeps the buyer navbar; pending-cart add flushes once.
 - **Last Updated:** 2026-07-17
 
 # Development History
+
+## 2026-07-17 - Enforce one role per email on signup (no shared buyer+seller email)
+
+### Why
+The same email could end up owning both a buyer and a seller account. New signups should require a different email per role.
+
+### Root cause
+`handleRegister` (server OTP handler) only blocked signup when the email already had the SAME role (verified + membership). When an email already registered as a buyer signed up as a seller, `member && confirmed` was false, so it fell through to the "reclaim" path — overwriting the password and later creating a second (seller) membership row for the same auth user.
+
+### Changes
+- `src/server/authOtpHandler.ts` — in `handleRegister`, after resolving the existing auth user, check `hasMembership(user.id, otherRole)`. If the email already owns the other role, reject with "This email is already registered as a buyer/seller account. Use a different email…" before any reclaim/password overwrite.
+- `src/components/auth/SignUpForm.tsx` — `showSignUpError` now passes cross-role messages (containing "different email") through verbatim instead of collapsing them into the generic "already registered — sign in instead".
+
+### Scope
+Applies to NEW signups only; existing accounts that already hold both roles are unchanged (matches the request). Login already enforced role separation via `ensureRoleMembershipForSignIn`.
+
+### No schema changes
+Enforcement is in the register handler; no DB migration.
+
+## 2026-07-17 - Auth back button returns to landing page
+
+### Why
+Sign-in / sign-up needed a reliable back control that always opens the marketing landing page (`/`), not browser history or a broken in-card link.
+
+### Changes
+- `AuthLayout.tsx` — added fixed top-left `AuthBackButton` using `navigate({ to: "/", resetScroll: true })`; removed duplicate in-card link.
+- `auth.tsx` — set `ssr: false` so client navigation on the auth route is consistent.
+
+## 2026-07-17 - Auth Buyer/Seller toggle no longer greys out ("block styling")
+
+### Why
+The Buyer/Seller segmented toggle on the sign-in/sign-up page intermittently rendered greyed/disabled ("block styling") and locked to Buyer — but only sometimes.
+
+### Root cause
+A guest who clicked "Add to cart" once (without completing sign-in) leaves a `pending-cart-add` item in `sessionStorage`. `auth.tsx` computed `pendingProduct = !!peekPendingCartAdd()` and passed `disabled={pendingProduct}` to `AuthRoleToggle` (which applies `opacity-60`) plus a guard blocking the switch to Seller. So whenever a stale pending item existed, the toggle appeared disabled; otherwise it looked normal — hence "sometimes blocked, sometimes correct".
+
+### Changes
+- `src/routes/auth.tsx` — `pendingProduct` now also requires `role === "buyer"` (the "add to cart" intent is buyer-only), `AuthRoleToggle` no longer receives `disabled`, and `setRoleAndUrl` no longer blocks switching to Seller. The toggle is always interactive.
+
+### No backend changes
+Pure frontend fix.
+
+## 2026-07-17 - Single pending-cart flush + checkout keeps buyer navbar
+
+### Why
+1. Adding an item as a guest then signing in showed duplicate "Added to cart" toasts.
+2. Entering the checkout shipping address switched the navbar to the public landing header.
+
+### Changes
+- `src/hooks/useCart.ts` — module-level `postLoginSyncedUserId` guard so the guest-merge + pending flush + toast runs exactly once per signed-in user.
+- `src/components/layout/SiteLayout.tsx` — removed `/checkout` from `skipDashboardChrome` and added it to `APP_PREFIXES`, so authenticated checkout uses the buyer workspace chrome instead of the marketing landing header.
+
+### No backend changes
+Pure frontend fix.
+
+## 2026-07-17 - Guest add-to-cart redirects to auth (no silent no-op)
+
+### Why
+Logged-out users clicking Add on marketplace/landing cards sometimes did nothing — the button stayed disabled or returned early while auth was still loading.
+
+### Root cause
+`AddToCartControl` used `loading={authLoading}` (disabled the button) and `if (authLoading) return;` on click, so taps during session hydration were ignored with no navigation.
+
+### Changes
+- `AddToCartControl.tsx` — removed auth-loading gate on the button; `confirmAuthed()` falls back to `resolveAuthedUser()` then redirects guests via `requireAuthThenAdd()` → `/auth?mode=signin&role=buyer&redirect=…` with pending cart in sessionStorage.
+- `ProductCard.tsx` / `FeaturedProducts.tsx` — raised add-button z-index and `stopPropagation` so card/link clicks don't swallow the tap.
 
 ## 2026-07-17 - Live seller MOQ enforcement (cart → checkout → order)
 

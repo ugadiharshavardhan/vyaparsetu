@@ -34,6 +34,7 @@ function parseRedirectSearch(dest: string): Record<string, string> | undefined {
 
 export const Route = createFileRoute("/auth")({
   validateSearch: searchSchema,
+  ssr: false,
   beforeLoad: async ({ search }) => {
     if (typeof window === "undefined") return;
     const user = await resolveAuthedUser();
@@ -77,12 +78,14 @@ function AuthPage() {
   const navigate = useNavigate();
   const mode = search.mode ?? "signin";
   const adminLogin = isAdminRedirect(search.redirect);
+  const role: BusinessRole = adminLogin ? "buyer" : (search.role ?? "buyer");
   const pendingCart = peekPendingCartAdd();
-  const pendingProduct = !!pendingCart && !adminLogin;
-  const role: BusinessRole = pendingProduct ? "buyer" : (search.role ?? "buyer");
+  // "Add to cart" is a buyer-only intent — only surface that messaging on the
+  // Buyer tab. The role toggle stays fully interactive so a stale pending item
+  // can never grey it out / lock it.
+  const pendingProduct = !!pendingCart && !adminLogin && role === "buyer";
 
   const setRoleAndUrl = (next: BusinessRole) => {
-    if (pendingProduct && next === "seller") return;
     navigate({
       to: "/auth",
       search: {
@@ -101,7 +104,7 @@ function AuthPage() {
     }
     navigate({
       to: "/auth",
-      search: { mode: m, role: pendingProduct ? "buyer" : role, redirect: search.redirect },
+      search: { mode: m, role, redirect: search.redirect },
     });
   };
 
@@ -157,7 +160,6 @@ function AuthPage() {
         <AuthRoleToggle
           value={role}
           onChange={setRoleAndUrl}
-          disabled={pendingProduct}
         />
       }
       footerSlot={

@@ -86,7 +86,12 @@ type SellerFormValues = z.infer<typeof sellerSchema>;
 
 function showSignUpError(message: string) {
   const msg = message.toLowerCase();
-  if (msg.includes("already") || msg.includes("registered")) {
+  // Cross-role block ("…already registered as a buyer/seller account. Use a
+  // different email…") must be shown verbatim, not collapsed into the generic
+  // "sign in instead" message below.
+  if (msg.includes("different email")) {
+    toast.error(message);
+  } else if (msg.includes("already") || msg.includes("registered")) {
     toast.error("This email is already registered. Try signing in instead.");
   } else if (msg.includes("weak") || msg.includes("password")) {
     toast.error("Please choose a stronger password.");

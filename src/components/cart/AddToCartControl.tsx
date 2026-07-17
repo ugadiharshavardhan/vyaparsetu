@@ -8,6 +8,7 @@ import { useAddToCart, useCartLine, useRemoveCartItem, useUpdateCartItem } from 
 import { useAuth } from "@/hooks/useAuth";
 import { setPendingCartAdd } from "@/lib/pendingCart";
 import { toSnapshot } from "@/lib/commerce";
+import { resolveAuthedUser } from "@/lib/resolveAuthedUser";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -30,7 +31,7 @@ export function AddToCartControl({
   showLabel = true,
 }: Props) {
   const snapshot = snapshotProp ?? (product ? toSnapshot(product) : null);
-  const { user, loading: authLoading } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const line = useCartLine(snapshot?.id);
   const add = useAddToCart();
@@ -56,14 +57,21 @@ export function AddToCartControl({
       returnTo,
     });
     toast.message("Sign in to add this item to your cart");
-    navigate({
+    void navigate({
       to: "/auth",
       search: { mode: "signin", role: "buyer", redirect: returnTo },
     });
   };
 
-  const changeQty = (next: number) => {
-    if (!user) {
+  /** Auth context can lag behind Supabase during hydration — confirm before adding. */
+  const confirmAuthed = async () => {
+    if (isAuthenticated && user) return true;
+    const resolved = await resolveAuthedUser();
+    return !!resolved;
+  };
+
+  const changeQty = async (next: number) => {
+    if (!(await confirmAuthed())) {
       requireAuthThenAdd();
       return;
     }
@@ -87,7 +95,7 @@ export function AddToCartControl({
     );
   }
 
-  if (line && user) {
+  if (line && isAuthenticated) {
     return (
       <div
         className={cn(
@@ -134,21 +142,21 @@ export function AddToCartControl({
 
   return (
     <Button
+      type="button"
       size={size}
       className={cn("flex-1 shadow-brand", className)}
-      loading={pending || authLoading}
-      onClick={(e) => {
+      loading={pending}
+      onClick={async (e) => {
         e.preventDefault();
         e.stopPropagation();
-        if (authLoading) return;
-        if (!user) {
+        if (!(await confirmAuthed())) {
           requireAuthThenAdd();
           return;
         }
         add.mutate({ snapshot, quantity: initialQuantity ?? moq, openSheet: false });
       }}
     >
-      {!pending && !authLoading && (
+      {!pending && (
         <ShoppingCart
           className={cn(
             size === "lg" ? "mr-1.5 h-4 w-4" : "h-3.5 w-3.5",

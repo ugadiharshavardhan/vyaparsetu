@@ -75,8 +75,12 @@ export function ProductCard({ product, onQuickView }: Props) {
         )}
       </Link>
 
-      {/* ADD button */}
-      <div className="absolute right-3 z-10" style={{ top: "calc(55.5% - 16px)" }}>
+      {/* ADD button — stop card/link clicks from swallowing the tap */}
+      <div
+        className="pointer-events-auto absolute right-3 z-20"
+        style={{ top: "calc(55.5% - 16px)" }}
+        onClick={(e) => e.stopPropagation()}
+      >
         <AddToCartControl
           product={product}
           size="sm"

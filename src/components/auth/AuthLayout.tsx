@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import type { ReactNode } from "react";
 import { ArrowLeft, ShoppingBasket, ShieldCheck, Truck, User } from "lucide-react";
-import { Link } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { SITE } from "@/constants/site";
 import { cn } from "@/lib/utils";
 
@@ -52,6 +52,25 @@ function DotGrid({
         <span key={i} className="block h-[6px] w-[6px] rounded-full bg-[#C8C8C8]" />
       ))}
     </div>
+  );
+}
+
+function AuthBackButton({ className }: { className?: string }) {
+  const navigate = useNavigate();
+
+  return (
+    <button
+      type="button"
+      aria-label="Back to home"
+      onClick={() => void navigate({ to: "/", resetScroll: true })}
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-lg text-sm font-medium text-[#757575] transition-colors hover:text-[#108548]",
+        className,
+      )}
+    >
+      <ArrowLeft className="h-4 w-4" aria-hidden />
+      Back
+    </button>
   );
 }
 
@@ -165,6 +184,9 @@ export function AuthLayout({
     >
       <AuthDecorations />
 
+      {/* Always returns to the marketing landing page (`/`). */}
+      <AuthBackButton className="fixed left-4 top-4 z-30 bg-white/90 px-3 py-2 shadow-sm ring-1 ring-black/5 backdrop-blur sm:left-6 sm:top-5" />
+
       <div className="relative z-10 mx-auto flex min-h-screen max-w-[1180px] items-center justify-center px-4 py-10 sm:px-6 lg:gap-12 lg:px-8 xl:gap-20">
         <AuthMarketingPanel />
 
@@ -178,15 +200,6 @@ export function AuthLayout({
             wideCard && "max-h-[90vh] overflow-y-auto",
           )}
         >
-          {/* Back to landing page */}
-          <Link
-            to="/"
-            className="mb-5 inline-flex items-center gap-1.5 text-sm font-medium text-[#757575] transition-colors hover:text-[#108548]"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to home
-          </Link>
-
           {/* Mobile brand logo */}
           <div className="mb-6 flex justify-center lg:hidden">
             <AuthBrandLogo size="sm" />
