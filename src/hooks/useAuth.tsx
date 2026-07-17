@@ -1,21 +1,34 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { clearSessionMode } from "@/lib/sessionMode";
 
 type AuthContextValue = {
   session: Session | null;
   user: User | null;
+  accessToken: string | null;
   loading: boolean;
   isAuthenticated: boolean;
+  login: typeof supabase.auth.signInWithPassword;
+  logout: () => Promise<void>;
   signOut: () => Promise<void>;
 };
 
 const unauthenticatedAuthContext: AuthContextValue = {
   session: null,
   user: null,
+  accessToken: null,
   loading: false,
   isAuthenticated: false,
+  login: async (credentials) => {
+    return await supabase.auth.signInWithPassword(credentials);
+  },
+  logout: async () => {
+    clearSessionMode();
+    await supabase.auth.signOut();
+  },
   signOut: async () => {
+    clearSessionMode();
     await supabase.auth.signOut();
   },
 };
@@ -48,10 +61,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       session,
       user: session?.user ?? null,
+      accessToken: session?.access_token ?? null,
       loading,
       isAuthenticated: !!session?.user,
-      signOut: async () => {
+      login: async (credentials) => {
+        return await supabase.auth.signInWithPassword(credentials);
+      },
+      logout: async () => {
+        clearSessionMode();
         await supabase.auth.signOut();
+        if (typeof window !== "undefined") {
+          window.location.href = "/auth?mode=signin&role=buyer";
+        }
+      },
+      signOut: async () => {
+        clearSessionMode();
+        await supabase.auth.signOut();
+        if (typeof window !== "undefined") {
+          window.location.href = "/auth?mode=signin&role=buyer";
+        }
       },
     }),
     [session, loading],
