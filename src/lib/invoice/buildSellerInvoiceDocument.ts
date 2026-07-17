@@ -89,7 +89,8 @@ export function buildSellerInvoiceDocument(
       addressLines: [order.destination].filter(Boolean),
       gstin: null,
       state: buyerState || VYAPARSETU_BILLING.state,
-      phone: order.buyerPhone ?? null,
+      // Buyer mobile number is hidden from sellers (privacy) — not printed on invoices.
+      phone: null,
     },
     items: invoiceItems,
     subtotal: taxable,

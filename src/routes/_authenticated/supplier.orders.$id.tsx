@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, MapPin, Package, FileText, CreditCard, User, CheckCircle2, Phone, Mail, FlaskConical, Send } from "lucide-react";
+import { ArrowLeft, MapPin, Package, FileText, CreditCard, User, CheckCircle2, Mail, FlaskConical, Send } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -294,17 +294,6 @@ function OrderDetailsPage() {
             </div>
 
             <div className="space-y-3">
-              {order.buyerPhone ? (
-                <a href={`tel:${order.buyerPhone}`} className="flex items-center gap-2 text-foreground hover:text-brand">
-                  <Phone className="h-4 w-4 shrink-0" />
-                  <span>{order.buyerPhone}</span>
-                </a>
-              ) : (
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Phone className="h-4 w-4 shrink-0" />
-                  <span>Phone not available</span>
-                </div>
-              )}
               {order.buyerEmail ? (
                 <a href={`mailto:${order.buyerEmail}`} className="flex items-center gap-2 text-foreground hover:text-brand">
                   <Mail className="h-4 w-4 shrink-0" />

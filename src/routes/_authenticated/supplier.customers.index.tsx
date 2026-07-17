@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { MessageSquare, Phone, Search, Users, Download } from "lucide-react";
+import { MessageSquare, Search, Users, Download } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/common/PageHeader";
 import { SectionCard } from "@/components/dashboard/SectionCard";
@@ -23,7 +23,7 @@ function BuyersPage() {
   const [q, setQ] = useState("");
 
   const filtered = customers.filter((c) => {
-    if (q && !`${c.name} ${c.business} ${c.city} ${c.gstNumber} ${c.phone} ${c.email}`.toLowerCase().includes(q.toLowerCase())) return false;
+    if (q && !`${c.name} ${c.business} ${c.city} ${c.gstNumber} ${c.email}`.toLowerCase().includes(q.toLowerCase())) return false;
     return true;
   });
 
@@ -74,8 +74,7 @@ function BuyersPage() {
               header: "Contact",
               cell: (c) => (
                 <div className="flex flex-col min-w-0">
-                  <span className="font-medium text-sm">{c.phone || "—"}</span>
-                  <span className="text-xs text-muted-foreground truncate max-w-[180px]">{c.email || "No email"}</span>
+                  <span className="font-medium text-sm truncate max-w-[180px]">{c.email || "No email"}</span>
                 </div>
               )
             },
@@ -122,7 +121,6 @@ function BuyersPage() {
                 <div className="flex items-center justify-end gap-1">
                   <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); navigate({ to: "/supplier/customers/$id", params: { id: c.id } }); }}>View</Button>
                   <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); toast.info("Messaging coming soon"); }}><MessageSquare className="h-4 w-4 text-muted-foreground" /></Button>
-                  <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); if (c.phone) window.location.href = `tel:${c.phone}`; else toast.info("Phone not available"); }}><Phone className="h-4 w-4 text-muted-foreground" /></Button>
                 </div>
               ),
             },

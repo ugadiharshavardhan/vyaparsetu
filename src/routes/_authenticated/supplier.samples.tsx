@@ -5,7 +5,6 @@ import {
   FlaskConical,
   Mail,
   MapPin,
-  Phone,
   Search,
   Send,
   XCircle,
@@ -244,22 +243,6 @@ function SellerSamplesPage() {
                       </div>
                       {line.buyerName && line.buyerBusiness && line.buyerName !== line.buyerBusiness && (
                         <div className="text-xs text-muted-foreground">{line.buyerName}</div>
-                      )}
-                    </div>
-                    <div>
-                      <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                        Phone
-                      </div>
-                      {line.buyerPhone ? (
-                        <a
-                          href={`tel:${line.buyerPhone}`}
-                          className="mt-0.5 inline-flex items-center gap-1.5 text-sm font-medium text-brand hover:underline"
-                        >
-                          <Phone className="h-3.5 w-3.5" />
-                          {line.buyerPhone}
-                        </a>
-                      ) : (
-                        <div className="mt-0.5 text-sm text-muted-foreground">Not available</div>
                       )}
                     </div>
                     <div>

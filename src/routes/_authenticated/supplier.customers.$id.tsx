@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Building2, MapPin, Mail, Phone, FileText, ReceiptText } from "lucide-react";
+import { ArrowLeft, Building2, MapPin, Mail, FileText, ReceiptText } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -149,11 +149,6 @@ function BuyerProfilePage() {
             description={displayName ? `Contact: ${displayName}` : `Customer since ${new Date(buyer.lastOrderAt).toLocaleDateString()}`}
             action={
               <div className="flex items-center gap-2">
-                {buyer.phone && (
-                  <Button variant="outline" asChild>
-                    <a href={`tel:${buyer.phone}`}><Phone className="mr-1.5 h-4 w-4" /> Call</a>
-                  </Button>
-                )}
                 {buyer.email && (
                   <Button variant="outline" asChild>
                     <a href={`mailto:${buyer.email}`}><Mail className="mr-1.5 h-4 w-4" /> Email</a>
@@ -181,17 +176,6 @@ function BuyerProfilePage() {
             </div>
 
             <div className="pt-5 space-y-4 text-sm">
-              <div className="flex gap-3">
-                <Phone className="h-4 w-4 shrink-0 text-muted-foreground mt-0.5" />
-                <div>
-                  <div className="font-medium text-foreground">Phone</div>
-                  {buyer.phone ? (
-                    <a href={`tel:${buyer.phone}`} className="text-brand hover:underline">{buyer.phone}</a>
-                  ) : (
-                    <div className="text-muted-foreground">Not provided</div>
-                  )}
-                </div>
-              </div>
               <div className="flex gap-3">
                 <Mail className="h-4 w-4 shrink-0 text-muted-foreground mt-0.5" />
                 <div className="min-w-0">
