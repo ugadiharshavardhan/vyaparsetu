@@ -163,6 +163,15 @@
 
 # Development History
 
+## 2026-07-18 - New first hero slide ("Helping local retailers grow")
+
+### Why
+Operator provided a new banner ("Helping local retailers grow, every single day — That's the VyaparSetu promise" with a lineup of retailers) to show as the FIRST image of the landing hero carousel.
+
+### Changes
+- `public/hero-banner0.jpg` [NEW] — provided 1024×413 art fitted onto the hero's 2:1 canvas via `scratch/make-hero-banner0.mjs` (jimp): background color sampled from the art, image bottom-anchored so the people aren't cropped by the carousel's `object-cover`.
+- `src/components/marketing/Hero.tsx` — `SLIDES` now starts with `/hero-banner0.jpg` (existing banners 1–3 follow).
+
 ## 2026-07-18 - Buyer topbar spacing fix for 5-link center nav (Samples + Requests)
 
 ### Why
@@ -206,6 +215,11 @@ Buyers should be able to order paid product samples (rice products, pulses/dal, 
 
 ### Verification
 `npx tsc --noEmit` — only the pre-existing errors (SignUpForm / NotificationsMenu / data/products.ts / useSupplier 391/449/488) remain; all touched files clean. `npx vite build` succeeds; `routeTree.gen.ts` registered `/samples` and `/supplier/samples`. Live DB check: rice-products (20), pulses-dal (32), food-grains-cereals (25) products available for the Sample Store.
+
+### Follow-up — remove cart sample toggle + two-step seller flow
+- `CartItemRow.tsx` — the old "Send me a sample of this item" toggle is removed from cart lines (the paid Sample Store is now the only sample entry point; approved buyers order the main item from Requests). Dropped the unused `Switch` import; `sample_requested` badges on existing orders untouched.
+- `supplier.samples.tsx` — buttons are now sequential: **Mark sample delivered** shows first (hidden once a request exists); **Send approval request** only appears after the line status is `delivered`.
+- `supplier.orders.$id.tsx` — for paid sample lines the amber panel shows a "mark as delivered first" hint until the order is delivered, then the send button; legacy `sampleRequested` lines keep the old always-visible button.
 
 # Development History (continued)
 
