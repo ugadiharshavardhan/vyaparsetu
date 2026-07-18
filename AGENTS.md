@@ -163,6 +163,29 @@
 
 # Development History
 
+## 2026-07-18 - Fix buyer chatbot not appearing after login (show-by-default + hide seller/admin)
+
+### Why
+The AI chatbot FAB did not appear right after a buyer signed in — it only showed after a manual page reload, and only for "some people".
+
+### Root cause
+`Chatbot.tsx` gated visibility on signals that lag or can be missed after a client-side (SPA) login:
+- Originally `sessionMode === "buyer"` — `sessionMode` (from `useSessionMode()`) only updates via the one-shot `vs:session-mode` window event after mount; on a hard reload it reads `"buyer"` straight from `localStorage`, but after an SPA login the event during login→navigate can be missed, leaving it `null`.
+- The first fix then required `account?.isBuyer === true`, but that depends on the `useAccountFlags` query resolving (and the buyer row existing) — so it appeared only for users whose query resolved quickly, hiding it for others.
+
+### Changes
+- `src/components/common/Chatbot.tsx` — inverted the logic to **show-by-default for any authenticated user**, then hide only for seller/admin surfaces. Primary trigger is `isAuthenticated` (instant/reliable via the auth context). Hide conditions (all fully reactive): in the seller workspace by **route** (`useRouterState` pathname starts with `/seller`, `/supplier`, `/admin`) or `sessionMode === "seller"`; `account?.isAdmin === true`.
+
+### Follow-up (same day) — remove buyer/seller account-flag gating (was still hiding it for some buyers)
+- The above still required a positive buyer flag via `isPureSeller = account.isSeller && !account.isBuyer`. Buyers whose `useAccountFlags` returned `isBuyer: false` (missing/lagging buyer row, RLS timing, or an extra seller row) got `isPureSeller = true` → chatbot hidden — so it appeared for "some people" only. On logout, `queryClient.clear()` wiped `account`, briefly removing that block while the session tore down → the chatbot flashed on logout.
+
+### Follow-up 2 (same day) — drop ALL account-flag checks (admin exclusion hid the operator's dual-role account)
+- Even after the above, the gate kept `account?.isAdmin !== true`. Verified against the live DB (`scratch/check-account-flags.mjs`): the operator account `ugadiharshavardhan@gmail.com` has **buyers + sellers + admins rows all YES**, so `isAdmin === true` hid the chatbot for that account even while browsing the buyer marketplace — exactly matching "appears for some people (plain buyers) but not me", and the logout flash (flags cache cleared → admin block vanished momentarily).
+- Final gate (no account-flags dependency at all): `shouldShow = isAuthenticated && !inSellerArea`, where `inSellerArea = sessionMode === "seller" || pathname startsWith /seller | /supplier | /admin` (route check via `useRouterState`). `useAccountFlags` import removed from `Chatbot.tsx`. Admin workspace is still chatbot-free because `/admin*` is route-hidden.
+
+### Notes
+- Pure frontend fix. Any signed-in user browsing buyer surfaces sees the chatbot immediately after SPA login (no reload), including dual-role accounts. Seller/admin workspaces hide it by route/session mode. No more logout flash.
+
 ## 2026-07-18 - Seller Samples: show buyer map location + full delivery address
 
 ### Why

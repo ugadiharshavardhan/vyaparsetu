@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Bot, RefreshCw, Sparkles, SendHorizontal, MessageSquareDot, Sparkle } from "lucide-react";
+import { useRouterState } from "@tanstack/react-router";
 import { apiClient } from "@/lib/apiClient";
 import { useAuth } from "@/hooks/useAuth";
-import { useAccountFlags } from "@/hooks/useAccountFlags";
 import { useSessionMode } from "@/hooks/useSessionMode";
 import { cn } from "@/lib/utils";
 
@@ -22,8 +22,8 @@ const QUICK_PROMPTS = [
 
 export function Chatbot() {
   const { isAuthenticated } = useAuth();
-  const { data: account } = useAccountFlags();
   const sessionMode = useSessionMode();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [isOpen, setIsOpen] = useState(false);
   const [showTooltip, setShowTooltip] = useState(true);
   const [messages, setMessages] = useState<Message[]>([
@@ -53,10 +53,22 @@ export function Chatbot() {
     }
   }, [messages, isLoading, isOpen]);
 
-  // Determine visibility: authenticated buyer layout
-  const isBuyer = isAuthenticated && sessionMode === "buyer" && !account?.isAdmin;
+  // Visibility: show the buyer assistant for ANY signed-in user, hidden only
+  // inside the seller/admin workspaces (by route) or in seller session mode.
+  // The ONLY signal that makes it appear is `isAuthenticated` (instant via the
+  // auth context) — no dependency on the account-flags query. Account-flag
+  // checks were removed on purpose: dual-role accounts (e.g. the operator's
+  // buyer+seller+admin account) were being hidden by `isAdmin`/`isPureSeller`
+  // conditions even while browsing as a buyer.
+  const inSellerArea =
+    sessionMode === "seller" ||
+    pathname.startsWith("/seller") ||
+    pathname.startsWith("/supplier") ||
+    pathname.startsWith("/admin");
 
-  if (!isBuyer) return null;
+  const shouldShow = isAuthenticated && !inSellerArea;
+
+  if (!shouldShow) return null;
 
   const handleSend = async (text: string) => {
     if (!text.trim() || isLoading) return;
